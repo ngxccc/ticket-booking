@@ -122,6 +122,7 @@ The following scripts are defined in the workspace root `package.json`:
 - `bun run dev`: Launches the NestJS development server in watch mode (`nest start --watch`).
 - `bun run build`: Compiles the NestJS application into production-ready JavaScript in the `dist/` directory.
 - `bun run lint`: Runs ESLint with autofix enabled to scan for static code quality and formatting issues.
+- `bun run check-types`: Runs TypeScript validation checks (`tsc --noEmit`) to verify there are no compilation or type errors.
 - `bun run format`: Runs Prettier to enforce consistent code styling (enforcing double quotes across files).
 - `bun test`: Executes the test suites in `src/` using the native Bun Test runner.
 - `bun run start:prod`: Starts the compiled application in production mode.

@@ -23,8 +23,9 @@ jobs:
       - name: Setup Environment
         uses: ./.github/setup-environment
 
-      - name: Run CI Tasks (Lint, Test, Build)
+      - name: Run CI Tasks (Lint, Test, Type-Check, Build)
         run: |
           bun run lint
+          bun run check-types
           bun run test test:e2e
           bun run build
