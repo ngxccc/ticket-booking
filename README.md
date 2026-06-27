@@ -130,4 +130,4 @@ The following scripts are defined in the workspace root `package.json`:
 - `bun run db:push`: Applies database schema changes and migrations.
 - `bun run db:studio`: Opens Drizzle Studio GUI for database exploration.
 
-> **Note on Upgrading Drizzle Prereleases:** Because the project uses the `1.0.0-rc` line, standard package updates may ignore newer release candidate hashes. To upgrade to the latest RC build manually, run `bun add drizzle-orm@rc` and `bun add -d drizzle-kit@rc`.
+> **Note on Upgrading Drizzle Prereleases:** Because the project uses the `1.0.0-rc` line, standard package updates may ignore newer release candidate hashes. To upgrade to the latest RC build manually, run `bun add drizzle-orm@rc4` and `bun add -d drizzle-kit@rc4`.
