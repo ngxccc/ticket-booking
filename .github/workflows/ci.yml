@@ -1,0 +1,30 @@
+name: CI Pipeline (Lint, Test, Build)
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+    types: [opened, synchronize, reopened]
+    paths-ignore:
+      - "**/*.md"
+      - ".gitignore"
+      - "LICENSE"
+
+jobs:
+  integration:
+    name: Code Quality & Build Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Environment
+        uses: ./.github/setup-environment
+
+      - name: Run CI Tasks (Lint, Test, Build)
+        run: |
+          bun run lint
+          bun run test test:e2e
+          bun run build
