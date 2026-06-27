@@ -1,3 +1,5 @@
+<div align="center">
+
 # Ticket Booking System
 
 ## High-Performance & Concurrency-Safe Ticket Reservation Backend
@@ -12,7 +14,7 @@ A modern, high-performance ticket booking and reservation backend built with **N
 [![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)](https://redis.io)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com)
 
----
+## </div>
 
 ## Key Features
 
@@ -31,7 +33,7 @@ The application leverages the following modern technologies:
 
 - **Framework**: NestJS (v11) - Node.js framework for building scalable enterprise-grade applications.
 - **Runtime**: Bun (v1.3.14) - Ultra-fast JavaScript and TypeScript runtime.
-- **Database ORM**: Drizzle ORM (v0.45.2) with Drizzle Kit for database access and migration management.
+ - **Database ORM**: Drizzle ORM (v1.0.0-rc.4-273829f) with Drizzle Kit for database access and migration management.
 - **Database Driver**: pg (node-postgres) for connecting to PostgreSQL.
 - **Background Jobs**: BullMQ (v5.79.1) & ioredis for distributed queues.
 - **Linting & Formatting**: ESLint (v10) + Prettier (v3) with unified rules to prevent project warnings.
