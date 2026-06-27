@@ -24,8 +24,9 @@ updates:
       interval: "weekly" # Actions update ít hơn, tránh lạm dụng
     open-pull-requests-limit: 5
 
-  # ── (Tùy chọn) Nếu sau này bạn dùng Docker ──
-  # - package-ecosystem: "docker"
-  #   directory: "/"
-  #   schedule:
-  #     interval: "weekly"
+  # ── Theo dõi cập nhật hình ảnh Docker ──
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
