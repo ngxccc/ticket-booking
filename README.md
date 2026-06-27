@@ -33,7 +33,7 @@ The application leverages the following modern technologies:
 
 - **Framework**: NestJS (v11) - Node.js framework for building scalable enterprise-grade applications.
 - **Runtime**: Bun (v1.3.14) - Ultra-fast JavaScript and TypeScript runtime.
- - **Database ORM**: Drizzle ORM (v1.0.0-rc.4-273829f) with Drizzle Kit for database access and migration management.
+- **Database ORM**: Drizzle ORM (v1.0.0-rc line) with Drizzle Kit for database access and migration management.
 - **Database Driver**: pg (node-postgres) for connecting to PostgreSQL.
 - **Background Jobs**: BullMQ (v5.79.1) & ioredis for distributed queues.
 - **Linting & Formatting**: ESLint (v10) + Prettier (v3) with unified rules to prevent project warnings.
@@ -128,3 +128,5 @@ The following scripts are defined in the workspace root `package.json`:
 - `bun run db:generate`: Generates database migrations based on schema.
 - `bun run db:push`: Applies database schema changes and migrations.
 - `bun run db:studio`: Opens Drizzle Studio GUI for database exploration.
+
+> **Note on Upgrading Drizzle Prereleases:** Because the project uses the `1.0.0-rc` line, standard package updates may ignore newer release candidate hashes. To upgrade to the latest RC build manually, run `bun add drizzle-orm@rc` and `bun add -d drizzle-kit@rc`.
