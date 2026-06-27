@@ -17,6 +17,9 @@
     "test:cov": "bun test src/ --coverage",
     "test:e2e": "bun test test/",
     "test:watch": "bun test src/ --watch",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
     "prepare": "husky"
   },
   "dependencies": {

@@ -1,98 +1,128 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Ticket Booking System
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## High-Performance & Concurrency-Safe Ticket Reservation Backend
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+A modern, high-performance ticket booking and reservation backend built with **NestJS**, **Drizzle ORM**, and **PostgreSQL**, utilizing **BullMQ (Redis)** for concurrency-safe ticket reservations and background job queueing.
 
-## Description
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![NestJS](https://img.shields.io/badge/NestJS-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com)
+[![Bun](https://img.shields.io/badge/Bun-000000?logo=bun&logoColor=white)](https://bun.sh)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![Drizzle ORM](https://img.shields.io/badge/Drizzle-FF6B00?logo=drizzle&logoColor=white)](https://orm.drizzle.team)
+[![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)](https://redis.io)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+---
 
-## Project setup
+## Key Features
 
-```bash
-$ bun install
+- **Concurrency-Safe Reservations**: Pessimistic row locking (`SELECT ... FOR UPDATE`) implemented at the database transaction level to prevent double-booking of seats under high concurrent load.
+- **Background Job Processing**: Asynchronous tasks and event processing powered by **BullMQ** and **Redis**.
+- **Type-Safe Database Schema**: Modern data access layer using **Drizzle ORM** with automatic SQL migration generation via **Drizzle Kit**.
+- **Secure Docker Environment**: Multi-stage production-ready Docker configuration running as a non-root `bun` user (UID/GID 1001) with Alpine-compatible healthcheck.
+- **Pre-commit Formatting Hook**: Standardized code formatting and linting on staged files using **Husky** and **lint-staged** running Prettier and ESLint.
+- **Clean Architecture & Configuration**: Global config management using NestJS `ConfigService` with full support for single database connection URLs (`DATABASE_URL`) or individual variables.
+
+---
+
+## Tech Stack
+
+The application leverages the following modern technologies:
+
+- **Framework**: NestJS (v11) - Node.js framework for building scalable enterprise-grade applications.
+- **Runtime**: Bun (v1.3.14) - Ultra-fast JavaScript and TypeScript runtime.
+- **Database ORM**: Drizzle ORM (v0.45.2) with Drizzle Kit for database access and migration management.
+- **Database Driver**: pg (node-postgres) for connecting to PostgreSQL.
+- **Background Jobs**: BullMQ (v5.79.1) & ioredis for distributed queues.
+- **Linting & Formatting**: ESLint (v10) + Prettier (v3) with unified rules to prevent project warnings.
+- **Git Hooks**: Husky & lint-staged for pre-commit quality gates.
+
+---
+
+## Concurrency Control & Database Locking
+
+For a ticket booking application, preventing double-booking under high load is the most critical requirement. The system implements **Pessimistic Row Locking** at the database transaction level.
+
+When a client attempts to book a seat, the transaction locks the specific seat row immediately using `FOR UPDATE`. This blocks any concurrent transactions attempting to read or modify the same seat until the first transaction either commits or rolls back.
+
+```typescript
+// Sample booking service logic implementing pessimistic locking
+await this.db.transaction(async (tx) => {
+  // Lock the seat row using FOR UPDATE
+  const [seat] = await tx
+    .select()
+    .from(seats)
+    .where(eq(seats.id, seatId))
+    .for("update")
+    .limit(1);
+
+  if (!seat) throw new NotFoundException("Seat not found");
+  if (seat.isBooked) throw new ConflictException("Seat is already booked");
+
+  // Perform updates and create booking ticket
+  await tx.update(seats).set({ isBooked: true }).where(eq(seats.id, seatId));
+  await tx.insert(tickets).values({ userId, seatId });
+});
 ```
 
-## Compile and run the project
+---
 
-```bash
-# development
-$ bun run start
+## Getting Started
 
-# watch mode
-$ bun run start:dev
+### Prerequisites
 
-# production mode
-$ bun run start:prod
-```
+- **Bun**: v1.3.14 or later
+- **Docker & Docker Compose**: For running PostgreSQL and Redis containers locally
 
-## Run tests
+### Local Development Setup
 
-```bash
-# unit tests
-$ bun run test
+1. **Clone the repository and install dependencies**:
 
-# e2e tests
-$ bun run test:e2e
+   ```bash
+   bun install
+   ```
 
-# test coverage
-$ bun run test:cov
-```
+2. **Spin up local PostgreSQL and Redis services**:
 
-## Deployment
+   ```bash
+   docker compose up -d
+   ```
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+3. **Database Migrations**:
+   Run Drizzle Kit to generate and push schemas to your local database:
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+   ```bash
+   # Generate database migrations based on Drizzle schema
+   bun run db:generate
 
-```bash
-$ bun install -g @nestjs/mau
-$ mau deploy
-```
+   # Push changes and execute migrations against the database
+   bun run db:push
+   ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+4. **Start the development server**:
 
-## Resources
+   ```bash
+   bun run dev
+   ```
 
-Check out a few resources that may come in handy when working with NestJS:
+5. **Build for production**:
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+   ```bash
+   bun run build
+   ```
 
-## Support
+---
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## Available Scripts
 
-## Stay in touch
+The following scripts are defined in the workspace root `package.json`:
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- `bun run dev`: Launches the NestJS development server in watch mode (`nest start --watch`).
+- `bun run build`: Compiles the NestJS application into production-ready JavaScript in the `dist/` directory.
+- `bun run lint`: Runs ESLint with autofix enabled to scan for static code quality and formatting issues.
+- `bun run format`: Runs Prettier to enforce consistent code styling (enforcing double quotes across files).
+- `bun test`: Executes the test suites in `src/` using the native Bun Test runner.
+- `bun run start:prod`: Starts the compiled application in production mode.
+- `bun run db:generate`: Generates database migrations based on schema.
+- `bun run db:push`: Applies database schema changes and migrations.
+- `bun run db:studio`: Opens Drizzle Studio GUI for database exploration.
