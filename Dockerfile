@@ -4,12 +4,12 @@ WORKDIR /usr/src/app
 # Stage 2: Install all dependencies (development + production) for building
 FROM base AS install
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+RUN HUSKY=0 bun install --frozen-lockfile
 
 # Stage 3: Install production dependencies only
 FROM base AS prod-install
 COPY package.json bun.lock ./
-RUN bun install --prod --frozen-lockfile
+RUN bun install --prod --frozen-lockfile --ignore-scripts
 
 # Stage 4: Build the application
 FROM base AS builder

@@ -2,6 +2,7 @@
 node_modules/
 jspm_packages/
 web_modules/
+.node-version
 
 # Build outputs
 dist/
@@ -27,6 +28,7 @@ bun-debug.log*
 
 # Editor and system files
 .DS_Store
+.node-version
 .idea/
 .vscode/
 *.suo
@@ -39,14 +41,21 @@ bun-debug.log*
 .git/
 .gitignore
 .gitattributes
+.github/
+.husky/
+.lintstagedrc.json
 
 # Test coverage
 coverage/
 .nyc_output/
+# Test suites
+test/
 
 # Cache directories
 .eslintcache
 .prettiercache
+.prettierrc
+.prettierignore
 .parcel-cache
 .cache/
 
@@ -54,3 +63,31 @@ coverage/
 README.md
 AGENTS.md
 CLAUDE.md
+process/
+.claude
+.omp
+
+# DevOps and host automation scripts
+scripts/
+
+# Second Brain & documentation symlinks
+second-brain/
+
+# Build/transfer archives
+*.tar.gz
+*.zip
+*.tgz
+*.tar
+
+# TypeScript / Build config files (eslint is not needed for build)
+eslint.config.ts
+
+# Database migrations configuration
+drizzle.config.ts
+drizzle/
+
+# Orchestration config
+docker-compose.yml
+
+# Legal / Metadata files
+LICENSE
