@@ -23,7 +23,7 @@ A modern, high-performance ticket booking and reservation backend built with **N
 - **Type-Safe Database Schema**: Modern data access layer using **Drizzle ORM** with automatic SQL migration generation via **Drizzle Kit**.
 - **Secure Docker Environment**: Multi-stage production-ready Docker configuration running as a non-root `bun` user (UID/GID 1001) with Alpine-compatible healthcheck.
 - **Pre-commit Formatting Hook**: Standardized code formatting and linting on staged files using **Husky** and **lint-staged** running Prettier and ESLint.
-- **Clean Architecture & Configuration**: Global config management using NestJS `ConfigService` with full support for single database connection URLs (`DATABASE_URL`) or individual variables.
+- **Clean Architecture & Configuration**: Global config management using NestJS `ConfigService` with full support for single database connection URLs (`DB_URL`) or individual variables.
 
 ---
 
@@ -131,3 +131,70 @@ The following scripts are defined in the workspace root `package.json`:
 - `bun run db:studio`: Opens Drizzle Studio GUI for database exploration.
 
 > **Note on Upgrading Drizzle Prereleases:** Because the project uses the `1.0.0-rc` line, standard package updates may ignore newer release candidate hashes. To upgrade to the latest RC build manually, run `bun add drizzle-orm@rc4` and `bun add -d drizzle-kit@rc4`.
+
+---
+
+## Deployment & Operations (DevOps)
+
+The project includes a production-ready DevOps setup optimized for low-resource environments (such as an Azure B1s VM with 1GB RAM) using Docker, Docker Compose, and Caddy Server.
+
+### 1. System Requirements & Port Mapping
+
+- **Memory Optimization**: To prevent Out-Of-Memory (OOM) errors, it is highly recommended to configure a 2GB Swap space on your Linux server.
+- **Network Security**: Open port `80` (HTTP) and `443` (HTTPS) on your firewall. No host port mapping (`-p 3000:3000`) is required for the NestJS container, ensuring all public traffic is securely routed exclusively through the Caddy proxy.
+
+### 2. Environment Configuration
+
+Before deploying, you can initialize the default environment configuration using the helper script:
+
+```bash
+./scripts/generate-env.sh
+```
+
+_This script dynamically creates a `.env` file with default values if not present. If the `.env` file already exists, it verifies and automatically appends missing parameters (such as `DOMAIN_NAME`) to prevent breaking existing configuration._
+
+### 3. Deploying the Application
+
+We provide a unified deployment process that defaults to **Zero-Downtime Blue-Green Deployment** to ensure uninterrupted access for users during updates:
+
+#### Deploying the Entire Stack (`scripts/redeploy.sh`)
+
+This is the main orchestrator script. Run this on your initial setup or when redeploying the entire infrastructure:
+
+```bash
+./scripts/redeploy.sh
+```
+
+It automates the following steps:
+
+1. Ensures system environment and Swap space (2GB) are configured.
+2. Ensures Docker Engine and Compose are installed.
+3. Starts PostgreSQL, Redis, and Caddy containers using Docker Compose.
+4. Triggers the application deployment script (`scripts/deploy-app.sh`).
+
+#### Deploying Application Updates (`scripts/deploy-app.sh`)
+
+Run this script directly if you only want to build and deploy application code updates (NestJS logic) without touching or restarting the databases:
+
+```bash
+./scripts/deploy-app.sh
+```
+
+This script executes the Blue-Green pipeline:
+
+- **Active Detection**: Identifies whether the `blue` or `green` application container is currently active.
+- **Idle Start**: Builds the new Docker image and launches it as the inactive (idle) container.
+- **Health Check**: Performs internal container checks (`wget`) until the new container is confirmed healthy and active.
+- **Zero-Downtime Reload**: Dynamically updates the `Caddyfile` with the new container name and executes `caddy reload` (takes a few milliseconds, keeping all active connections alive).
+- **Clean Up**: Gracefully shuts down and removes the old container, and prunes dangling Docker images to reclaim disk space.
+
+### 4. Container Resource Limits
+
+To ensure stability on a 1GB RAM VM, strict resource constraints are defined for all containers:
+
+| Container Name                                | CPU Limit | Memory Limit (Hard) | Memory Reservation (Soft) |
+| :-------------------------------------------- | :-------- | :------------------ | :------------------------ |
+| `ticket-booking-postgres`                     | `0.50`    | `512MB`             | `256MB`                   |
+| `ticket-booking-redis`                        | `0.25`    | `128MB`             | `32MB`                    |
+| `ticket-booking-caddy`                        | `0.15`    | `128MB`             | `64MB`                    |
+| `ticket-booking-container` / `app-blue/green` | `0.50`    | `256MB`             | `128MB`                   |

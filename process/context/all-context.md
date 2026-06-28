@@ -1,8 +1,8 @@
-# agent-skills-kit - All Context
+# NestJS Ticket Booking - All Context
 
-Last updated: 2026-06-05
+Last updated: 2026-06-28
 
-This file is the root context entrypoint for the repo.
+This file is the root context entrypoint for the ticket-booking repository.
 
 Use it for two things:
 
@@ -28,12 +28,6 @@ process/context/
     example-complex-prd.md            <-- deep doc within the group
   tests/
     all-tests.md                      <-- group router for tests
-    debugging-and-pitfalls.md         <-- deep doc within the group
-    e2e-tests.md                      <-- deep doc within the group
-  database/
-    all-database.md                   <-- group router for database
-    schema-guide.md                   <-- deep doc within the group
-    migration-procedures.md           <-- deep doc within the group
 ```
 
 **How agents use it:**
@@ -136,96 +130,63 @@ When durable project knowledge changes:
 
 ## Repository Structure
 
-<!-- STUDY: Replace with actual repo directory tree (2-3 levels deep). -->
-<!-- Show the top-level layout so agents can quickly orient. -->
-
-<!-- Example of what this looks like filled in (for a Next.js + tRPC monorepo): -->
-
-<!--
 ```
-acme-saas/
-  apps/
-    web/              -- Next.js 15 App Router
-    admin/            -- Internal admin dashboard
-  packages/
-    api/              -- tRPC routers + Hono server
-    db/               -- Prisma ORM + PostgreSQL
-    ui/               -- Shared React components
-    validators/       -- Shared Zod schemas
+ticket-booking/
+  src/                -- NestJS application source code
+    database/         -- Database connection module and schema definitions
+    config/           -- Configuration management module
+    app.controller.ts -- Main controller
+    app.service.ts    -- Main service
+    app.module.ts     -- Root application module
+    main.ts           -- Application entry point
+  test/               -- E2E test suites (Bun test)
+  drizzle/            -- Drizzle ORM migration files
   process/
-    context/          -- this context system
-    general-plans/    -- plans, reports, references
-    features/         -- feature-scoped storage
-    development-protocols/  -- RIPER-5 methodology docs
-```
--->
-
-```
-agent-skills-kit/
-  .agents/            -- Hooks, adapter, and mirrored agents
-  .claude/            -- Claude Code configuration, agents, and skills
-    agents/           -- 12 specialized agent definitions (Markdown)
-    skills/           -- 15+ executable skill directories (e.g. ag-scout, ag-repomix, ag-tech-graph)
-  .codex/             -- Codex-specific agent mirrors, hooks, and tests
-  process/            -- Development process metadata and plans (shared)
-    context/          -- Durable context routers and groups
-    development-protocols/ -- Managed development methodology files (RIPER-5)
-    general-plans/    -- Cross-cutting feature plans (active, completed, backlog)
+    context/          -- Project context documentation (routers and groups)
+    general-plans/    -- Cross-cutting feature plans
     features/         -- Feature-scoped storage folders
-  docs/               -- Project documentation, internationalization (i18n) READMEs
-  assets/             -- Visual assets (logos, etc.)
-  install.sh          -- Installation script
-  resolve-manifest.mjs -- Glob-based manifest resolver
-  ag-manifest.json    -- Installation and packaging manifest file
+    development-protocols/ -- Managed development methodology files (RIPER-5)
+  second-brain/       -- Symlink to Obsidian second brain vault
+  docker-compose.yml  -- Postgres & Redis development configuration
+  Dockerfile          -- Application containerization setup
 ```
 
 ## Technology Stack
 
-<!-- STUDY: Replace with actual framework names, versions, and key technology details. -->
-<!-- Be specific: "Next.js 15 with App Router" not just "Next.js". -->
-
-<!-- Example of what this looks like filled in: -->
-
-<!--
-- **Framework:** Next.js 15 (App Router) for web, Hono for API server
-- **Language:** TypeScript 5.5 throughout
-- **Runtime:** Node 22.x (web), Bun 1.x (API server and API tests)
-- **Database:** PostgreSQL via Prisma ORM (Supabase hosted)
-- **API:** tRPC v11 for type-safe RPC
-- **Auth:** Clerk (middleware + webhook-based sync)
-- **UI:** Tailwind CSS v4 + shadcn/ui components
-- **State:** Zustand for client state
-- **Package manager:** pnpm 10.x (monorepo with turborepo)
-- **Monorepo:** Turborepo for build orchestration
--->
-
-- **Framework/Structure:** Meta development harness for AI coding agents
-- **Languages:** Node.js (JavaScript, TypeScript), Shell scripting (Bash)
-- **Runtimes:** Node.js v20+, Bash
-- **Test Runners:** Custom test suites (Node), Jest (for `ag-sequential-thinking` skill)
-- **Dependencies:** `puppeteer`, `sharp`, `yargs`, `@modelcontextprotocol/sdk`, `jest` (per-skill and helper-level)
-- **Key CLI Tools:** `resolve-manifest.mjs`
-- **Orchestration:** Monitored workflow using system hooks and markdown protocols
+- **Framework/Structure:** NestJS 11
+- **Languages:** TypeScript 6.0
+- **Runtimes:** Bun 1.1+ (uses `bun.lock` and `package.json` for dependency management)
+- **Database:** PostgreSQL via Drizzle ORM
+- **Cache/Queue:** Redis & BullMQ (for background job processing / ticket queuing)
+- **Database Tools:** Drizzle Kit (for database migrations and Drizzle Studio)
+- **Containerization:** Docker & Docker Compose (running PostgreSQL 18-alpine & Redis 8-alpine)
+- **Linting & Formatting:** ESLint & Prettier
+- **Testing:** Bun test runner (`bun test`) for both unit and E2E tests
 
 ## Key Patterns and Conventions
 
 - **RIPER-5 Flow:** Strictly phased spec-driven development workflow (Research -> Innovate -> Plan -> Execute -> Update Process).
 - **All-\*.md Convention:** Entry points for context (`all-context.md`) and groups (`all-tests.md`, `all-planning.md`) act as quick context routers to keep context windows small.
-- **Agent/Skill Mirroring:** Codex TOML agents mirror Claude Code Markdown agents; `.agents/skills` is symlinked to `.claude/skills`.
-- **Validation Gates:** CI workflow `validate.yml` runs a set of validation scripts under `ag-audit-ag`, `ag-audit-context`, `ag-audit-plans`, and `ag-generate-context`.
+- **Second Brain Note Storage:** When creating general notes, explanations, or documentation, store them under the `second-brain/` directory in the root of the project (e.g. `second-brain/Docs/` or `second-brain/`). This directory is a symlink pointing to the Obsidian second brain vault (`secondbrain`).
+- **Dependency Management:** Use Bun for installing dependencies, running scripts, and testing.
 
 ## Environment and Configuration
 
-- **Config Files:** `ag-manifest.json` (defines paths included/excluded/copied/symlinked), `.markdownlint.json`, `process/development-protocols/` files.
+- **Config Files:** `package.json`, `tsconfig.json`, `drizzle.config.ts`, `nest-cli.json`, `eslint.config.ts`, `docker-compose.yml`, `Caddyfile`, `scripts/redeploy.sh`, `scripts/setup-env.sh`, `scripts/deploy-db.sh`, `scripts/deploy-app.sh`, `scripts/reload-caddy.sh`.
 - **Environment Variables (names only):**
-  - Statusline: `CK_STATUSLINE_STDIN_TIMEOUT_MS`
-
+  - Database: `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASE`.
 ## Scan Metadata
 
-- Generated: 2026-06-05
-- Repo HEAD: 6f25553867f0ec9755e83a89fbd88e1a4f7d2878
-- Mode: Full Scan
-- Package manager: npm (no package lock at root, lockfiles exist in sub-packages)
+- Generated: 2026-06-28
+- Repo HEAD: 55403b8918bc2128b5c5fa57a9ea73466d9c18af
+- Mode: Sync Scan
+- Package manager: bun (uses `bun.lock` at root)
+
+## Source References
+
+- `package.json`
+- `docker-compose.yml`
+- `process/context/tests/all-tests.md`
 
 ## Open Questions
 

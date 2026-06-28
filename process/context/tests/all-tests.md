@@ -1,6 +1,6 @@
-# agent-skills-kit - All Tests
+# NestJS Ticket Booking - All Tests
 
-Last updated: 2026-06-05
+Last updated: 2026-06-28
 
 Attach this file first when the task involves testing, verification, or test debugging.
 
@@ -10,8 +10,6 @@ This is the fast operator guide for the testing surface:
 - what command to start with
 - how to quickly debug common failures
 - which deeper file to read next
-
-Do not load the whole `process/context/tests/` folder by default. Start here, then drill down.
 
 ---
 
@@ -23,154 +21,70 @@ This is the `all-tests.md` entrypoint for the `tests/` context group. It follows
 2. This file gives quick decision rules and commands
 3. For deeper details, agents follow the routing table below to specific docs
 
-As the project grows, add deeper docs to this group (e.g., `e2e-tests.md`, `debugging-and-pitfalls.md`) and add routing entries below. This file stays the fast-start entrypoint.
-
 ---
 
 ## What This Covers
 
 - test runner selection
-- quick commands by package
+- quick commands by test scope
+- dependency on running environment (Docker containers)
 - fast debugging procedures
-- current testing gaps worth remembering
 
 ## Read This When
 
 Use this file when you need to:
 
 - run tests after implementation
-- decide between test runners
+- run unit tests or E2E tests
+- check types or run linter
 - debug failing tests
 
 ## Quick Routing
-
-<!-- STUDY: Replace with routing entries to deeper test docs as they are created. -->
-<!-- Start with an empty table. Add rows as deeper docs are created during the project lifecycle. -->
-
-<!-- Example of what a filled-in routing table looks like (from a mature project): -->
-
-<!--
-| If you need... | Read next |
-|---|---|
-| commands and scripts by package | `scripts-and-commands.md` |
-| architecture, mocks, auth model, and runner split | `architecture-and-patterns.md` |
-| Playwright setup, auth flow, and current specs | `e2e-tests.md` |
-| failing-test triage and runtime debugging | `debugging-and-pitfalls.md` |
-| known gaps and future test-system fixes | `known-issues.md` |
--->
 
 (No deeper test docs yet. Add routing entries here as they are created.)
 
 ## Quick Decision Guide
 
-<!-- STUDY: Replace with actual test runner names and when to use each. -->
-<!-- For monorepos with multiple runners, list each runner with its scope. -->
+### Use `bun test` for everything
 
-<!-- Example of what this looks like filled in (monorepo with Vitest + Bun + Playwright): -->
+- All tests (both unit and E2E) run through the Bun native test runner (`bun test`).
+- Database migrations and running Docker containers are required for tests that touch Postgres or Redis.
 
-<!--
-### Use `vitest` when
+### Use Docker Compose before running tests
 
-- the change is in React components, hooks, stores, or plugin logic
-- the package already has a vitest config and unit-test surface
+- The application uses Postgres (for persistence) and Redis (for queue/caching).
+- Ensure the containers are running by executing `docker compose up -d` before running database-dependent or E2E tests.
 
-### Use `bun test` when
-
-- the change is in `packages/api`
-- the behavior is router, route, auth-helper, or model logic
-
-### Use Playwright when
-
-- the behavior depends on real navigation, auth redirects, rendering, or full-stack browser flows
-
-### Use container verification when
-
-- the issue is about runtime services, gateway WebSocket behavior, or proxy state
--->
-
-<!-- Example for a simpler single-app project: -->
-
-<!--
-### Use `vitest` for everything
-
-- all tests run through vitest
-- `vitest run` for CI, `vitest` (watch mode) for development
-- Playwright tests also use vitest as the runner via `@playwright/test`
--->
-
-### Use Node.js runner when
-
-- Testing statusline/hook logic (`statusline-suite.cjs`)
-- Testing `ag-watzup` scan scripts (`watzup-scan.test.cjs`)
-- Testing `ag-docs-seeker` script logic
-
-### Use Jest when
-
-- Testing the sequential thinking skill scripts (`npm test` under `.claude/skills/ag-sequential-thinking/`)
-
-> 💡 **Tip:** All Node.js validation and test scripts are fully compatible with [Bun](https://bun.sh). If you have Bun installed, you can prefix commands with `bun` instead of `node` (e.g. `bun run validate`) for near-instantaneous execution.
+---
 
 ## Default Verification Order
 
 Unless the task clearly needs a different path:
 
-1. run the narrowest existing automated test
-2. use unit/integration tests before browser tests
-3. use end-to-end tests only when the real UI is the thing being verified
+1. ensure Docker containers are up (`docker compose up -d`)
+2. run type checks (`bun run check-types`) to catch TS compile issues
+3. run the narrowest existing automated test (e.g. `bun test src/app.controller.spec.ts`)
+4. run the full unit test suite (`bun run test`)
+5. run E2E integration tests (`bun run test:e2e`)
+6. run the linter (`bun run lint`) to ensure styling standards are met
+
+---
 
 ## Commands
 
-<!-- STUDY: Replace with actual test commands per package/workspace. -->
-<!-- For monorepos, use a table showing package name, runner, and command. -->
-
-<!-- Example of what this looks like filled in (monorepo): -->
-
-<!--
-| Package | Runner | Command | Notes |
+| Scope / Task | Runner | Command | Notes |
 |---|---|---|---|
-| `apps/web` | vitest | `pnpm --filter web test` | jsdom environment |
-| `packages/api` | bun test | `pnpm --filter @acme/api test` | needs `.env.test` |
-| `packages/db` | bun test | `pnpm --filter @acme/db test` | needs running database |
-| `apps/web` (e2e) | Playwright | `pnpm --filter web test:e2e` | needs dev server running |
-| root | all | `pnpm test` | runs all packages |
-
-**Typecheck (not a test runner, but often needed for verification):**
-```bash
-pnpm typecheck          # all packages
-pnpm --filter web typecheck  # single package
-```
-
-**Lint:**
-```bash
-pnpm lint               # all packages
-pnpm lint:verified      # lint + typecheck together
-```
--->
-
-<!-- Example for a simpler single-app project: -->
-
-<!--
-```bash
-pnpm test              # run all tests (vitest)
-pnpm test:e2e          # run Playwright e2e tests
-pnpm test -- --watch   # watch mode
-pnpm test -- path/to/file.test.ts  # single file
-```
--->
-
-| Scope / Skill       | Runner | Command                                                                                                                      |
-| ------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| statusline/hooks    | Node   | `node .codex/hooks/lib/__tests__/statusline-suite.cjs`                                                                       |
-| watzup scan         | Node   | `node .claude/skills/ag-watzup/scripts/watzup-scan.test.cjs`                                                                 |
-| sequential thinking | Jest   | `cd .claude/skills/ag-sequential-thinking && npm test`                                                                       |
-| docs seeker         | Node   | `cd .claude/skills/ag-docs-seeker && npm test`                                                                               |
-| validation / audit  | Node   | `node .claude/skills/ag-audit-ag/scripts/validate-agent-parity.mjs` (and other scripts under ag-audit-ag / ag-audit-context) |
+| Run Unit Tests | Bun test | `bun run test` (or `bun test src/`) | Run all tests in `src/` |
+| Run E2E Tests | Bun test | `bun run test:e2e` (or `bun test test/`) | Run all E2E integration tests in `test/` |
+| Watch Unit Tests | Bun test | `bun run test:watch` | Run tests in watch mode |
+| Coverage Report | Bun test | `bun run test:cov` | Generate coverage report |
+| Type Check | TypeScript Compiler | `bun run check-types` | Run `tsc --noEmit` |
+| Lint Code | ESLint | `bun run lint` | Run ESLint with fix and caching options |
+| Format Code | Prettier | `bun run format` | Run Prettier formatter across source and test paths |
 
 ## Debugging Quick Reference
 
-- **Node.js require path:** hooks tests use `require` paths relative to their location, run them from the repository root.
-- **Jest environment:** `ag-sequential-thinking` Jest tests run in standard Node environment.
-
-## Known Gaps
-
-- None identified yet.
+- **Database Connection Issues:** If tests fail with connection errors to Postgres or Redis, ensure Docker is running and execute `docker compose up -d` to spin up services.
+- **Port Conflicts:** If `docker compose up` fails, check if local instances of Postgres (port 5432) or Redis (port 6379) are already running on the host and stop them.
+- **TypeScript Compilation Errors:** If tests fail due to types, run `bun run check-types` to see type errors across the project.
+- **Lint Failures:** Run `bun run lint` to automatically fix common styling issues.

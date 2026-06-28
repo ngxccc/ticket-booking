@@ -1,6 +1,6 @@
 # Planning Context
 
-This file is the canonical planning context entrypoint for agent-skills-kit.
+This file is the canonical planning context entrypoint for ticket-booking.
 
 Use it after `process/context/all-context.md` when the task needs plan-shape calibration,
 planning conventions, or implementation-plan examples.
