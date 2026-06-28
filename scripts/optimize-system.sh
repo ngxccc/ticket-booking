@@ -24,16 +24,21 @@ disable_service_if_exists "unattended-upgrades"
 
 # 3. Optimize systemd-journald (limit log size to 50MB)
 echo "==> Configuring systemd-journald to limit log size..."
-JOURNALD_CONF="/etc/systemd/journald.conf"
+sudo mkdir -p /etc/systemd/journald.conf.d
+echo -e "[Journal]\nSystemMaxUse=50M\nRuntimeMaxUse=50M" | sudo tee /etc/systemd/journald.conf.d/99-optimize.conf > /dev/null
+sudo systemctl restart systemd-journald || true
+echo "==> systemd-journald log size limited to 50MB."
 
-if [ -f "$JOURNALD_CONF" ]; then
-    sudo mkdir -p /etc/systemd/journald.conf.d
-    echo -e "[Journal]\nSystemMaxUse=50M\nRuntimeMaxUse=50M" | sudo tee /etc/systemd/journald.conf.d/99-optimize.conf > /dev/null
-    sudo systemctl restart systemd-journald || true
-    echo "==> systemd-journald log size limited to 50MB."
-else
-    echo "==> $JOURNALD_CONF not found. Skipping journald optimization."
-fi
+# 4. Limit Docker daemon memory usage
+echo "==> Limiting Docker daemon memory usage..."
+sudo mkdir -p /etc/systemd/system/docker.service.d
+sudo tee /etc/systemd/system/docker.service.d/memory.conf > /dev/null << INNER
+[Service]
+MemoryMax=250M
+MemoryHigh=200M
+INNER
+sudo systemctl daemon-reload || true
+sudo systemctl restart docker || echo "Docker restart failed (may need manual intervention)"
 
 echo "========================================================="
 echo " SYSTEM OPTIMIZATION COMPLETED"
