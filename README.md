@@ -41,34 +41,6 @@ The application leverages the following modern technologies:
 
 ---
 
-## Concurrency Control & Database Locking
-
-For a ticket booking application, preventing double-booking under high load is the most critical requirement. The system implements **Pessimistic Row Locking** at the database transaction level.
-
-When a client attempts to book a seat, the transaction locks the specific seat row immediately using `FOR UPDATE`. This blocks any concurrent transactions attempting to read or modify the same seat until the first transaction either commits or rolls back.
-
-```typescript
-// Sample booking service logic implementing pessimistic locking
-await this.db.transaction(async (tx) => {
-  // Lock the seat row using FOR UPDATE
-  const [seat] = await tx
-    .select()
-    .from(seats)
-    .where(eq(seats.id, seatId))
-    .for("update")
-    .limit(1);
-
-  if (!seat) throw new NotFoundException("Seat not found");
-  if (seat.isBooked) throw new ConflictException("Seat is already booked");
-
-  // Perform updates and create booking ticket
-  await tx.update(seats).set({ isBooked: true }).where(eq(seats.id, seatId));
-  await tx.insert(tickets).values({ userId, seatId });
-});
-```
-
----
-
 ## Getting Started
 
 ### Prerequisites
