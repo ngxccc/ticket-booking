@@ -167,12 +167,12 @@ ticket-booking/
 
 - **RIPER-5 Flow:** Strictly phased spec-driven development workflow (Research -> Innovate -> Plan -> Execute -> Update Process).
 - **All-\*.md Convention:** Entry points for context (`all-context.md`) and groups (`all-tests.md`, `all-planning.md`) act as quick context routers to keep context windows small.
-- **Second Brain Note Storage:** When creating general notes, explanations, or documentation, store them under the `second-brain/` directory in the root of the project (e.g. `second-brain/Docs/` or `second-brain/`). This directory is a symlink pointing to the Obsidian second brain vault (`secondbrain`).
+ - **Second Brain Note Storage:** When creating general notes, explanations, or documentation, store them under the `second-brain/` directory in the root of the project (e.g. `second-brain/Docs/` or `second-brain/`). Business specifications, architecture designs, critical trade-offs (e.g. concurrency, outbox pattern), and interview preparation notes must be written to `second-brain/` to facilitate future learning and study. This directory is a symlink pointing to the Obsidian second brain vault (`secondbrain`).
 - **Dependency Management:** Use Bun for installing dependencies, running scripts, and testing.
 
 ## Environment and Configuration
 
-- **Config Files:** `package.json`, `tsconfig.json`, `drizzle.config.ts`, `nest-cli.json`, `eslint.config.ts`, `docker-compose.yml`, `Caddyfile`, `scripts/redeploy.sh`, `scripts/setup-env.sh`, `scripts/deploy-db.sh`, `scripts/deploy-app.sh`, `scripts/reload-caddy.sh`.
+- **Config Files:** `package.json`, `tsconfig.json`, `drizzle.config.ts`, `nest-cli.json`, `eslint.config.ts`, `docker-compose.yml`, `Caddyfile`, `scripts/redeploy.sh`, `scripts/setup-vps-system.sh`, `scripts/deploy-db.sh`, `scripts/deploy-app.sh`, `scripts/reload-caddy.sh`.
 - **Environment Variables (names only):**
   - Database: `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASE`.
 ## Scan Metadata
