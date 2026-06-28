@@ -1,11 +1,20 @@
 import { Global, Module } from "@nestjs/common";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
-import * as schema from "./schema";
+import * as schema from "./schemas";
 import { ConfigService } from "@nestjs/config";
 import { Pool } from "pg";
+import type {
+  ExtractTablesFromSchema,
+  ExtractTablesWithRelations,
+} from "drizzle-orm";
 
 export const DATABASE_CONNECTION = "DATABASE_CONNECTION";
-export type DrizzleDB = NodePgDatabase<typeof schema>;
+export type DrizzleDB = NodePgDatabase<
+  ExtractTablesWithRelations<
+    Record<string, never>,
+    ExtractTablesFromSchema<typeof schema>
+  >
+>;
 
 @Global()
 @Module({
@@ -30,7 +39,11 @@ export type DrizzleDB = NodePgDatabase<typeof schema>;
               database: config.get<string>("DB_DATABASE") ?? "ticket_booking",
             });
 
-        return drizzle({ client: pool, jit: true });
+        return drizzle({
+          client: pool,
+          relations: schema.schemaRelations,
+          jit: true,
+        });
       },
     },
   ],
