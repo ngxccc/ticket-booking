@@ -33,14 +33,14 @@ echo "==> Starting new container (ticket-booking-app-$NEXT)..."
 sudo docker rm -f "ticket-booking-app-$NEXT" || true
 
 sudo docker run -d \
-  --env-file .env \
-  --network ticket-booking_ticket-booking-net \
-  --name "ticket-booking-app-$NEXT" \
-  --restart unless-stopped \
-  --memory="256m" \
-  --memory-reservation="128m" \
-  --cpus="0.50" \
-  ticket-booking-app:latest
+    --env-file .env \
+    --network ticket-booking_ticket-booking-net \
+    --name "ticket-booking-app-$NEXT" \
+    --restart unless-stopped \
+    --memory="256m" \
+    --memory-reservation="128m" \
+    --cpus="0.50" \
+    ticket-booking-app:latest
 
 # 5. Health Check the new container
 echo "==> Performing health check on new container..."
@@ -49,7 +49,7 @@ sleep 5 # Wait for app to boot
 SUCCESS=0
 for i in {1..15}; do
     # Run wget inside the container to test local HTTP response
-    if sudo docker exec "ticket-booking-app-$NEXT" wget -qO- http://localhost:3000/ > /dev/null; then
+    if sudo docker exec "ticket-booking-app-$NEXT" wget -qO- http://localhost:3000/ >/dev/null; then
         echo "==> New container (ticket-booking-app-$NEXT) is HEALTHY and ready!"
         SUCCESS=1
         break
@@ -68,14 +68,14 @@ fi
 # 6. Update Caddyfile & Reload Caddy Proxy
 DOMAIN_NAME=$(grep -E "^DOMAIN_NAME=" .env | cut -d'=' -f2- || echo "localhost")
 echo "==> Updating Caddyfile for domain: $DOMAIN_NAME to ticket-booking-app-$NEXT..."
-cat <<EOF > Caddyfile
+cat <<EOF >Caddyfile
 $DOMAIN_NAME {
 	reverse_proxy ticket-booking-app-$NEXT:3000
 }
 EOF
 
 # Stream configuration into the Caddy container
-sudo docker exec -i ticket-booking-caddy sh -c 'cat > /etc/caddy/Caddyfile' < Caddyfile
+sudo docker exec -i ticket-booking-caddy sh -c 'cat > /etc/caddy/Caddyfile' <Caddyfile
 
 # Reload Caddy config instantly
 echo "==> Reloading Caddy configuration..."
