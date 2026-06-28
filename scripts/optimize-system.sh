@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+OPTIMIZED_FLAG="/var/tmp/.system_optimized"
+
+# Check if already run once
+if [ -f "$OPTIMIZED_FLAG" ]; then
+    echo "========================================================="
+    echo " ==> System optimization already applied. Skipping."
+    echo "========================================================="
+    exit 0
+fi
+
 echo "========================================================="
 echo "   SYSTEM OPTIMIZATION SCRIPT (Safe Mode)"
 echo "========================================================="
@@ -39,6 +49,9 @@ MemoryHigh=200M
 INNER
 sudo systemctl daemon-reload || true
 sudo systemctl restart docker || echo "Docker restart failed (may need manual intervention)"
+
+# 5. Mark as optimized
+sudo touch "$OPTIMIZED_FLAG"
 
 echo "========================================================="
 echo " SYSTEM OPTIMIZATION COMPLETED"
