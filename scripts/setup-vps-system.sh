@@ -32,6 +32,15 @@ else
     sudo systemctl start docker
 fi
 
+# 1.5. Install Doppler CLI
+echo "==> Checking & Installing Doppler CLI..."
+if command -v doppler &>/dev/null; then
+    echo "Doppler CLI is already installed. Skipping installation..."
+else
+    echo "==> Running official Doppler installation script..."
+    (curl -Ls --tlsv1.2 --proto "=https" --retry 3 https://cli.doppler.com/install.sh || wget -t 3 -qO- https://cli.doppler.com/install.sh) | sudo sh
+fi
+
 # 2. Configure Swap
 echo "==> [2/2] Checking & Configuring Swap Space (2GB)..."
 if [ -f /swapfile ] || free | grep -i swap | grep -q '[1-9]'; then

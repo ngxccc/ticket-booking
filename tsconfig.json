@@ -42,6 +42,11 @@
     }
   },
   "exclude": ["node_modules", "dist"],
-  "include": ["src/**/*", "test/**/*", "drizzle.config.ts", "eslint.config.ts"]
+  "include": [
+    "src/**/*",
+    "scripts/**/*",
+    "test/**/*",
+    "drizzle.config.ts",
+    "eslint.config.ts"
+  ]
 }
-

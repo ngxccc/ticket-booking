@@ -9,5 +9,13 @@
     "verbatimModuleSyntax": false
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "eslint.config.ts", "drizzle.config.ts", "**/*.spec.ts"]
+  "exclude": [
+    "scripts/**/*",
+    "test/**/*",
+    "node_modules",
+    "dist",
+    "eslint.config.ts",
+    "drizzle.config.ts",
+    "**/*.spec.ts"
+  ]
 }
