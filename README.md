@@ -134,67 +134,112 @@ The following scripts are defined in the workspace root `package.json`:
 
 ---
 
-## Deployment & Operations (DevOps)
+## Deployment & System Optimization Guide
 
-The project includes a production-ready DevOps setup optimized for low-resource environments (such as an Azure B1s VM with 1GB RAM) using Docker, Docker Compose, and Caddy Server.
+The project includes a production-ready DevOps setup optimized for low-resource environments (such as an Azure B2ats_v2 VM with 2 vCPU, 1GB RAM) using Docker, Docker Compose, Cloudflare Tunnel, and Caddy Server.
 
-### 1. System Requirements & Port Mapping
+### 1. Code Packaging & Transfer
 
-- **Memory Optimization**: To prevent Out-Of-Memory (OOM) errors, it is highly recommended to configure a 2GB Swap space on your Linux server.
-- **Network Security**: Open port `80` (HTTP) and `443` (HTTPS) on your firewall. No host port mapping (`-p 3000:3000`) is required for the NestJS container, ensuring all public traffic is securely routed exclusively through the Caddy proxy.
+To deploy changes from local to the VM, use a clean tarball packaging method. This prevents copying bulky `node_modules` or `.git` files:
 
-### 2. Environment Configuration
+1. **Pack the project using `git archive`** (ensures only tracked files are included):
 
-Before deploying, you can initialize the default environment configuration using the helper script:
+   ```bash
+   git archive -o /tmp/project.tar.gz HEAD
+   ```
 
-```bash
-./scripts/generate-env.sh
-```
+2. **Transfer the archive to the VM** via SCP:
 
-_This script dynamically creates a `.env` file with default values if not present. If the `.env` file already exists, it verifies and automatically appends missing parameters (such as `DOMAIN_NAME`) to prevent breaking existing configuration._
+   ```bash
+   scp /tmp/project.tar.gz ticket-booking-vm:/home/azureuser/
+   ```
+
+3. **SSH into the VM, extract and redeploy**:
+
+   ```bash
+   ssh ticket-booking-vm
+   # On the VM:
+   cd /home/azureuser
+   rm -rf ticket-booking-new && mkdir ticket-booking-new
+   tar -xzf project.tar.gz -C ticket-booking-new
+   rm -rf ticket-booking && mv ticket-booking-new ticket-booking
+   cd ticket-booking
+   chmod +x scripts/redeploy.sh
+   ./scripts/redeploy.sh
+   ```
+
+### 2. Cloudflare Tunnel & HTTPS Setup
+
+To achieve maximum security and avoid rate-limiting issues with SSL certificates:
+
+- **Zero Open Ports**: Do **NOT** open port 22, 80, or 443 on the Azure Network Security Group (NSG) public interface. All traffic is securely routed outbound via the Cloudflare Tunnel daemon (`cloudflared`).
+- **SSL Termination at Edge**: Cloudflare handles SSL termination. Caddy runs in **HTTP-only mode** internally (by prefixing domains with `http://` in the Caddyfile) to avoid redirect loops and SSL renewal rate limits.
+- **Caddyfile Configuration**: The Caddyfile is automatically generated to listen on HTTP:
+
+  ```caddy
+  http://yourdomain.com {
+      reverse_proxy ticket-booking-app-blue:3000
+  }
+  ```
+
+- **SSH Access**: Configured in `~/.ssh/config` using `cloudflared` ProxyCommand to connect securely without public exposure:
+
+  ```ssh
+  Host ticket-booking-vm
+      HostName ssh.yourdomain.com
+      User azureuser
+      ProxyCommand cloudflared access ssh --hostname %h
+      IdentityFile ~/.ssh/your-key.pem
+  ```
 
 ### 3. Deploying the Application
 
-We provide a unified deployment process that defaults to **Zero-Downtime Blue-Green Deployment** to ensure uninterrupted access for users during updates:
+The deployment process uses **Zero-Downtime Blue-Green Deployment** to ensure uninterrupted access:
 
-#### Deploying the Entire Stack (`scripts/redeploy.sh`)
+#### Full Deployment Stack (`scripts/redeploy.sh`)
 
-This is the main orchestrator script. Run this on your initial setup or when redeploying the entire infrastructure:
+Run this on initial setup or full infrastructure redeployment:
 
 ```bash
 ./scripts/redeploy.sh
 ```
 
-It automates the following steps:
+It automates:
 
-1. Ensures system environment and Swap space (2GB) are configured.
-2. Ensures Docker Engine and Compose are installed.
-3. Starts PostgreSQL, Redis, and Caddy containers using Docker Compose.
-4. Triggers the application deployment script (`scripts/deploy-app.sh`).
+1. Checks and configures 2GB Swap space.
+2. Installs Docker & Docker Compose if missing.
+3. Runs the system optimization script (`scripts/optimize-system.sh`).
+4. Starts PostgreSQL, Redis, and Caddy.
+5. Executes `scripts/deploy-app.sh` (Blue-Green pipeline).
 
 #### Deploying Application Updates (`scripts/deploy-app.sh`)
 
-Run this script directly if you only want to build and deploy application code updates (NestJS logic) without touching or restarting the databases:
+Run this directly if you only want to build and deploy application code updates:
 
 ```bash
 ./scripts/deploy-app.sh
 ```
 
-This script executes the Blue-Green pipeline:
+---
 
-- **Active Detection**: Identifies whether the `blue` or `green` application container is currently active.
-- **Idle Start**: Builds the new Docker image and launches it as the inactive (idle) container.
-- **Health Check**: Performs internal container checks (`wget`) until the new container is confirmed healthy and active.
-- **Zero-Downtime Reload**: Dynamically updates the `Caddyfile` with the new container name and executes `caddy reload` (takes a few milliseconds, keeping all active connections alive).
-- **Clean Up**: Gracefully shuts down and removes the old container, and prunes dangling Docker images to reclaim disk space.
+### 4. Extreme RAM & Resource Limits
 
-### 4. Container Resource Limits
+To prevent Out-Of-Memory (OOM) crashes on 1GB RAM machines, strict resource limits are applied:
 
-To ensure stability on a 1GB RAM VM, strict resource constraints are defined for all containers:
+#### Operating System & Daemon Level
 
-| Container Name                                | CPU Limit | Memory Limit (Hard) | Memory Reservation (Soft) |
-| :-------------------------------------------- | :-------- | :------------------ | :------------------------ |
-| `ticket-booking-postgres`                     | `0.50`    | `512MB`             | `256MB`                   |
-| `ticket-booking-redis`                        | `0.25`    | `128MB`             | `32MB`                    |
-| `ticket-booking-caddy`                        | `0.15`    | `128MB`             | `64MB`                    |
-| `ticket-booking-container` / `app-blue/green` | `0.50`    | `256MB`             | `128MB`                   |
+- **Docker Daemon Limit**: Limited to **250MB Max** (High threshold at 200MB) via systemd drop-in override (`/etc/systemd/system/docker.service.d/memory.conf`).
+- **Swap Space**: **2GB Swap** file configured to absorb peaks.
+- **Disabled Services**: Unnecessary background processes (`walinuxagent`, `unattended-upgrades`) are disabled to reclaim ~120MB memory.
+- **Journald Limit**: Limited to **50MB max** log storage to prevent disk bloating.
+
+#### Container Level (defined in `docker-compose.yml` / `run` command)
+
+| Container Name                  | CPU Limit | Memory Limit (Hard) | Memory Reservation (Soft) |
+| :------------------------------ | :-------- | :------------------ | :------------------------ |
+| `ticket-booking-postgres`       | `0.50`    | `512MB`             | `256MB`                   |
+| `ticket-booking-redis`          | `0.25`    | `128MB`             | `32MB`                    |
+| `ticket-booking-caddy`          | `0.15`    | `128MB`             | `64MB`                    |
+| `ticket-booking-app-blue/green` | `0.50`    | `256MB`             | `128MB`                   |
+
+_To adjust these thresholds, edit `/etc/systemd/system/docker.service.d/memory.conf` for Docker, or modify `docker-compose.yml` and `deploy-app.sh` for the containers._
