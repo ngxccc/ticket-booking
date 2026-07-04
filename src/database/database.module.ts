@@ -25,12 +25,7 @@ export type DrizzleDB = NodePgDatabase<
       useFactory: (config: ConfigService) => {
         const databaseUrl = config.get<string>("DB_URL");
         const pool = databaseUrl
-          ? new Pool({
-              connectionString: databaseUrl,
-              ssl: {
-                rejectUnauthorized: false,
-              },
-            })
+          ? new Pool({ connectionString: databaseUrl })
           : new Pool({
               host: config.get<string>("DB_HOST") ?? "localhost",
               port: Number(config.get<string | number>("DB_PORT")) || 5432,
