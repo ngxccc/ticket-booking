@@ -30,12 +30,16 @@ cd "$PROJECT_DIR"
 ./scripts/generate-env.sh
 
 # 3. Build the latest Docker Image
-echo "==> Building new Docker Image..."
-$DOCKER_CMD build -t ticket-booking-app:latest .
+echo "==> Building new Docker Image using pre-built artifacts..."
+$DOCKER_CMD build -f Dockerfile.prod -t ticket-booking-app:latest .
 
 # 4. Start the next version container
-echo "==> Starting new container (ticket-booking-app-$NEXT)..."
-$DOCKER_CMD rm -f "ticket-booking-app-$NEXT" || true
+echo "==> Preparing container namespace for ticket-booking-app-$NEXT..."
+if $DOCKER_CMD ps -a --format '{{.Names}}' | grep -q "^ticket-booking-app-$NEXT$"; then
+    echo "==> Renaming conflicting container to free up namespace instantly..."
+    $DOCKER_CMD rename "ticket-booking-app-$NEXT" "ticket-booking-app-$NEXT-old" || true
+    $DOCKER_CMD rm -f "ticket-booking-app-$NEXT-old" || true
+fi
 
 $DOCKER_CMD run -d \
     --env-file .env \
