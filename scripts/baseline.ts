@@ -4,14 +4,14 @@ import { join } from "path";
 import { createHash } from "crypto";
 import { execSync } from "child_process";
 import { NestFactory } from "@nestjs/core";
+import { AppModule } from "@/app.module";
 import {
   DATABASE_CONNECTION,
-  DatabaseModule,
   type DrizzleDB,
 } from "@/database/database.module";
 
 async function forceBaseline() {
-  const app = await NestFactory.createApplicationContext(DatabaseModule);
+  const app = await NestFactory.createApplicationContext(AppModule);
   const db = app.get<DrizzleDB>(DATABASE_CONNECTION);
 
   const injectOnly = process.argv.includes("--inject-only");
@@ -82,7 +82,9 @@ async function forceBaseline() {
         VALUES (${hash}, ${createdAt}, ${latestMigrationName}, NOW());
       `);
     });
-    console.log("Baselining Complete! DB state synced.");
+    console.log(
+      "Baselining Complete! Migration record injected & synced in __drizzle_migrations.",
+    );
     process.exit(0);
   } catch (error) {
     console.error("Fatal Error during injection:", error);
