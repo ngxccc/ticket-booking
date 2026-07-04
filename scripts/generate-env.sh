@@ -8,7 +8,7 @@ if [ -n "${DOPPLER_TOKEN:-}" ]; then
     echo "==> DOPPLER_TOKEN detected. Exporting latest variables from Doppler..."
     if command -v doppler &>/dev/null; then
         # Download secrets as .env format directly to .env file
-        doppler secrets download --no-prefix --format dotenv >"$ENV_FILE"
+        doppler secrets download --format=env "$ENV_FILE"
         echo "==> Successfully synced environment variables from Doppler."
     else
         echo "❌ Error: doppler CLI is not installed on this system."
