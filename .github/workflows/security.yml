@@ -44,7 +44,7 @@ jobs:
 
   codeql:
     name: CodeQL Analysis
-    if: github.event_name != 'pull_request'
+    # if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
