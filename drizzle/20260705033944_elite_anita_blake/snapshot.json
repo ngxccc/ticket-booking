@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "4c8b4a87-44b0-412c-8734-6dff046d4077",
+  "id": "6171364d-a8f1-45f0-8611-340af68e74c6",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
@@ -391,7 +391,7 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "name",
+      "name": "full_name",
       "entityType": "columns",
       "schema": "public",
       "table": "users"
