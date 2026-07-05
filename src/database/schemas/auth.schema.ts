@@ -16,7 +16,7 @@ export const users = snakeCase.table(
   {
     ...baseEntity,
     email: varchar({ length: 255 }).notNull(),
-    name: varchar({ length: 255 }).notNull(),
+    fullName: varchar({ length: 255 }).notNull(),
     phoneNumber: varchar({ length: 20 }),
     avatarUrl: text(),
 

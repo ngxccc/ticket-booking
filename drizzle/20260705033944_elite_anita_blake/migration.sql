@@ -24,7 +24,7 @@ CREATE TABLE "users" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"email" varchar(255) NOT NULL,
-	"name" varchar(255) NOT NULL,
+	"full_name" varchar(255) NOT NULL,
 	"phone_number" varchar(20),
 	"avatar_url" text,
 	"password_hash" text,
