@@ -9,18 +9,23 @@ import {
   MaxLength,
   MinLength,
 } from "class-validator";
+import { Transform } from "class-transformer";
 import { i18nMsg } from "@/common/utils/i18n-message.util";
 import { Match } from "@/common/decorators/match.decorator";
+import { sanitizeString } from "@/common/utils/sanitize.util";
 
 export class RegisterDto {
+  @Transform(({ value }) => sanitizeString(value))
   @IsEmail({}, { message: i18nMsg("validation.isEmail") })
   @IsNotEmpty({ message: i18nMsg("validation.isNotEmpty") })
   email!: string;
 
+  @Transform(({ value }) => sanitizeString(value))
   @IsString({ message: i18nMsg("validation.isString") })
   @IsNotEmpty({ message: i18nMsg("validation.isNotEmpty") })
   fullName!: string;
 
+  @Transform(({ value }) => sanitizeString(value))
   @IsNumberString({}, { message: i18nMsg("validation.isNumberString") })
   @MinLength(10, { message: i18nMsg("validation.minLength") })
   @MaxLength(10, { message: i18nMsg("validation.maxLength") })
