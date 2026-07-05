@@ -19,7 +19,7 @@ export class RegisterDto {
 
   @IsString({ message: i18nMsg("validation.isString") })
   @IsNotEmpty({ message: i18nMsg("validation.isNotEmpty") })
-  name!: string;
+  fullName!: string;
 
   @IsNumberString({}, { message: i18nMsg("validation.isNumberString") })
   @MinLength(10, { message: i18nMsg("validation.minLength") })
