@@ -1,6 +1,6 @@
 # NestJS Ticket Booking - All Context
 
-Last updated: 2026-06-28
+Last updated: 2026-07-05
 
 This file is the root context entrypoint for the ticket-booking repository.
 
@@ -19,7 +19,7 @@ Every `process/context/` directory has one `all-*.md` entrypoint that acts as an
 
 **The pattern:**
 
-```
+```text
 process/context/
   all-context.md                      <-- THIS FILE: root router
   planning/
@@ -130,10 +130,11 @@ When durable project knowledge changes:
 
 ## Repository Structure
 
-```
+```text
 ticket-booking/
   src/                -- NestJS application source code
     database/         -- Database connection module and schema definitions
+      schemas/        -- Drizzle table schemas (auth, movies, cinemas, shows, bookings, payments, etc.)
     config/           -- Configuration management module
     app.controller.ts -- Main controller
     app.service.ts    -- Main service
@@ -147,6 +148,13 @@ ticket-booking/
     features/         -- Feature-scoped storage folders
     development-protocols/ -- Managed development methodology files (RIPER-5)
   second-brain/       -- Symlink to Obsidian second brain vault
+    000_Ticket_Booking_MOC.md -- Master Map of Content
+    Docs/             -- Categorized technical documentation notes
+      Architecture/   -- Core system specs, roadmap, and architecture
+      Auth/           -- Auth schema, WBS deconstruction, and refresh token strategies
+      Database/       -- Database schema DBML, enum strategies, index audits, SQL prep
+      DevOps/         -- Azure deploy, Docker Compose, HTTPS, Caddy/Nginx, zero-downtime deploy
+      Workflows/      -- Domain workflows, TMDB sync, caching & localization strategies
   docker-compose.yml  -- Postgres & Redis development configuration
   Dockerfile          -- Application containerization setup
 ```
@@ -167,7 +175,7 @@ ticket-booking/
 
 - **RIPER-5 Flow:** Strictly phased spec-driven development workflow (Research -> Innovate -> Plan -> Execute -> Update Process).
 - **All-\*.md Convention:** Entry points for context (`all-context.md`) and groups (`all-tests.md`, `all-planning.md`) act as quick context routers to keep context windows small.
- - **Second Brain Note Storage:** When creating general notes, explanations, or documentation, store them under the `second-brain/` directory in the root of the project (e.g. `second-brain/Docs/` or `second-brain/`). Business specifications, architecture designs, critical trade-offs (e.g. concurrency, outbox pattern), and interview preparation notes must be written to `second-brain/` to facilitate future learning and study. This directory is a symlink pointing to the Obsidian second brain vault (`secondbrain`).
+- **Second Brain Note Storage:** When creating general notes, explanations, or documentation, store them under the `second-brain/Docs/` directory structured by topic (`Architecture/`, `Auth/`, `Database/`, `DevOps/`, `Workflows/`). Business specifications, architecture designs, critical trade-offs (e.g. concurrency, outbox pattern), and interview preparation notes must be written to `second-brain/` to facilitate future learning and study. This directory is a symlink pointing to the Obsidian second brain vault (`secondbrain`).
 - **Dependency Management:** Use Bun for installing dependencies, running scripts, and testing.
 
 ## Environment and Configuration
@@ -175,11 +183,13 @@ ticket-booking/
 - **Config Files:** `package.json`, `tsconfig.json`, `drizzle.config.ts`, `nest-cli.json`, `eslint.config.ts`, `docker-compose.yml`, `Caddyfile`, `scripts/redeploy.sh`, `scripts/setup-vps-system.sh`, `scripts/deploy-db.sh`, `scripts/deploy-app.sh`, `scripts/reload-caddy.sh`.
 - **Environment Variables (names only):**
   - Database: `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASE`.
+
 ## Scan Metadata
 
-- Generated: 2026-06-28
-- Repo HEAD: 55403b8918bc2128b5c5fa57a9ea73466d9c18af
-- Mode: Sync Scan
+- Generated: 2026-07-05
+- Repo HEAD: d006cc6d4e30f79b0c6303af5a72c1f0b0c5252a
+- Mode: Delta Update
+- Changes since last update: Categorized `second-brain/Docs/` into 5 subdirectories (`Architecture/`, `Auth/`, `Database/`, `DevOps/`, `Workflows/`), updated `000_Ticket_Booking_MOC.md` backlinks and documentation router rules.
 - Package manager: bun (uses `bun.lock` at root)
 
 ## Source References
@@ -187,6 +197,7 @@ ticket-booking/
 - `package.json`
 - `docker-compose.yml`
 - `process/context/tests/all-tests.md`
+- `second-brain/000_Ticket_Booking_MOC.md`
 
 ## Open Questions
 

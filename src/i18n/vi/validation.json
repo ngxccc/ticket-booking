@@ -1,0 +1,13 @@
+{
+  "isNotEmpty": "{property} không được để trống",
+  "isEmail": "Email không đúng định dạng",
+  "isString": "{property} phải là chuỗi ký tự",
+  "isNumberString": "{property} phải là chuỗi chữ số",
+  "isBoolean": "{property} phải là giá trị đúng/sai",
+  "minLength": "{property} phải có ít nhất {constraint1} ký tự",
+  "maxLength": "{property} không được vượt quá {constraint1} ký tự",
+  "matches": "{property} không đáp ứng yêu cầu độ phức tạp",
+  "phoneNumberInvalid": "Số điện thoại không đúng định dạng Việt Nam",
+  "passwordsMustMatch": "Mật khẩu xác nhận không trùng khớp",
+  "mustAcceptTerms": "Bạn phải đồng ý với điều khoản sử dụng"
+}
