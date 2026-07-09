@@ -8,6 +8,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { userRoleEnum, userStatusEnum } from "./enums.schema";
 import { baseEntity } from "./helpers.schema";
 
@@ -29,12 +30,19 @@ export const users = snakeCase.table(
 
     // Authorization & Account Lifecycle
     role: userRoleEnum().default("user").notNull(),
-    status: userStatusEnum().default("active").notNull(),
+    status: userStatusEnum().default("pending_verification").notNull(),
+
+    verificationToken: varchar({ length: 255 }),
+    verificationExpiresAt: timestamp({ withTimezone: true, mode: "date" }),
   },
   (table) => [
     uniqueIndex("users_email_uidx").on(table.email),
     uniqueIndex("users_google_id_uidx").on(table.googleId),
     uniqueIndex("users_facebook_id_uidx").on(table.facebookId),
+    uniqueIndex("users_verification_token_uidx").on(table.verificationToken),
+    index("users_verification_expires_at_idx")
+      .on(table.verificationExpiresAt)
+      .where(sql`${table.status} = 'pending_verification'`),
     index("users_phone_number_idx").on(table.phoneNumber),
   ],
 );
