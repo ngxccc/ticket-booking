@@ -6,6 +6,7 @@ export const userStatusEnum = pgEnum("user_status", [
   "active",
   "inactive",
   "suspended",
+  "pending_verification",
 ]);
 
 // 2. Movie Catalog Enums
