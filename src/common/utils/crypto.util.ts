@@ -23,13 +23,19 @@ export async function comparePassword(
   password: string,
   storedHash: string,
 ): Promise<boolean> {
-  const [salt, key] = storedHash.split(":");
+  // WHY: Limit split to 2 parts to guard against malformed stored-hash values.
+  const [salt, key] = storedHash.split(":", 2);
   if (!salt || !key) {
     return false;
   }
   const derivedKey = (await scryptAsync(password, salt, 64)) as Buffer;
   const keyBuffer = Buffer.from(key, "hex");
 
-  // timingSafeEqual helps protect against timing attacks
+  // WHY: timingSafeEqual throws if buffers differ in length — guard prevents an uncaught TypeError.
+  if (derivedKey.length !== keyBuffer.length) {
+    return false;
+  }
+
+  // WHY: Protect against timing attacks by using timingSafeEqual comparison.
   return timingSafeEqual(derivedKey, keyBuffer);
 }
