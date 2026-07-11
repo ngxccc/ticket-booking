@@ -9,6 +9,8 @@ export type I18nTranslations = {
         "REGISTER_SUCCESS": string;
         "LOGIN_SUCCESS": string;
         "REFRESH_SUCCESS": string;
+        "EMAIL_ALREADY_EXISTS": string;
+        "TOO_MANY_REQUESTS": string;
     };
     "validation": {
         "isNotEmpty": string;
