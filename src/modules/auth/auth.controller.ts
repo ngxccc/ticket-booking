@@ -1,7 +1,20 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards,
+} from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
+import { CustomThrottlerGuard } from "@/common/guards/throttler.guard";
 import { AuthService } from "./auth.service";
 import { LoginDto, RefreshTokenDto, RegisterDto } from "./dto";
 
+@UseGuards(CustomThrottlerGuard)
+@Throttle({
+  auth: { limit: 5, ttl: 60000 },
+})
 @Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -19,6 +32,9 @@ export class AuthController {
 
   @HttpCode(HttpStatus.OK)
   @Post("refresh")
+  @Throttle({
+    auth: { limit: 10, ttl: 60000 },
+  })
   refresh(@Body() dto: RefreshTokenDto) {
     return this.authService.refreshToken(dto);
   }
