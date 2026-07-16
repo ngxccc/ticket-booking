@@ -36,8 +36,12 @@ export class RegisterDto {
 
   @IsString({ message: i18nMsg("validation.isString") })
   @MinLength(8, { message: i18nMsg("validation.minLength") })
-  @Matches(/[A-Z]/, { message: i18nMsg("validation.matches") })
-  @Matches(/[0-9]/, { message: i18nMsg("validation.matches") })
+  @Matches(/[A-Z]/, {
+    message: i18nMsg("validation.passwordMustContainUppercase"),
+  })
+  @Matches(/[0-9]/, {
+    message: i18nMsg("validation.passwordMustContainNumber"),
+  })
   password!: string;
 
   @IsString({ message: i18nMsg("validation.isString") })
