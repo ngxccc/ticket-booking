@@ -3,7 +3,13 @@ import { mock } from "bun:test";
 export function createMockDb() {
   let selectResult: unknown[] = [];
   const mockInsertValues = mock(() => Promise.resolve({}));
-
+  const mockUpdateWhere = mock(() => Promise.resolve({}));
+  const mockUpdateSet = mock(() => ({
+    where: mockUpdateWhere,
+  }));
+  const mockUpdate = mock(() => ({
+    set: mockUpdateSet,
+  }));
   const mockDb = {
     select: mock(() => ({
       from: mock(() => ({
@@ -15,7 +21,10 @@ export function createMockDb() {
     insert: mock(() => ({
       values: mockInsertValues,
     })),
+    update: mockUpdate,
     mockInsertValues,
+    mockUpdateSet,
+    mockUpdateWhere,
     setSelectResult(result: unknown[]) {
       selectResult = result;
     },
@@ -23,6 +32,9 @@ export function createMockDb() {
       this.select.mockClear();
       this.insert.mockClear();
       this.mockInsertValues.mockClear();
+      this.update.mockClear();
+      this.mockUpdateSet.mockClear();
+      this.mockUpdateWhere.mockClear();
       selectResult = [];
     },
   };
