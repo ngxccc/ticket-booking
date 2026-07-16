@@ -11,6 +11,9 @@ export type I18nTranslations = {
         "REFRESH_SUCCESS": string;
         "EMAIL_ALREADY_EXISTS": string;
         "TOO_MANY_REQUESTS": string;
+        "VERIFICATION_SUCCESS": string;
+        "VERIFICATION_TOKEN_INVALID": string;
+        "VERIFICATION_TOKEN_EXPIRED": string;
     };
     "validation": {
         "isNotEmpty": string;
