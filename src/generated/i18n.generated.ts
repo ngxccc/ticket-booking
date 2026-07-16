@@ -24,6 +24,8 @@ export type I18nTranslations = {
         "minLength": string;
         "maxLength": string;
         "matches": string;
+        "passwordMustContainUppercase": string;
+        "passwordMustContainNumber": string;
         "phoneNumberInvalid": string;
         "passwordsMustMatch": string;
         "mustAcceptTerms": string;

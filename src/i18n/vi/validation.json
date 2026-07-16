@@ -4,9 +4,11 @@
   "isString": "{property} phải là chuỗi ký tự",
   "isNumberString": "{property} phải là chuỗi chữ số",
   "isBoolean": "{property} phải là giá trị đúng/sai",
-  "minLength": "{property} phải có ít nhất {constraint1} ký tự",
-  "maxLength": "{property} không được vượt quá {constraint1} ký tự",
+  "minLength": "{property} phải có ít nhất {constraints.0} ký tự",
+  "maxLength": "{property} không được vượt quá {constraints.0} ký tự",
   "matches": "{property} không đáp ứng yêu cầu độ phức tạp",
+  "passwordMustContainUppercase": "{property} phải chứa ít nhất 1 chữ cái viết hoa",
+  "passwordMustContainNumber": "{property} phải chứa ít nhất 1 chữ số",
   "phoneNumberInvalid": "Số điện thoại không đúng định dạng Việt Nam",
   "passwordsMustMatch": "Mật khẩu xác nhận không trùng khớp",
   "mustAcceptTerms": "Bạn phải đồng ý với điều khoản sử dụng"

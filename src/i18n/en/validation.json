@@ -4,9 +4,11 @@
   "isString": "{property} must be a string",
   "isNumberString": "{property} must be a number string",
   "isBoolean": "{property} must be a boolean value",
-  "minLength": "{property} must be at least {constraint1} characters",
-  "maxLength": "{property} must not exceed {constraint1} characters",
+  "minLength": "{property} must be at least {constraints.0} characters",
+  "maxLength": "{property} must not exceed {constraints.0} characters",
   "matches": "{property} does not meet complexity requirements",
+  "passwordMustContainUppercase": "{property} must contain at least 1 uppercase letter",
+  "passwordMustContainNumber": "{property} must contain at least 1 number",
   "phoneNumberInvalid": "Invalid Vietnamese phone number",
   "passwordsMustMatch": "Passwords do not match",
   "mustAcceptTerms": "You must accept the terms of service"
