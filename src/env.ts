@@ -31,6 +31,10 @@ export const env = createEnv({
     REDIS_URL: z.url().optional(),
     REDIS_HOST: z.string().default("localhost"),
     REDIS_PORT: z.string().transform(Number).default(6379),
+
+    // Resend configuration
+    RESEND_API_KEY: z.string().default("re_dummy_key_for_testing"),
+    EMAIL_FROM: z.string().default("Ticket Booking <onboarding@resend.dev>"),
   },
 
   runtimeEnv: {
@@ -46,6 +50,8 @@ export const env = createEnv({
     REDIS_URL: process.env["REDIS_URL"],
     REDIS_HOST: process.env["REDIS_HOST"],
     REDIS_PORT: process.env["REDIS_PORT"],
+    RESEND_API_KEY: process.env["RESEND_API_KEY"],
+    EMAIL_FROM: process.env["EMAIL_FROM"],
   },
 
   emptyStringAsUndefined: true,
