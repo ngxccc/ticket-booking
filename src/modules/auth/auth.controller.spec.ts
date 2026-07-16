@@ -24,12 +24,19 @@ describe("AuthController", () => {
         data: { token: dto.refreshToken },
       }),
     ),
+    verifyEmail: mock((_token: string) =>
+      Promise.resolve({
+        success: true,
+        data: null,
+      }),
+    ),
   };
 
   beforeEach(async () => {
     mockAuthService.register.mockClear();
     mockAuthService.login.mockClear();
     mockAuthService.refreshToken.mockClear();
+    mockAuthService.verifyEmail.mockClear();
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
@@ -69,6 +76,18 @@ describe("AuthController", () => {
       });
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(authService.register).toHaveBeenCalledWith(dto);
+    });
+  });
+
+  describe("verifyEmail", () => {
+    it("should call authService.verifyEmail and return success-data JSON", () => {
+      const token = "some-token";
+      expect(controller.verifyEmail(token)).resolves.toEqual({
+        success: true,
+        data: null,
+      });
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(authService.verifyEmail).toHaveBeenCalledWith(token);
     });
   });
 });

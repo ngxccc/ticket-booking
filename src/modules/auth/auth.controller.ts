@@ -1,13 +1,17 @@
+import { ApiTags } from "@nestjs/swagger";
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { CustomThrottlerGuard } from "@/common/guards/throttler.guard";
+import { AUTH_ROUTES } from "./auth.routes";
 import { AuthService } from "./auth.service";
 import { LoginDto, RefreshTokenDto, RegisterDto } from "./dto";
 
@@ -15,23 +19,29 @@ import { LoginDto, RefreshTokenDto, RegisterDto } from "./dto";
 @Throttle({
   auth: { limit: 5, ttl: 60000 },
 })
-@Controller("auth")
+@Controller(AUTH_ROUTES.BASE)
+@ApiTags("Auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post("register")
+  @Post(AUTH_ROUTES.REGISTER)
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
+  @Get(AUTH_ROUTES.VERIFY_EMAIL)
+  verifyEmail(@Query("token") token: string) {
+    return this.authService.verifyEmail(token);
+  }
+
   @HttpCode(HttpStatus.OK)
-  @Post("login")
+  @Post(AUTH_ROUTES.LOGIN)
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post("refresh")
+  @Post(AUTH_ROUTES.REFRESH)
   @Throttle({
     auth: { limit: 10, ttl: 60000 },
   })

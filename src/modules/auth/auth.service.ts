@@ -1,4 +1,11 @@
-import { ConflictException, Inject, Injectable } from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
+import { Queue } from "bullmq";
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+} from "@nestjs/common";
 import {
   DATABASE_CONNECTION,
   type DrizzleDB,
@@ -18,6 +25,8 @@ export class AuthService {
     @Inject(DATABASE_CONNECTION)
     private readonly db: DrizzleDB,
     private readonly i18n: I18nService<I18nTranslations>,
+    @InjectQueue("mail")
+    private readonly mailQueue: Queue,
   ) {}
 
   async register(dto: RegisterDto): Promise<ApiResponse<null>> {
@@ -49,6 +58,49 @@ export class AuthService {
       verificationToken,
       verificationExpiresAt,
     });
+
+    // WHY: Dispatch email sending job to BullMQ mail queue to process asynchronously in the background.
+    await this.mailQueue.add("send-verification", {
+      email: dto.email,
+      fullName: dto.fullName,
+      token: verificationToken,
+    });
+    return apiSuccess(null);
+  }
+
+  async verifyEmail(token: string): Promise<ApiResponse<null>> {
+    const lang = I18nContext.current()?.lang;
+
+    const [user] = await this.db
+      .select({
+        id: users.id,
+        verificationExpiresAt: users.verificationExpiresAt,
+      })
+      .from(users)
+      .where(eq(users.verificationToken, token))
+      .limit(1);
+
+    if (!user) {
+      throw new BadRequestException(
+        this.i18n.t("auth.VERIFICATION_TOKEN_INVALID", { lang }),
+      );
+    }
+
+    if (user.verificationExpiresAt && user.verificationExpiresAt < new Date()) {
+      throw new BadRequestException(
+        this.i18n.t("auth.VERIFICATION_TOKEN_EXPIRED", { lang }),
+      );
+    }
+
+    // WHY: Use a single UPDATE statement to activate user status and clear verification token fields for database performance and atomicity.
+    await this.db
+      .update(users)
+      .set({
+        status: "active",
+        verificationToken: null,
+        verificationExpiresAt: null,
+      })
+      .where(eq(users.id, user.id));
 
     return apiSuccess(null);
   }
