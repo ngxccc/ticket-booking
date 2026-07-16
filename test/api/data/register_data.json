@@ -1,0 +1,20 @@
+[
+  {
+    "caseName": "Register: Success (Happy Path)",
+    "expectedStatus": 201,
+    "generateEmail": true,
+    "emailOverride": ""
+  },
+  {
+    "caseName": "Register: Conflict (Duplicate Email)",
+    "expectedStatus": 409,
+    "generateEmail": false,
+    "emailOverride": ""
+  },
+  {
+    "caseName": "Register: Bad Request (Invalid Email Format)",
+    "expectedStatus": 400,
+    "generateEmail": false,
+    "emailOverride": "invalid-email"
+  }
+]
