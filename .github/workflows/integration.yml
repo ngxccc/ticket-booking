@@ -1,12 +1,37 @@
-name: Code Quality & Build Check
+name: Code Quality, Build & Integration Tests
 
 on:
   workflow_call:
 
 jobs:
   integration:
-    name: Code Quality & Build Check
+    name: Integration Verification
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+          POSTGRES_DB: ticket_booking
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout
@@ -14,9 +39,48 @@ jobs:
       - name: Setup Environment
         uses: ./.github/setup-environment
 
-      - name: Run CI Tasks (Lint, Test, Type-Check, Build)
+      - name: Run Linting
+        run: bun run lint
+
+      - name: Run Type-Checking
+        run: bun run check-types
+
+      - name: Run Unit Tests
+        run: bun run test
+
+      - name: Run E2E Security Tests
+        run: bun run test:e2e
+
+      - name: Run Database Migrations
+        run: bun x drizzle-kit migrate --config drizzle.config.ts
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgrespassword
+          DB_DATABASE: ticket_booking
+
+      - name: Build Application
+        run: bun run build
+
+      - name: Start Application Server
         run: |
-          bun run lint
-          bun run check-types
-          bun run test test:e2e
-          bun run build
+          bun run start:prod &
+          # Wait for server to start accepting connections
+          until curl -s http://localhost:3000/auth/register > /dev/null; do
+            echo "Waiting for NestJS server to boot..."
+            sleep 1
+          done
+        env:
+          NODE_ENV: test
+          PORT: 3000
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgrespassword
+          DB_DATABASE: ticket_booking
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+
+      - name: Run Newman API Tests
+        run: bun run test:api

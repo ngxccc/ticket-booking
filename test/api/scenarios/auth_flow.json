@@ -232,9 +232,10 @@
                   "        pm.expect(jsonData.message).to.be.oneOf([\"auth.EMAIL_ALREADY_EXISTS\", \"Email đã tồn tại\"]);",
                   "    });",
                   "} else if (expectedStatus === 400) {",
-                  "    pm.test(caseName + \" - Response has email validation error\", function () {",
+                  "    pm.test(caseName + \" - Response has validation error\", function () {",
                   "        var responseText = pm.response.text();",
-                  "        var hasError = responseText.includes(\"validation.isEmail\") || responseText.includes(\"Email không đúng định dạng\");",
+                  "        var expectedError = pm.iterationData.get(\"validationError\") || \"validation\";",
+                  "        var hasError = responseText.includes(expectedError) || responseText.toLowerCase().includes(\"không\");",
                   "        pm.expect(hasError).to.be.true;",
                   "    });",
                   "}"

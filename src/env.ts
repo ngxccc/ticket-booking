@@ -35,6 +35,13 @@ export const env = createEnv({
     // Resend configuration
     RESEND_API_KEY: z.string().default("re_dummy_key_for_testing"),
     EMAIL_FROM: z.string().default("Ticket Booking <onboarding@resend.dev>"),
+
+    // JWT configuration
+    JWT_SECRET: z
+      .string()
+      .default("super-secret-jwt-key-minimum-32-chars-long"),
+    JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
+    JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
   },
 
   runtimeEnv: {
@@ -52,6 +59,9 @@ export const env = createEnv({
     REDIS_PORT: process.env["REDIS_PORT"],
     RESEND_API_KEY: process.env["RESEND_API_KEY"],
     EMAIL_FROM: process.env["EMAIL_FROM"],
+    JWT_SECRET: process.env["JWT_SECRET"],
+    JWT_ACCESS_EXPIRES_IN: process.env["JWT_ACCESS_EXPIRES_IN"],
+    JWT_REFRESH_EXPIRES_IN: process.env["JWT_REFRESH_EXPIRES_IN"],
   },
 
   emptyStringAsUndefined: true,
