@@ -28,6 +28,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@nest-lab/throttler-storage-redis": "^1.2.0",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.1.27",
     "@nestjs/config": "^4.0.4",
@@ -36,6 +37,7 @@
     "@nestjs/mapped-types": "*",
     "@nestjs/platform-express": "^11.1.27",
     "@nestjs/swagger": "^11.4.5",
+    "@nestjs/throttler": "^6.5.0",
     "@scalar/nestjs-api-reference": "^1.2.9",
     "@t3-oss/env-core": "^0.13.11",
     "bullmq": "^5.79.2",
@@ -87,6 +89,8 @@
     "typescript-eslint": "^8.62.1"
   },
   "resolutions": {
-    "multer": "^2.2.0"
+    "multer": "^2.2.0",
+    "lodash": "^4.17.21",
+    "qs": "^6.13.0"
   }
 }

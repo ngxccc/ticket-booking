@@ -7,7 +7,7 @@ import type {
   ThrottlerStorage,
   ThrottlerLimitDetail,
 } from "@nestjs/throttler";
-import type { Reflector } from "@nestjs/core";
+import { Reflector } from "@nestjs/core";
 import { ERROR_MESSAGES } from "@/common/constants/error.constant";
 
 class TestCustomThrottlerGuard extends CustomThrottlerGuard {
@@ -26,7 +26,7 @@ describe("CustomThrottlerGuard", () => {
     guard = new TestCustomThrottlerGuard(
       {} as ThrottlerModuleOptions,
       {} as ThrottlerStorage,
-      {} as Reflector,
+      new Reflector(),
     );
   });
 
