@@ -1,5 +1,4 @@
 import { Module } from "@nestjs/common";
-import { BullModule } from "@nestjs/bullmq";
 import { JwtModule } from "@nestjs/jwt";
 import { AuthService } from "./auth.service";
 import { AuthController } from "./auth.controller";
@@ -10,9 +9,6 @@ import type { StringValue } from "ms";
 
 @Module({
   imports: [
-    BullModule.registerQueue({
-      name: "mail",
-    }),
     MailModule,
     JwtModule.register({
       global: true,

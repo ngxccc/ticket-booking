@@ -1,6 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Resend } from "resend";
-import { AUTH_ROUTES } from "@/modules/auth/auth.routes";
 import { env } from "@/env";
 
 @Injectable()
@@ -18,7 +17,7 @@ export class MailService {
     fullName: string,
     token: string,
   ): Promise<void> {
-    const verificationUrl = `${env.DOMAIN_NAME}/${AUTH_ROUTES.BASE}/${AUTH_ROUTES.VERIFY_EMAIL}?token=${token}`;
+    const verificationUrl = `${env.FRONTEND_URL}/verify-email?token=${token}`;
 
     try {
       const { data, error } = await this.resend.emails.send({

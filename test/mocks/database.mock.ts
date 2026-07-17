@@ -34,6 +34,7 @@ export function createMockDb() {
     })),
     update: mockUpdate,
     delete: mockDelete,
+    transaction: mock((cb: (tx: unknown) => unknown) => cb(mockDb)),
     mockInsertValues,
     mockUpdateSet,
     mockUpdateWhere,
@@ -53,6 +54,7 @@ export function createMockDb() {
       this.mockUpdateWhere.mockClear();
       this.delete.mockClear();
       this.mockDeleteWhere.mockClear();
+      this.transaction.mockClear();
       selectResult = [];
       selectResultsQueue = [];
     },

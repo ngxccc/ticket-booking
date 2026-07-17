@@ -4,4 +4,5 @@ export const AUTH_ROUTES = {
   VERIFY_EMAIL: "verify-email",
   LOGIN: "login",
   REFRESH: "refresh",
+  LOGOUT: "logout",
 } as const;

@@ -1,5 +1,3 @@
-import { InjectQueue } from "@nestjs/bullmq";
-import { Queue } from "bullmq";
 import {
   BadRequestException,
   ConflictException,
@@ -12,7 +10,8 @@ import {
   type DrizzleDB,
 } from "@/database/database.module";
 import { LoginDto, RefreshTokenDto, RegisterDto } from "./dto";
-import { refreshTokens, users } from "@/database/schemas";
+import { refreshTokens, users, outboxEvents } from "@/database/schemas";
+import { OUTBOX_EVENT_TYPE } from "@/common/constants/event.constant";
 import { eq } from "drizzle-orm";
 import {
   hashPassword,
@@ -33,8 +32,6 @@ export class AuthService {
     @Inject(DATABASE_CONNECTION)
     private readonly db: DrizzleDB,
     private readonly i18n: I18nService<I18nTranslations>,
-    @InjectQueue("mail")
-    private readonly mailQueue: Queue,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -93,19 +90,25 @@ export class AuthService {
     const verificationToken = randomBytes(32).toString("hex");
     const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    await this.db.insert(users).values({
-      email: dto.email,
-      fullName: dto.fullName,
-      phoneNumber: dto.phoneNumber,
-      passwordHash,
-      verificationToken,
-      verificationExpiresAt,
-    });
+    await this.db.transaction(async (tx) => {
+      await tx.insert(users).values({
+        email: dto.email,
+        fullName: dto.fullName,
+        phoneNumber: dto.phoneNumber,
+        passwordHash,
+        verificationToken,
+        verificationExpiresAt,
+      });
 
-    await this.mailQueue.add("send-verification", {
-      email: dto.email,
-      fullName: dto.fullName,
-      token: verificationToken,
+      // WHY: Store email verification event in the outbox_events table as part of the transaction for atomic consistency.
+      await tx.insert(outboxEvents).values({
+        eventType: OUTBOX_EVENT_TYPE.AUTH_VERIFICATION_EMAIL_REQUESTED,
+        payload: {
+          email: dto.email,
+          fullName: dto.fullName,
+          token: verificationToken,
+        },
+      });
     });
     return apiSuccess(null);
   }
@@ -246,5 +249,36 @@ export class AuthService {
     );
 
     return apiSuccess({ accessToken, refreshToken });
+  }
+
+  async logout(dto: RefreshTokenDto): Promise<ApiResponse<null>> {
+    const hashedIncoming = sha256(dto.refreshToken);
+
+    const [tokenRecord] = await this.db
+      .select({
+        id: refreshTokens.id,
+        isRevoked: refreshTokens.isRevoked,
+        expiresAt: refreshTokens.expiresAt,
+      })
+      .from(refreshTokens)
+      .where(eq(refreshTokens.tokenHash, hashedIncoming))
+      .limit(1);
+
+    if (
+      !tokenRecord ||
+      tokenRecord.isRevoked ||
+      tokenRecord.expiresAt < new Date()
+    ) {
+      this.throwException(
+        "auth.TOKEN_INVALID_OR_EXPIRED",
+        UnauthorizedException,
+      );
+    }
+
+    await this.db
+      .delete(refreshTokens)
+      .where(eq(refreshTokens.id, tokenRecord.id));
+
+    return apiSuccess(null);
   }
 }

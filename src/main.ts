@@ -12,6 +12,9 @@ async function bootstrap() {
   // WHY: Trust reverse proxy headers (e.g. X-Forwarded-For from Cloudflare/Nginx) so throttler correctly identifies client IPs behind WAF/CDN.
   app.set("trust proxy", 1);
 
+  // WHY: Enable shutdown hooks explicitly so NestJS can trigger onApplicationShutdown in OutboxService to clear background timers gracefully.
+  app.enableShutdownHooks();
+
   app.useGlobalPipes(
     new I18nValidationPipe({
       whitelist: true,

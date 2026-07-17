@@ -4,7 +4,12 @@ import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { CustomThrottlerGuard } from "@/common/guards/throttler.guard";
 import { beforeEach, describe, expect, it, mock } from "bun:test";
-import type { RegisterDto, LoginDto, RefreshTokenDto } from "./dto";
+import type {
+  RegisterDto,
+  LoginDto,
+  RefreshTokenDto,
+  VerifyEmailDto,
+} from "./dto";
 
 describe("AuthController", () => {
   let controller: AuthController;
@@ -30,6 +35,12 @@ describe("AuthController", () => {
         data: null,
       }),
     ),
+    logout: mock((_dto: RefreshTokenDto) =>
+      Promise.resolve({
+        success: true,
+        data: null,
+      }),
+    ),
   };
 
   beforeEach(async () => {
@@ -37,6 +48,7 @@ describe("AuthController", () => {
     mockAuthService.login.mockClear();
     mockAuthService.refreshToken.mockClear();
     mockAuthService.verifyEmail.mockClear();
+    mockAuthService.logout.mockClear();
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
@@ -81,13 +93,28 @@ describe("AuthController", () => {
 
   describe("verifyEmail", () => {
     it("should call authService.verifyEmail and return success-data JSON", () => {
-      const token = "some-token";
-      expect(controller.verifyEmail(token)).resolves.toEqual({
+      const dto: VerifyEmailDto = { token: "some-token" };
+      expect(controller.verifyEmail(dto)).resolves.toEqual({
         success: true,
         data: null,
       });
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(authService.verifyEmail).toHaveBeenCalledWith(token);
+      expect(authService.verifyEmail).toHaveBeenCalledWith(dto.token);
+    });
+  });
+
+  describe("logout", () => {
+    it("should call authService.logout and return success-data JSON", () => {
+      const dto: RefreshTokenDto = {
+        refreshToken: "valid_refresh_token",
+      };
+
+      expect(controller.logout(dto)).resolves.toEqual({
+        success: true,
+        data: null,
+      });
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(authService.logout).toHaveBeenCalledWith(dto);
     });
   });
 });
