@@ -13,6 +13,7 @@
 - Keep TypeScript and JavaScript source files roughly under 200 lines when practical; split by responsibility when files become hard to reason about.
 - Prefer focused modules, helpers, and composition over large mixed-purpose files.
 - Markdown planning, context, agent, and skill files are exempt from the 200-line rule.
+- **Visual Workflow Documentation:** Each feature must document its operational and database flow visually (using Mermaid or sequence diagrams) inside its own dedicated note within the `second-brain/Docs/` directory structured by topic (e.g. `second-brain/Docs/Auth/Register_User_Existence_Creation_Workflow.md`). Do NOT consolidate multiple workflows into a single monolithic document, keeping documentation distributed and context-localized.
 
 ## Implementation Behavior
 
@@ -20,10 +21,14 @@
 - In utility or helper layers, prefer result objects over throwing when the local repo pattern expects recoverable errors.
 - Handle edge cases and error paths deliberately.
 - Prioritize readable, maintainable code over clever abstractions.
+- **Transactional Outbox Pattern:** Dual-write operations (such as registering a user and sending a verification email) MUST be decoupled using the Transactional Outbox Pattern. State mutations and outbox event records (`outbox_events` table) MUST occur within a single database transaction. Background workers (`OutboxService`) poll for pending events, publish them to queue processing systems (BullMQ), and mark events as `processed` or `failed`. Event types MUST be defined at the application layer using TypeScript `as const` constraints (`OUTBOX_EVENT_TYPE`) rather than database-level enums to minimize migration overhead.
+- **DTO & Spec Testing Rules:** DTOs containing complex custom validation or input sanitization logic (such as XSS tag stripping) MUST have dedicated unit tests (`*.dto.spec.ts`). Basic DTOs relying solely on standard built-in `class-validator` decorators should not have separate specs to avoid redundant testing.
+- **Swagger OpenAPI Documentation Standards:** Controller endpoints returning standardized responses (`{ success: true, data: T }`) MUST use `@ApiOkResponseGeneric(DtoClass)` and explicitly annotate TypeScript return types (`: Promise<ApiResponse<DtoClass>>`). Response DTOs MUST be concrete TypeScript classes (not interfaces) to allow the NestJS `@nestjs/swagger` CLI plugin to introspect runtime property metadata.
+- **Database Connection Security:** Connection strings specifying legacy SSL modes (`require`, `prefer`, `verify-ca`) MUST be normalized to `sslmode=verify-full` via case-insensitive global regex (`/sslmode=(require|prefer|verify-ca)/gi`) in the database module to eliminate driver security deprecation warnings.
 
 ## Tooling
 
-- Use `pnpm`, not `npm`.
+- Use `bun`, not `npm` or `pnpm`.
 - Use Context7 for library and API docs or setup guidance.
 - Use `gh` for GitHub automation when needed.
 - For database debugging, follow the current repo stack and context docs; do not assume Drizzle or SQLite unless the specific package actually uses them.
