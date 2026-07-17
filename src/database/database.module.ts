@@ -23,7 +23,14 @@ export type DrizzleDB = NodePgDatabase<
       provide: DATABASE_CONNECTION,
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        const databaseUrl = config.get<string>("DB_URL");
+        let databaseUrl = config.get<string>("DB_URL");
+        if (databaseUrl) {
+          // WHY: Map legacy SSL modes to 'sslmode=verify-full' to suppress pg-connection-string warnings and ensure future-proof compatibility.
+          databaseUrl = databaseUrl.replace(
+            /sslmode=(require|prefer|verify-ca)/gi,
+            "sslmode=verify-full",
+          );
+        }
         const pool = databaseUrl
           ? new Pool({ connectionString: databaseUrl })
           : new Pool({
