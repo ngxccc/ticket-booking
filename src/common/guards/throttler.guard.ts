@@ -4,9 +4,20 @@ import { I18nContext } from "nestjs-i18n";
 import { HttpException, HttpStatus } from "@nestjs/common";
 import { ERROR_MESSAGES } from "@/common/constants/error.constant";
 import type { I18nTranslations } from "@/generated/i18n.generated";
+import { env } from "@/env";
 
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
+  protected override async shouldSkip(
+    context: ExecutionContext,
+  ): Promise<boolean> {
+    // WHY: Disable rate limiting in development/test modes to allow E2E and Postman testing without triggering 429 errors.
+    if (env.NODE_ENV !== "production") {
+      return true;
+    }
+    return super.shouldSkip(context);
+  }
+
   protected override throwThrottlingException(
     _context: ExecutionContext,
     _throttlerLimitDetail: ThrottlerLimitDetail,

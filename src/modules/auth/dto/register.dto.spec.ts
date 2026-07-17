@@ -62,6 +62,26 @@ describe("RegisterDto Validation", () => {
       const nameError = errors.find((e) => e.property === "fullName");
       expect(nameError).toBeDefined();
     });
+
+    it("should sanitize HTML tags from fullName", async () => {
+      const dto = getValidDto();
+      dto.fullName = "<b>Test</b> User";
+      const errors = await validateDto(dto);
+      expect(errors.length).toBe(0);
+
+      // Since plainToInstance runs sanitizeString, it should transform "<b>Test</b> User" to "Test User"
+      const transformedDto = plainToInstance(RegisterDto, dto);
+      expect(transformedDto.fullName).toBe("Test User");
+    });
+
+    it("should fail validation if XSS script tags make fullName empty", async () => {
+      const dto = getValidDto();
+      dto.fullName = "<script>alert('XSS')</script>";
+      const errors = await validateDto(dto);
+      expect(errors.length).toBeGreaterThan(0);
+      const nameError = errors.find((e) => e.property === "fullName");
+      expect(nameError).toBeDefined();
+    });
   });
 
   describe("Phone Number Validation", () => {

@@ -72,15 +72,30 @@ Unless the task clearly needs a different path:
 
 ## Commands
 
-| Scope / Task | Runner | Command | Notes |
-|---|---|---|---|
-| Run Unit Tests | Bun test | `bun run test` (or `bun test src/`) | Run all tests in `src/` |
-| Run E2E Tests | Bun test | `bun run test:e2e` (or `bun test test/`) | Run all E2E integration tests in `test/` |
-| Watch Unit Tests | Bun test | `bun run test:watch` | Run tests in watch mode |
-| Coverage Report | Bun test | `bun run test:cov` | Generate coverage report |
-| Type Check | TypeScript Compiler | `bun run check-types` | Run `tsc --noEmit` |
-| Lint Code | ESLint | `bun run lint` | Run ESLint with fix and caching options |
-| Format Code | Prettier | `bun run format` | Run Prettier formatter across source and test paths |
+### API Integration Tests (Newman)
+
+- **Locations:**
+  - Scenario files (Postman collections): `test/api/scenarios/`
+  - Environment configurations: `test/api/environments/`
+  - Iteration data files: `test/api/data/`
+
+- **File Naming Rule (Dynamic Mapping):**
+  - The scenario JSON file and its corresponding iteration data JSON file MUST follow matching naming conventions.
+  - Specifically, a scenario file `<name>.json` (e.g. `auth_flow.json`) MUST map to a data file named `<name>_data.json` to allow dynamic mapping and execution by automated directory-scanning scripts.
+
+---
+
+## Commands
+
+| Scope / Task     | Runner              | Command                                  | Notes                                               |
+| ---------------- | ------------------- | ---------------------------------------- | --------------------------------------------------- |
+| Run Unit Tests   | Bun test            | `bun run test` (or `bun test src/`)      | Run all tests in `src/`                             |
+| Run E2E Tests    | Bun test            | `bun run test:e2e` (or `bun test test/`) | Run all E2E integration tests in `test/`            |
+| Watch Unit Tests | Bun test            | `bun run test:watch`                     | Run tests in watch mode                             |
+| Coverage Report  | Bun test            | `bun run test:cov`                       | Generate coverage report                            |
+| Type Check       | TypeScript Compiler | `bun run check-types`                    | Run `tsc --noEmit`                                  |
+| Lint Code        | ESLint              | `bun run lint`                           | Run ESLint with fix and caching options             |
+| Format Code      | Prettier            | `bun run format`                         | Run Prettier formatter across source and test paths |
 
 ## Debugging Quick Reference
 

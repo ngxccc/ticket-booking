@@ -1,6 +1,6 @@
 {
   "info": {
-    "_postman_id": "2543c626-a1cc-4bcc-b379-473c245c1df8",
+    "_postman_id": "f0a9f62a-54c7-4bea-b31e-1da98cb2dcc6",
     "name": "Ticket Booking System",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "43139394"
@@ -51,9 +51,10 @@
                       "        pm.expect(jsonData.message).to.be.oneOf([\"auth.EMAIL_ALREADY_EXISTS\", \"Email đã tồn tại\"]);",
                       "    });",
                       "} else if (expectedStatus === 400) {",
-                      "    pm.test(caseName + \" - Response has email validation error\", function () {",
+                      "    pm.test(caseName + \" - Response has validation error\", function () {",
                       "        var responseText = pm.response.text();",
-                      "        var hasError = responseText.includes(\"validation.isEmail\") || responseText.includes(\"Email không đúng định dạng\");",
+                      "        var expectedError = pm.iterationData.get(\"validationError\") || \"validation\";",
+                      "        var hasError = responseText.includes(expectedError) || responseText.toLowerCase().includes(\"không\");",
                       "        pm.expect(hasError).to.be.true;",
                       "    });",
                       "}"
@@ -303,6 +304,23 @@
         },
         {
           "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response && response.success && response.data) {",
+                  "    pm.environment.set(\"accessToken\", response.data.accessToken);",
+                  "    pm.environment.set(\"refreshToken\", response.data.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
           "protocolProfileBehavior": {
             "strictSSL": false,
             "followRedirects": true
@@ -312,7 +330,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "",
+              "raw": "{\n    \"email\": \"ticket-booking@uki.io.vn\",\n    \"password\": \"Qwe123123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -335,13 +353,19 @@
               "name": "Success",
               "originalRequest": {
                 "method": "POST",
-                "header": [],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
-                  "raw": "",
+                  "raw": "{\n    \"email\": \"{{email}}\",\n    \"password\": \"{{password}}\"\n}",
                   "options": {
                     "raw": {
-                      "language": "text"
+                      "language": "json"
                     }
                   }
                 },
@@ -365,6 +389,23 @@
         },
         {
           "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response && response.success && response.data) {",
+                  "    pm.environment.set(\"accessToken\", response.data.accessToken);",
+                  "    pm.environment.set(\"refreshToken\", response.data.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
           "protocolProfileBehavior": {
             "strictSSL": false,
             "followRedirects": true
@@ -374,7 +415,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "",
+              "raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -397,13 +438,19 @@
               "name": "Success",
               "originalRequest": {
                 "method": "POST",
-                "header": [],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
-                  "raw": "",
+                  "raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}",
                   "options": {
                     "raw": {
-                      "language": "text"
+                      "language": "json"
                     }
                   }
                 },

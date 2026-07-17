@@ -3,11 +3,17 @@ import { Test } from "@nestjs/testing";
 import { AuthService } from "./auth.service";
 import { DATABASE_CONNECTION } from "@/database/database.module";
 import { beforeEach, describe, expect, it, mock } from "bun:test";
-import { BadRequestException, ConflictException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { getQueueToken } from "@nestjs/bullmq";
+import { JwtService } from "@nestjs/jwt";
 import type { RegisterDto } from "./dto";
 import { I18nService } from "nestjs-i18n";
 import { createMockDb, createMockI18nService } from "../../../test/mocks";
+import { hashPassword } from "@/common/utils/crypto.util";
 
 const mockQueue = {
   add: mock(() => Promise.resolve({})),
@@ -20,11 +26,21 @@ describe("AuthService", () => {
   let service: AuthService;
   const mockDb = createMockDb();
   const mockI18nService = createMockI18nService();
-
+  const mockJwtService = {
+    signAsync: mock(() => Promise.resolve("mock_access_token")),
+    verifyAsync: mock(() =>
+      Promise.resolve({ sub: "user-id", email: "test@example.com" }),
+    ),
+    clearAll() {
+      this.signAsync.mockClear();
+      this.verifyAsync.mockClear();
+    },
+  };
   beforeEach(async () => {
     mockDb.clearAll();
     mockI18nService.clearAll();
     mockQueue.clearAll();
+    mockJwtService.clearAll();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -40,6 +56,10 @@ describe("AuthService", () => {
         {
           provide: getQueueToken("mail"),
           useValue: mockQueue,
+        },
+        {
+          provide: JwtService,
+          useValue: mockJwtService,
         },
       ],
     }).compile();
@@ -184,6 +204,166 @@ describe("AuthService", () => {
 
       expect(mockDb.select).toHaveBeenCalled();
       expect(mockDb.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("login", () => {
+    it("should successfully log in and return tokens + user info when credentials are correct", async () => {
+      const passwordHash = await hashPassword("Password123");
+      mockDb.setSelectResult([
+        {
+          id: "user-uuid",
+          email: "test@example.com",
+          fullName: "Test User",
+          role: "user",
+          status: "active",
+          passwordHash,
+        },
+      ]);
+
+      const result = await service.login({
+        email: "test@example.com",
+        password: "Password123",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBeDefined();
+      expect(result.data.accessToken).toBe("mock_access_token");
+      expect(result.data.refreshToken).toBeDefined();
+      expect(result.data.user).toEqual({
+        id: "user-uuid",
+        email: "test@example.com",
+        fullName: "Test User",
+        role: "user",
+      });
+      expect(mockDb.insert).toHaveBeenCalled();
+    });
+
+    it("should throw BadRequestException if user is not found", async () => {
+      mockDb.setSelectResult([]);
+
+      let thrown = false;
+      try {
+        await service.login({
+          email: "nonexistent@example.com",
+          password: "Password123",
+        });
+      } catch (err) {
+        thrown = true;
+        expect(err).toBeInstanceOf(BadRequestException);
+        expect((err as BadRequestException).message).toBe(
+          "auth.INVALID_CREDENTIALS",
+        );
+      }
+      expect(thrown).toBe(true);
+    });
+
+    it("should throw BadRequestException if password is incorrect", async () => {
+      const passwordHash = await hashPassword("Password123");
+      mockDb.setSelectResult([
+        {
+          id: "user-uuid",
+          email: "test@example.com",
+          status: "active",
+          passwordHash,
+        },
+      ]);
+
+      let thrown = false;
+      try {
+        await service.login({
+          email: "test@example.com",
+          password: "WrongPassword",
+        });
+      } catch (err) {
+        thrown = true;
+        expect(err).toBeInstanceOf(BadRequestException);
+        expect((err as BadRequestException).message).toBe(
+          "auth.INVALID_CREDENTIALS",
+        );
+      }
+      expect(thrown).toBe(true);
+    });
+
+    it("should throw BadRequestException if user email is not verified", async () => {
+      const passwordHash = await hashPassword("Password123");
+      mockDb.setSelectResult([
+        {
+          id: "user-uuid",
+          email: "test@example.com",
+          status: "pending_verification",
+          passwordHash,
+        },
+      ]);
+
+      let thrown = false;
+      try {
+        await service.login({
+          email: "test@example.com",
+          password: "Password123",
+        });
+      } catch (err) {
+        thrown = true;
+        expect(err).toBeInstanceOf(BadRequestException);
+        expect((err as BadRequestException).message).toBe(
+          "auth.EMAIL_NOT_VERIFIED",
+        );
+      }
+      expect(thrown).toBe(true);
+    });
+  });
+
+  describe("refreshToken", () => {
+    it("should successfully rotate and return new tokens if refresh token is valid", async () => {
+      const futureDate = new Date(Date.now() + 1000 * 60 * 60);
+      mockDb.setSelectResultsQueue([
+        [
+          {
+            id: "token-record-id",
+            userId: "user-uuid",
+            tokenHash: "hashed_token",
+            isRevoked: false,
+            expiresAt: futureDate,
+          },
+        ],
+        [
+          {
+            id: "user-uuid",
+            email: "test@example.com",
+            role: "user",
+            status: "active",
+          },
+        ],
+      ]);
+
+      const result = await service.refreshToken({
+        refreshToken: "valid_refresh_token",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBeDefined();
+      expect(result.data.accessToken).toBe("mock_access_token");
+      expect(result.data.refreshToken).toBeDefined();
+      expect(mockDb.delete).toHaveBeenCalled();
+      expect(mockDb.insert).toHaveBeenCalled();
+    });
+
+    it("should throw UnauthorizedException if refresh token is not found", async () => {
+      mockDb.setSelectResult([]);
+
+      let thrown = false;
+      try {
+        await service.refreshToken({
+          refreshToken: "invalid_refresh_token",
+        });
+      } catch (err) {
+        thrown = true;
+        expect(err).toBeInstanceOf(UnauthorizedException);
+        expect((err as UnauthorizedException).message).toBe(
+          "auth.TOKEN_INVALID_OR_EXPIRED",
+        );
+      }
+      expect(thrown).toBe(true);
     });
   });
 });
