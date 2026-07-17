@@ -2,7 +2,7 @@
 
 **Date**: 17-07-26  
 **Complexity**: Simple  
-**Status**: ⏳ PLANNED
+**Status**: ✅ COMPLETED
 
 ## Overview
 
