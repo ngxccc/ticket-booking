@@ -8,19 +8,12 @@ import {
   ConflictException,
   UnauthorizedException,
 } from "@nestjs/common";
-import { getQueueToken } from "@nestjs/bullmq";
 import { JwtService } from "@nestjs/jwt";
 import type { RegisterDto } from "./dto";
 import { I18nService } from "nestjs-i18n";
 import { createMockDb, createMockI18nService } from "../../../test/mocks";
 import { hashPassword } from "@/common/utils/crypto.util";
-
-const mockQueue = {
-  add: mock(() => Promise.resolve({})),
-  clearAll() {
-    this.add.mockClear();
-  },
-};
+import { OUTBOX_EVENT_TYPE } from "@/common/constants/event.constant";
 
 describe("AuthService", () => {
   let service: AuthService;
@@ -39,7 +32,6 @@ describe("AuthService", () => {
   beforeEach(async () => {
     mockDb.clearAll();
     mockI18nService.clearAll();
-    mockQueue.clearAll();
     mockJwtService.clearAll();
 
     const module: TestingModule = await Test.createTestingModule({
@@ -52,10 +44,6 @@ describe("AuthService", () => {
         {
           provide: I18nService,
           useValue: mockI18nService,
-        },
-        {
-          provide: getQueueToken("mail"),
-          useValue: mockQueue,
         },
         {
           provide: JwtService,
@@ -99,12 +87,14 @@ describe("AuthService", () => {
           phoneNumber: registerDto.phoneNumber,
         }),
       );
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        "send-verification",
+      expect(mockDb.mockInsertValues).toHaveBeenCalledWith(
         expect.objectContaining({
-          email: registerDto.email,
-          fullName: registerDto.fullName,
-          token: expect.any(String) as unknown as string,
+          eventType: OUTBOX_EVENT_TYPE.AUTH_VERIFICATION_EMAIL_REQUESTED,
+          payload: expect.objectContaining({
+            email: registerDto.email,
+            fullName: registerDto.fullName,
+            token: expect.any(String) as unknown as string,
+          }) as unknown,
         }),
       );
     });
@@ -354,6 +344,45 @@ describe("AuthService", () => {
       let thrown = false;
       try {
         await service.refreshToken({
+          refreshToken: "invalid_refresh_token",
+        });
+      } catch (err) {
+        thrown = true;
+        expect(err).toBeInstanceOf(UnauthorizedException);
+        expect((err as UnauthorizedException).message).toBe(
+          "auth.TOKEN_INVALID_OR_EXPIRED",
+        );
+      }
+      expect(thrown).toBe(true);
+    });
+  });
+
+  describe("logout", () => {
+    it("should successfully delete the refresh token if valid", async () => {
+      const futureDate = new Date(Date.now() + 1000 * 60 * 60);
+      mockDb.setSelectResult([
+        {
+          id: "token-record-id",
+          isRevoked: false,
+          expiresAt: futureDate,
+        },
+      ]);
+
+      const result = await service.logout({
+        refreshToken: "valid_refresh_token",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBeNull();
+      expect(mockDb.delete).toHaveBeenCalled();
+    });
+
+    it("should throw UnauthorizedException if refresh token is not found", async () => {
+      mockDb.setSelectResult([]);
+
+      let thrown = false;
+      try {
+        await service.logout({
           refreshToken: "invalid_refresh_token",
         });
       } catch (err) {

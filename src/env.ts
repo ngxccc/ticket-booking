@@ -11,6 +11,7 @@ export const env = createEnv({
   server: {
     PORT: z.string().transform(Number).default(3000),
     DOMAIN_NAME: z.url().default("http://localhost:3000"),
+    FRONTEND_URL: z.url().default("http://localhost:3000"),
     NODE_ENV: z
       .enum([
         ENVIRONMENT_MODES.DEVELOPMENT,
@@ -47,6 +48,7 @@ export const env = createEnv({
   runtimeEnv: {
     PORT: process.env["PORT"],
     DOMAIN_NAME: process.env["DOMAIN_NAME"],
+    FRONTEND_URL: process.env["FRONTEND_URL"],
     NODE_ENV: process.env.NODE_ENV,
     DB_URL: process.env["DB_URL"],
     DB_HOST: process.env["DB_HOST"],

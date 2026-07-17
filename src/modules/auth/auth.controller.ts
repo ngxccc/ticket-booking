@@ -2,18 +2,28 @@ import { ApiTags } from "@nestjs/swagger";
 import {
   Body,
   Controller,
-  Get,
   HttpCode,
   HttpStatus,
   Post,
-  Query,
   UseGuards,
 } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { CustomThrottlerGuard } from "@/common/guards/throttler.guard";
+import {
+  ApiCreatedResponseGeneric,
+  ApiOkResponseGeneric,
+} from "@/common/decorators/api-response.decorator";
+import type { ApiResponse } from "@/common/utils/api-response.util";
 import { AUTH_ROUTES } from "./auth.routes";
 import { AuthService } from "./auth.service";
-import { LoginDto, RefreshTokenDto, RegisterDto } from "./dto";
+import {
+  LoginDto,
+  LoginResponseDto,
+  RefreshResponseDto,
+  RefreshTokenDto,
+  RegisterDto,
+  VerifyEmailDto,
+} from "./dto";
 
 @UseGuards(CustomThrottlerGuard)
 @Throttle({
@@ -25,18 +35,22 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post(AUTH_ROUTES.REGISTER)
-  register(@Body() dto: RegisterDto) {
+  @ApiCreatedResponseGeneric()
+  register(@Body() dto: RegisterDto): Promise<ApiResponse<null>> {
     return this.authService.register(dto);
   }
 
-  @Get(AUTH_ROUTES.VERIFY_EMAIL)
-  verifyEmail(@Query("token") token: string) {
-    return this.authService.verifyEmail(token);
+  @HttpCode(HttpStatus.OK)
+  @Post(AUTH_ROUTES.VERIFY_EMAIL)
+  @ApiOkResponseGeneric()
+  verifyEmail(@Body() dto: VerifyEmailDto): Promise<ApiResponse<null>> {
+    return this.authService.verifyEmail(dto.token);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post(AUTH_ROUTES.LOGIN)
-  login(@Body() dto: LoginDto) {
+  @ApiOkResponseGeneric(LoginResponseDto)
+  login(@Body() dto: LoginDto): Promise<ApiResponse<LoginResponseDto>> {
     return this.authService.login(dto);
   }
 
@@ -45,7 +59,17 @@ export class AuthController {
   @Throttle({
     auth: { limit: 10, ttl: 60000 },
   })
-  refresh(@Body() dto: RefreshTokenDto) {
+  @ApiOkResponseGeneric(RefreshResponseDto)
+  refresh(
+    @Body() dto: RefreshTokenDto,
+  ): Promise<ApiResponse<RefreshResponseDto>> {
     return this.authService.refreshToken(dto);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post(AUTH_ROUTES.LOGOUT)
+  @ApiOkResponseGeneric()
+  logout(@Body() dto: RefreshTokenDto): Promise<ApiResponse<null>> {
+    return this.authService.logout(dto);
   }
 }
