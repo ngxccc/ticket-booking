@@ -15,7 +15,7 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     if (env.NODE_ENV !== "production") {
       return true;
     }
-    return super.shouldSkip(context);
+    return await super.shouldSkip(context);
   }
 
   protected override throwThrottlingException(
