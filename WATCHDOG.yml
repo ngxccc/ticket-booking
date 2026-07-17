@@ -1,0 +1,18 @@
+instructions: |
+  Ensure all recommendations follow NestJS 11 best practices and the Zero Semantic Noise comment policy.
+
+advisors:
+  - name: debugger
+    tools: [read, grep, glob, bash]
+    instructions: |
+      Assist in identifying logical bugs, runtime exceptions, and tracing execution paths.
+
+  - name: security
+    tools: [read, grep, glob]
+    instructions: |
+      Audit modifications against STRIDE threats and OWASP Top 10 vulnerabilities (specifically XSS and SQL Injection).
+
+  - name: code-simplifier
+    tools: [read, grep, glob]
+    instructions: |
+      Identify opportunities to reduce boilerplate, enhance readability, and simplify code structure without altering behavior.
