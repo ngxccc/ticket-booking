@@ -1,4 +1,5 @@
-# Docker Build Ignore File for Production Build (does NOT ignore node_modules and dist)
+# Docker Build Ignore File for Production Build (does NOT ignore dist)
+node_modules/
 
 # Caches and editor files
 .eslintcache

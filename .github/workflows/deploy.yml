@@ -36,14 +36,9 @@ jobs:
           bun install --frozen-lockfile
           bun run build
 
-      - name: Install Production Dependencies
-        run: |
-          rm -rf node_modules
-          bun install --prod --frozen-lockfile --ignore-scripts
-
       - name: Package Build Artifacts
         run: |
-          tar -czf build.tar.gz dist node_modules package.json Dockerfile.prod Dockerfile.prod.dockerignore scripts docker-compose.yml drizzle.config.ts
+          tar -czf build.tar.gz dist bun.lock package.json Dockerfile.prod Dockerfile.prod.dockerignore scripts docker-compose.yml drizzle.config.ts
 
       - name: Install Cloudflared
         run: |

@@ -3,6 +3,14 @@ set -euo pipefail
 
 OPTIMIZED_FLAG="/var/tmp/.system_optimized"
 
+# Ensure Docker daemon memory limits are removed (previously caused severe swap thrashing)
+echo "==> Ensuring Docker daemon memory limits are removed..."
+if [ -f /etc/systemd/system/docker.service.d/memory.conf ]; then
+    sudo rm -f /etc/systemd/system/docker.service.d/memory.conf
+    sudo systemctl daemon-reload || true
+    sudo systemctl restart docker || echo "Docker restart failed (may need manual intervention)"
+fi
+
 # Check if already run once
 if [ -f "$OPTIMIZED_FLAG" ]; then
     echo "========================================================="
@@ -39,16 +47,6 @@ echo -e "[Journal]\nSystemMaxUse=50M\nRuntimeMaxUse=50M" | sudo tee /etc/systemd
 sudo systemctl restart systemd-journald || true
 echo "==> systemd-journald log size limited to 50MB."
 
-# 4. Limit Docker daemon memory usage
-echo "==> Limiting Docker daemon memory usage..."
-sudo mkdir -p /etc/systemd/system/docker.service.d
-sudo tee /etc/systemd/system/docker.service.d/memory.conf >/dev/null <<INNER
-[Service]
-MemoryMax=250M
-MemoryHigh=200M
-INNER
-sudo systemctl daemon-reload || true
-sudo systemctl restart docker || echo "Docker restart failed (may need manual intervention)"
 
 # 5. Mark as optimized
 sudo touch "$OPTIMIZED_FLAG"
