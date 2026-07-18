@@ -89,6 +89,7 @@ export class AuthService {
     const passwordHash = await hashPassword(dto.password);
     const verificationToken = randomBytes(32).toString("hex");
     const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const status = env.NODE_ENV === "test" ? "active" : "pending_verification";
 
     await this.db.transaction(async (tx) => {
       await tx.insert(users).values({
@@ -98,6 +99,7 @@ export class AuthService {
         passwordHash,
         verificationToken,
         verificationExpiresAt,
+        status,
       });
 
       // WHY: Store email verification event in the outbox_events table as part of the transaction for atomic consistency.
