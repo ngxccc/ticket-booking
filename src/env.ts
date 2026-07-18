@@ -7,21 +7,35 @@ export const ENVIRONMENT_MODES = {
   TEST: "test",
 } as const;
 
+const robustUrlSchema = z.preprocess((val) => {
+  if (typeof val !== "string" || val === "") return undefined;
+  if (!val.includes("://") && val.trim().length > 0) {
+    return `https://${val}`;
+  }
+  return val;
+}, z.url());
+
 export const env = createEnv({
   server: {
     PORT: z.string().transform(Number).default(3000),
-    DOMAIN_NAME: z.url().default("http://localhost:3000"),
-    FRONTEND_URL: z.url().default("http://localhost:3000"),
+    DOMAIN_NAME: robustUrlSchema.default("http://localhost:3000"),
+    FRONTEND_URL: robustUrlSchema.default("http://localhost:3000"),
     NODE_ENV: z
-      .enum([
-        ENVIRONMENT_MODES.DEVELOPMENT,
-        ENVIRONMENT_MODES.PRODUCTION,
-        ENVIRONMENT_MODES.TEST,
-      ])
+      .preprocess(
+        (val) => {
+          if (val === "prod") return ENVIRONMENT_MODES.PRODUCTION;
+          return val;
+        },
+        z.enum([
+          ENVIRONMENT_MODES.DEVELOPMENT,
+          ENVIRONMENT_MODES.PRODUCTION,
+          ENVIRONMENT_MODES.TEST,
+        ]),
+      )
       .default(ENVIRONMENT_MODES.DEVELOPMENT),
 
     // Database configuration
-    DB_URL: z.url().optional(),
+    DB_URL: robustUrlSchema.optional().catch(undefined),
     DB_HOST: z.string().default("localhost"),
     DB_PORT: z.string().transform(Number).default(5432),
     DB_USERNAME: z.string().default("postgres"),
@@ -29,7 +43,7 @@ export const env = createEnv({
     DB_DATABASE: z.string().default("ticket_booking"),
 
     // Redis configuration
-    REDIS_URL: z.url().optional(),
+    REDIS_URL: robustUrlSchema.optional().catch(undefined),
     REDIS_HOST: z.string().default("localhost"),
     REDIS_PORT: z.string().transform(Number).default(6379),
 
