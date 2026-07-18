@@ -20,7 +20,7 @@ if [ -n "${DOPPLER_TOKEN:-}" ]; then
         rm -f "$ENV_FILE"
 
         # Download secrets as plaintext .env format to stdout and redirect to avoid local filesystem encryption.
-        doppler secrets download $CONFIG_FLAG --format=env --no-file > "$ENV_FILE"
+        doppler secrets download $CONFIG_FLAG --format=env-no-quotes --no-file > "$ENV_FILE"
         echo "==> Successfully synced environment variables from Doppler."
         
         # WHY: If DB_HOST/REDIS_HOST are not defined in Doppler, append defaults for local Docker container networking.

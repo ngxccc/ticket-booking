@@ -13,6 +13,7 @@ import path from "node:path";
 import { DatabaseModule } from "./database/database.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { OutboxModule } from "./modules/outbox/outbox.module";
+import { AppController } from "./app.controller";
 
 const getRedisOptions = () => {
   if (env.REDIS_URL) {
@@ -71,7 +72,7 @@ const getRedisOptions = () => {
     AuthModule,
     OutboxModule,
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [],
 })
 export class AppModule {}

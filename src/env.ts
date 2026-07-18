@@ -18,12 +18,14 @@ const robustUrlSchema = z.preprocess((val) => {
 export const env = createEnv({
   server: {
     PORT: z.string().transform(Number).default(3000),
-    DOMAIN_NAME: robustUrlSchema.default("http://localhost:3000"),
-    FRONTEND_URL: robustUrlSchema.default("http://localhost:3000"),
+    DOMAIN_NAME: robustUrlSchema.catch("http://localhost:3000"),
+    FRONTEND_URL: robustUrlSchema.catch("http://localhost:3000"),
     NODE_ENV: z
       .preprocess(
         (val) => {
-          if (val === "prod") return ENVIRONMENT_MODES.PRODUCTION;
+          if (val === "prod" || val === "prd")
+            return ENVIRONMENT_MODES.PRODUCTION;
+          if (val === "dev") return ENVIRONMENT_MODES.DEVELOPMENT;
           return val;
         },
         z.enum([
