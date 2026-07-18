@@ -68,4 +68,4 @@ jobs:
 
       - name: Deploy to VPS using SSH & Doppler Token
         run: |
-          ssh ticket-booking-vm "export DOPPLER_TOKEN='${{ secrets.DOPPLER_TOKEN }}' && cd /home/azureuser/ticket-booking && tar -xzf build.tar.gz && ./scripts/redeploy.sh"
+          ssh ticket-booking-vm "export DOPPLER_TOKEN='${{ secrets.DOPPLER_TOKEN }}' DOPPLER_CONFIG='${{ secrets.DOPPLER_CONFIG || vars.DOPPLER_CONFIG || '' }}' && cd /home/azureuser/ticket-booking && tar -xzf build.tar.gz && ./scripts/redeploy.sh"
