@@ -6,4 +6,5 @@ export * from "./cinemas.schema";
 export * from "./shows.schema";
 export * from "./bookings.schema";
 export * from "./payments.schema";
+export * from "./outbox.schema";
 export * from "./relations";

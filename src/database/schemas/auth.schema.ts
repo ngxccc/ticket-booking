@@ -34,6 +34,9 @@ export const users = snakeCase.table(
 
     verificationToken: varchar({ length: 255 }),
     verificationExpiresAt: timestamp({ withTimezone: true, mode: "date" }),
+
+    resetPasswordToken: varchar({ length: 255 }),
+    resetPasswordExpiresAt: timestamp({ withTimezone: true, mode: "date" }),
   },
   (table) => [
     uniqueIndex("users_email_uidx").on(table.email),
@@ -43,6 +46,10 @@ export const users = snakeCase.table(
     index("users_verification_expires_at_idx")
       .on(table.verificationExpiresAt)
       .where(sql`${table.status} = 'pending_verification'`),
+    uniqueIndex("users_reset_password_token_uidx").on(table.resetPasswordToken),
+    index("users_reset_password_expires_at_idx")
+      .on(table.resetPasswordExpiresAt)
+      .where(sql`${table.resetPasswordToken} IS NOT NULL`),
     index("users_phone_number_idx").on(table.phoneNumber),
   ],
 );
