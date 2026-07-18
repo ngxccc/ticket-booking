@@ -12,3 +12,4 @@ on:
 jobs:
   integration:
     uses: ./.github/workflows/integration.yml
+    secrets: inherit

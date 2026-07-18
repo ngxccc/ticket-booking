@@ -72,20 +72,6 @@ Unless the task clearly needs a different path:
 
 ## Commands
 
-### API Integration Tests (Newman)
-
-- **Locations:**
-  - Scenario files (Postman collections): `test/api/scenarios/`
-  - Environment configurations: `test/api/environments/`
-  - Iteration data files: `test/api/data/`
-
-- **File Naming Rule (Dynamic Mapping):**
-  - The scenario JSON file and its corresponding iteration data JSON file MUST follow matching naming conventions.
-  - Specifically, a scenario file `<name>.json` (e.g. `auth_flow.json`) MUST map to a data file named `<name>_data.json` to allow dynamic mapping and execution by automated directory-scanning scripts.
-- **HTTP Method & Schema Alignment Rule:**
-  - All request items in Postman collections (`test/api/collections/`) and scenarios (`test/api/scenarios/`) MUST mirror backend HTTP methods, route paths, and payload schemas 100%. If an endpoint is refactored (e.g. `GET /auth/verify-email` -> `POST /auth/verify-email`), the corresponding Postman request item MUST be updated to match the new HTTP method and request body format to avoid schema drift.
-
----
 
 ## Commands
 
@@ -93,7 +79,6 @@ Unless the task clearly needs a different path:
 | -------------------- | ------------------- | ---------------------------------------- | --------------------------------------------------- |
 | Run Unit Tests       | Bun test            | `bun run test` (or `bun test src/`)      | Run all tests in `src/`                             |
 | Run E2E Tests        | Bun test            | `bun run test:e2e` (or `bun test test/`) | Run all E2E integration tests in `test/`            |
-| Run Newman API Tests | Newman / Bun        | `bun run test:api`                       | Run Postman API scenarios in `test/api/` via Newman |
 | Watch Unit Tests     | Bun test            | `bun run test:watch`                     | Run tests in watch mode                             |
 | Coverage Report      | Bun test            | `bun run test:cov`                       | Generate coverage report                            |
 | Type Check           | TypeScript Compiler | `bun run check-types`                    | Run `tsc --noEmit`                                  |
