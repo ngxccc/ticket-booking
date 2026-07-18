@@ -6,10 +6,14 @@ on:
     paths-ignore:
       - "**/*.md"
       - ".gitignore"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   integration:
     uses: ./.github/workflows/integration.yml
-
+    secrets: inherit
   deploy:
     name: Deploy to Production VM
     needs: integration
