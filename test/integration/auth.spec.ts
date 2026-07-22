@@ -13,7 +13,7 @@ import { eq } from "drizzle-orm";
 import { createTestApp } from "../helpers/app.helper";
 import { runMigrations, truncateAllTables } from "../helpers/database.helper";
 import type { DrizzleDB } from "@/database/database.module";
-import { users } from "@/database/schemas";
+import { users, refreshTokens, outboxEvents } from "@/database/schemas";
 
 interface SuccessResponse {
   success: boolean;
@@ -306,6 +306,196 @@ describe("Auth Module Integration (Supertest)", () => {
       const loginSuccessBody =
         loginSuccessRes.body as unknown as SuccessResponse;
       expect(loginSuccessBody.success).toBe(true);
+    });
+  });
+
+  describe("Forgot & Reset Password Flow", () => {
+    const password = "Password123";
+
+    it("should handle forgot password and reset password happy path successfully, forcing logout of active sessions", async () => {
+      const email = "forgot.happy@example.com";
+
+      // Register a user
+      const registerRes = await request(getHttpServer())
+        .post("/auth/register")
+        .send({
+          email,
+          fullName: "Happy User",
+          phoneNumber: "0987654321",
+          password,
+          confirmPassword: password,
+          agreeTerms: true,
+        });
+      expect(registerRes.status).toBe(201);
+
+      // Call forgot-password
+      const forgotRes = await request(getHttpServer())
+        .post("/auth/forgot-password")
+        .send({ email });
+      expect(forgotRes.status).toBe(200);
+      const forgotBody = forgotRes.body as unknown as SuccessResponse;
+      expect(forgotBody.success).toBe(true);
+
+      // Verify database columns resetPasswordToken & resetPasswordExpiresAt
+      const [userInDb] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+      expect(userInDb).toBeDefined();
+      if (!userInDb) throw new Error("userInDb is undefined");
+      expect(userInDb.resetPasswordToken).not.toBeNull();
+      expect(userInDb.resetPasswordExpiresAt).not.toBeNull();
+
+      const expiresAt = userInDb.resetPasswordExpiresAt;
+      if (!expiresAt) throw new Error("expiresAt is null");
+      expect(expiresAt.getTime()).toBeGreaterThan(Date.now());
+
+      const resetToken = userInDb.resetPasswordToken;
+      if (!resetToken) throw new Error("resetToken is null");
+
+      // Verify outbox event is created
+      const outboxEvent = await db
+        .select()
+        .from(outboxEvents)
+        .where(
+          eq(outboxEvents.eventType, "auth.reset_password_email_requested"),
+        )
+        .limit(1);
+      expect(outboxEvent.length).toBe(1);
+      const firstEvent = outboxEvent[0];
+      if (!firstEvent) throw new Error("outboxEvent[0] is undefined");
+      const payload = firstEvent.payload as {
+        email: string;
+        token: string;
+      };
+      expect(payload.email).toBe(email);
+      expect(payload.token).toBe(resetToken);
+
+      // Login user to create an active refresh token session
+      const loginRes = await request(getHttpServer())
+        .post("/auth/login")
+        .send({ email, password });
+      expect(loginRes.status).toBe(200);
+      const loginBody = loginRes.body as unknown as AuthResponse;
+      expect(loginBody.success).toBe(true);
+
+      // Verify refresh token exists in DB
+      const tokensBefore = await db
+        .select()
+        .from(refreshTokens)
+        .where(eq(refreshTokens.userId, userInDb.id));
+      expect(tokensBefore.length).toBeGreaterThanOrEqual(1);
+
+      // Call reset-password with new password
+      const newPassword = "NewPassword123!";
+      const resetRes = await request(getHttpServer())
+        .post("/auth/reset-password")
+        .send({
+          token: resetToken,
+          password: newPassword,
+          confirmPassword: newPassword,
+        });
+      expect(resetRes.status).toBe(200);
+      const resetBody = resetRes.body as unknown as SuccessResponse;
+      expect(resetBody.success).toBe(true);
+
+      // Verify database columns are cleared
+      const [userAfterReset] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+      if (!userAfterReset) throw new Error("userAfterReset is undefined");
+      expect(userAfterReset.resetPasswordToken).toBeNull();
+      expect(userAfterReset.resetPasswordExpiresAt).toBeNull();
+
+      // Verify all active refresh tokens of the user are physically deleted (force logout)
+      const tokensAfter = await db
+        .select()
+        .from(refreshTokens)
+        .where(eq(refreshTokens.userId, userInDb.id));
+      expect(tokensAfter.length).toBe(0);
+
+      // Verify old password no longer works
+      const oldLoginRes = await request(getHttpServer())
+        .post("/auth/login")
+        .send({ email, password });
+      expect(oldLoginRes.status).toBe(400);
+
+      // Verify login succeeds with the new password
+      const newLoginRes = await request(getHttpServer())
+        .post("/auth/login")
+        .send({ email, password: newPassword });
+      expect(newLoginRes.status).toBe(200);
+      const newLoginBody = newLoginRes.body as unknown as SuccessResponse;
+      expect(newLoginBody.success).toBe(true);
+    });
+
+    it("should prevent token reuse", async () => {
+      const email = "forgot.reuse@example.com";
+
+      // Register user
+      await request(getHttpServer()).post("/auth/register").send({
+        email,
+        fullName: "Reuse User",
+        phoneNumber: "0987654322",
+        password,
+        confirmPassword: password,
+        agreeTerms: true,
+      });
+
+      // Trigger forgot password
+      await request(getHttpServer())
+        .post("/auth/forgot-password")
+        .send({ email });
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+      if (!user) throw new Error("user is undefined");
+
+      const token = user.resetPasswordToken;
+      if (!token) throw new Error("token is null");
+
+      // First reset succeeds
+      const firstReset = await request(getHttpServer())
+        .post("/auth/reset-password")
+        .send({
+          token,
+          password: "NewPassword123!",
+          confirmPassword: "NewPassword123!",
+        });
+      expect(firstReset.status).toBe(200);
+
+      // Second reset with the same token fails
+      const secondReset = await request(getHttpServer())
+        .post("/auth/reset-password")
+        .send({
+          token,
+          password: "AnotherNewPassword123!",
+          confirmPassword: "AnotherNewPassword123!",
+        });
+      expect(secondReset.status).toBe(400);
+    });
+
+    it("should return generic success for non-existent emails (prevent user enumeration)", async () => {
+      const nonExistentEmail = "doesnotexist@example.com";
+      const res = await request(getHttpServer())
+        .post("/auth/forgot-password")
+        .send({ email: nonExistentEmail });
+      expect(res.status).toBe(200);
+      const body = res.body as unknown as SuccessResponse;
+      expect(body.success).toBe(true);
+    });
+
+    it("should reject invalid email formats", async () => {
+      const res = await request(getHttpServer())
+        .post("/auth/forgot-password")
+        .send({ email: "not-an-email" });
+      expect(res.status).toBe(400);
     });
   });
 });

@@ -23,6 +23,7 @@ export async function createTestApp(): Promise<TestAppSetup> {
     .overrideProvider(MailService)
     .useValue({
       sendVerificationEmail: async () => Promise.resolve(),
+      sendPasswordResetEmail: async () => Promise.resolve(),
     })
     .compile();
 

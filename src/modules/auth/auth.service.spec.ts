@@ -395,4 +395,85 @@ describe("AuthService", () => {
       expect(thrown).toBe(true);
     });
   });
+
+  describe("forgotPassword", () => {
+    it("should return success generic response if user is not found", async () => {
+      mockDb.setSelectResult([]);
+      const result = await service.forgotPassword({
+        email: "notfound@example.com",
+      });
+      expect(result).toEqual({ success: true, data: null });
+      expect(mockDb.update).not.toHaveBeenCalled();
+    });
+
+    it("should return success generic response if user is found but not active", async () => {
+      mockDb.setSelectResult([
+        {
+          id: "user-id",
+          fullName: "Test User",
+          status: "pending_verification",
+        },
+      ]);
+      const result = await service.forgotPassword({
+        email: "pending@example.com",
+      });
+      expect(result).toEqual({ success: true, data: null });
+      expect(mockDb.update).not.toHaveBeenCalled();
+    });
+
+    it("should successfully generate reset token and write to outbox", async () => {
+      mockDb.setSelectResult([
+        { id: "user-id", fullName: "Test User", status: "active" },
+      ]);
+      const result = await service.forgotPassword({
+        email: "active@example.com",
+      });
+      expect(result).toEqual({ success: true, data: null });
+      expect(mockDb.update).toHaveBeenCalled();
+      expect(mockDb.insert).toHaveBeenCalled();
+    });
+  });
+
+  describe("resetPassword", () => {
+    it("should throw BadRequestException if token is invalid or expired", () => {
+      mockDb.setSelectResult([]);
+      expect(
+        service.resetPassword({
+          token: "invalid-token",
+          password: "NewPassword123",
+          confirmPassword: "NewPassword123",
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it("should throw BadRequestException if token is expired", () => {
+      mockDb.setSelectResult([
+        { id: "user-id", resetPasswordExpiresAt: new Date(Date.now() - 1000) },
+      ]);
+      expect(
+        service.resetPassword({
+          token: "expired-token",
+          password: "NewPassword123",
+          confirmPassword: "NewPassword123",
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it("should reset password, clear token, and delete active refresh tokens", async () => {
+      mockDb.setSelectResult([
+        {
+          id: "user-id",
+          resetPasswordExpiresAt: new Date(Date.now() + 100000),
+        },
+      ]);
+      const result = await service.resetPassword({
+        token: "valid-token",
+        password: "NewPassword123",
+        confirmPassword: "NewPassword123",
+      });
+      expect(result).toEqual({ success: true, data: null });
+      expect(mockDb.update).toHaveBeenCalled();
+      expect(mockDb.delete).toHaveBeenCalled();
+    });
+  });
 });
