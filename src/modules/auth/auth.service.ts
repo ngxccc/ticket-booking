@@ -19,6 +19,7 @@ import {
 import { refreshTokens, users, outboxEvents } from "@/database/schemas";
 import { OUTBOX_EVENT_TYPE } from "@/common/constants/event.constant";
 import { PG_ERROR_CODE } from "@/common/constants/error.constant";
+import { isPostgresErrorCode } from "@/common/utils/error.util";
 import { eq } from "drizzle-orm";
 import {
   hashPassword,
@@ -121,12 +122,7 @@ export class AuthService {
         });
       });
     } catch (error) {
-      if (
-        error &&
-        typeof error === "object" &&
-        "code" in error &&
-        (error as { code: string }).code === PG_ERROR_CODE.UNIQUE_VIOLATION
-      ) {
+      if (isPostgresErrorCode(error, PG_ERROR_CODE.UNIQUE_VIOLATION)) {
         throw new ConflictException(
           this.i18n.t("auth.EMAIL_ALREADY_EXISTS", {
             lang: I18nContext.current()?.lang,

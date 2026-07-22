@@ -16,7 +16,9 @@ export function parseRedisOptions(
   if (redisUrl && redisUrl.trim().length > 0) {
     try {
       const parsed = new URL(redisUrl);
-      const isUpstash = parsed.hostname.includes("upstash.io");
+      const isUpstash =
+        parsed.hostname.endsWith(".upstash.io") ||
+        parsed.hostname === "upstash.io";
       const port = Number(parsed.port) || fallbackPort;
 
       return {
