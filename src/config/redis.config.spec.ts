@@ -1,0 +1,47 @@
+import { describe, it, expect } from "bun:test";
+import { parseRedisOptions } from "./redis.config";
+
+describe("parseRedisOptions", () => {
+  it("should parse standard redis:// TCP URL correctly", () => {
+    const url = "redis://default:secretpass@redis.example.com:12524";
+    const config = parseRedisOptions(url);
+
+    expect(config.host).toBe("redis.example.com");
+    expect(config.port).toBe(12524);
+    expect(config.username).toBe("default");
+    expect(config.password).toBe("secretpass");
+    expect(config.tls).toBeUndefined();
+    expect(config.enableReadyCheck).toBe(true);
+    expect(config.skipVersionCheck).toBe(false);
+  });
+
+  it("should parse rediss:// SSL/TLS URL and set tls options", () => {
+    const url = "rediss://default:secretpass@secure-redis.example.com:6379";
+    const config = parseRedisOptions(url);
+
+    expect(config.host).toBe("secure-redis.example.com");
+    expect(config.port).toBe(6379);
+    expect(config.tls).toEqual({});
+    expect(config.enableReadyCheck).toBe(true);
+    expect(config.skipVersionCheck).toBe(false);
+  });
+
+  it("should disable ready check and enable skip version check for Upstash URLs", () => {
+    const url = "rediss://default:secretpass@complex-library.upstash.io:6379";
+    const config = parseRedisOptions(url);
+
+    expect(config.host).toBe("complex-library.upstash.io");
+    expect(config.tls).toEqual({});
+    expect(config.enableReadyCheck).toBe(false);
+    expect(config.skipVersionCheck).toBe(true);
+  });
+
+  it("should fall back to REDIS_HOST and REDIS_PORT when REDIS_URL is undefined", () => {
+    const config = parseRedisOptions(undefined, "127.0.0.1", 6379);
+
+    expect(config.host).toBe("127.0.0.1");
+    expect(config.port).toBe(6379);
+    expect(config.tls).toBeUndefined();
+    expect(config.enableReadyCheck).toBeUndefined();
+  });
+});
