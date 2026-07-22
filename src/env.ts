@@ -1,3 +1,4 @@
+import { LOG_LEVELS } from "@nestjs/common";
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
@@ -35,6 +36,8 @@ export const env = createEnv({
         ]),
       )
       .default(ENVIRONMENT_MODES.DEVELOPMENT),
+    // Logging configuration
+    LOG_LEVEL: z.enum(LOG_LEVELS).default("log"),
 
     // Database configuration
     DB_URL: robustUrlSchema.optional().catch(undefined),
@@ -80,6 +83,7 @@ export const env = createEnv({
     JWT_SECRET: process.env["JWT_SECRET"],
     JWT_ACCESS_EXPIRES_IN: process.env["JWT_ACCESS_EXPIRES_IN"],
     JWT_REFRESH_EXPIRES_IN: process.env["JWT_REFRESH_EXPIRES_IN"],
+    LOG_LEVEL: process.env["LOG_LEVEL"],
   },
 
   emptyStringAsUndefined: true,

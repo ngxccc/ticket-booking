@@ -1,4 +1,6 @@
 import { BullModule } from "@nestjs/bullmq";
+import { APP_INTERCEPTOR } from "@nestjs/core";
+import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { ThrottlerStorageRedisService } from "@nest-lab/throttler-storage-redis";
 import { env } from "./env";
@@ -18,14 +20,15 @@ import { AppController } from "./app.controller";
 const getRedisOptions = () => {
   if (env.REDIS_URL) {
     const parsed = new URL(env.REDIS_URL);
+    const isUpstash = parsed.hostname.includes("upstash.io");
     return {
       host: parsed.hostname,
       port: Number(parsed.port),
       username: parsed.username || undefined,
       password: parsed.password || undefined,
       tls: parsed.protocol === "rediss:" ? {} : undefined,
-      enableReadyCheck: false, // WHY: Upstash read-only credentials do not have permission to execute the INFO command.
-      skipVersionCheck: true, // WHY: Prevent BullMQ from calling INFO command to check Redis version during connection init.
+      enableReadyCheck: !isUpstash, // WHY: Upstash read-only / serverless proxies restrict INFO command execution.
+      skipVersionCheck: isUpstash,
     };
   }
   return {
@@ -73,6 +76,11 @@ const getRedisOptions = () => {
     OutboxModule,
   ],
   controllers: [AppController],
-  providers: [],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
+    },
+  ],
 })
 export class AppModule {}
