@@ -10,7 +10,7 @@
     "dev": "doppler run -- nest start --watch --exec bun",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"eslint.config.ts\" \"drizzle.config.ts\"",
     "lint": "eslint . --fix --cache --cache-location .eslintcache",
-    "start": "doppler run -- nest start",
+    "start": "doppler run -- bun dist/main.js",
     "start:debug": "doppler run -- nest start --debug --watch",
     "start:prod": "doppler run -- bun dist/main.js",
     "test": "bun test src/",
