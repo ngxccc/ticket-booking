@@ -16,26 +16,10 @@ import { DatabaseModule } from "./database/database.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { OutboxModule } from "./modules/outbox/outbox.module";
 import { AppController } from "./app.controller";
+import { parseRedisOptions } from "./config/redis.config";
 
-const getRedisOptions = () => {
-  if (env.REDIS_URL) {
-    const parsed = new URL(env.REDIS_URL);
-    const isUpstash = parsed.hostname.includes("upstash.io");
-    return {
-      host: parsed.hostname,
-      port: Number(parsed.port),
-      username: parsed.username || undefined,
-      password: parsed.password || undefined,
-      tls: parsed.protocol === "rediss:" ? {} : undefined,
-      enableReadyCheck: !isUpstash, // WHY: Upstash read-only / serverless proxies restrict INFO command execution.
-      skipVersionCheck: isUpstash,
-    };
-  }
-  return {
-    host: env.REDIS_HOST,
-    port: env.REDIS_PORT,
-  };
-};
+const getRedisOptions = () =>
+  parseRedisOptions(env.REDIS_URL, env.REDIS_HOST, env.REDIS_PORT);
 
 @Module({
   imports: [
