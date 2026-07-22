@@ -18,6 +18,7 @@ import {
 } from "./dto";
 import { refreshTokens, users, outboxEvents } from "@/database/schemas";
 import { OUTBOX_EVENT_TYPE } from "@/common/constants/event.constant";
+import { PG_ERROR_CODE } from "@/common/constants/error.constant";
 import { eq } from "drizzle-orm";
 import {
   hashPassword,
@@ -97,27 +98,43 @@ export class AuthService {
     const verificationExpiresAt = getExpiryDate("24h");
     const status = env.NODE_ENV === "test" ? "active" : "pending_verification";
 
-    await this.db.transaction(async (tx) => {
-      await tx.insert(users).values({
-        email: dto.email,
-        fullName: dto.fullName,
-        phoneNumber: dto.phoneNumber,
-        passwordHash,
-        verificationToken,
-        verificationExpiresAt,
-        status,
-      });
-
-      // WHY: Store email verification event in the outbox_events table as part of the transaction for atomic consistency.
-      await tx.insert(outboxEvents).values({
-        eventType: OUTBOX_EVENT_TYPE.AUTH_VERIFICATION_EMAIL_REQUESTED,
-        payload: {
+    try {
+      await this.db.transaction(async (tx) => {
+        await tx.insert(users).values({
           email: dto.email,
           fullName: dto.fullName,
-          token: verificationToken,
-        },
+          phoneNumber: dto.phoneNumber,
+          passwordHash,
+          verificationToken,
+          verificationExpiresAt,
+          status,
+        });
+
+        // WHY: Store email verification event in the outbox_events table as part of the transaction for atomic consistency.
+        await tx.insert(outboxEvents).values({
+          eventType: OUTBOX_EVENT_TYPE.AUTH_VERIFICATION_EMAIL_REQUESTED,
+          payload: {
+            email: dto.email,
+            fullName: dto.fullName,
+            token: verificationToken,
+          },
+        });
       });
-    });
+    } catch (error) {
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        (error as { code: string }).code === PG_ERROR_CODE.UNIQUE_VIOLATION
+      ) {
+        throw new ConflictException(
+          this.i18n.t("auth.EMAIL_ALREADY_EXISTS", {
+            lang: I18nContext.current()?.lang,
+          }),
+        );
+      }
+      throw error;
+    }
     return apiSuccess(null);
   }
 

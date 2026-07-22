@@ -14,6 +14,7 @@ import { I18nService } from "nestjs-i18n";
 import { createMockDb, createMockI18nService } from "../../../test/mocks";
 import { hashPassword } from "@/common/utils/crypto.util";
 import { OUTBOX_EVENT_TYPE } from "@/common/constants/event.constant";
+import { PG_ERROR_CODE } from "@/common/constants/error.constant";
 
 describe("AuthService", () => {
   let service: AuthService;
@@ -116,6 +117,26 @@ describe("AuthService", () => {
 
       expect(mockDb.select).toHaveBeenCalled();
       expect(mockDb.insert).not.toHaveBeenCalled();
+    });
+    it("should catch Postgres UNIQUE_VIOLATION on DB insert and throw ConflictException", async () => {
+      mockDb.setSelectResult([]);
+      const pgError = Object.assign(new Error("Duplicate key"), {
+        code: PG_ERROR_CODE.UNIQUE_VIOLATION,
+        detail: "Key (email)=(test@example.com) already exists.",
+      });
+      mockDb.transaction.mockImplementationOnce(() => Promise.reject(pgError));
+
+      let thrown = false;
+      try {
+        await service.register(registerDto);
+      } catch (err) {
+        thrown = true;
+        expect(err).toBeInstanceOf(ConflictException);
+        expect((err as ConflictException).message).toBe(
+          "auth.EMAIL_ALREADY_EXISTS",
+        );
+      }
+      expect(thrown).toBe(true);
     });
   });
 
