@@ -13,7 +13,18 @@ import {
 } from "@/database/database.module";
 import { outboxEvents } from "@/database/schemas";
 import { eq } from "drizzle-orm";
-import { OUTBOX_EVENT_TYPE } from "@/common/constants/event.constant";
+import {
+  OUTBOX_EVENT_TYPE,
+  MAIL_JOB_NAME,
+} from "@/common/constants/event.constant";
+const EVENT_TO_JOB_MAP: Record<string, string> = {
+  [OUTBOX_EVENT_TYPE.AUTH_VERIFICATION_EMAIL_REQUESTED]:
+    MAIL_JOB_NAME.SEND_VERIFICATION,
+  [OUTBOX_EVENT_TYPE.AUTH_RESET_PASSWORD_EMAIL_REQUESTED]:
+    MAIL_JOB_NAME.SEND_RESET_PASSWORD,
+};
+
+const MAX_OUTBOX_ATTEMPTS = 3;
 
 @Injectable()
 export class OutboxService
@@ -53,18 +64,25 @@ export class OutboxService
     this.isProcessing = true;
 
     try {
-      const pendingEvents = await this.db
-        .select()
-        .from(outboxEvents)
-        .where(eq(outboxEvents.status, "pending"))
-        .limit(10); // Process in batches of 10
+      const pendingEvents = await this.db.transaction(async (tx) => {
+        return tx
+          .select({
+            id: outboxEvents.id,
+            eventType: outboxEvents.eventType,
+            payload: outboxEvents.payload,
+            attempts: outboxEvents.attempts,
+          })
+          .from(outboxEvents)
+          .where(eq(outboxEvents.status, "pending"))
+          .limit(10)
+          .for("update", { skipLocked: true });
+      });
 
       if (pendingEvents.length === 0) {
-        this.isProcessing = false;
         return;
       }
 
-      this.logger.log(
+      this.logger.debug(
         `Processing ${String(pendingEvents.length)} pending outbox events...`,
       );
 
@@ -77,22 +95,33 @@ export class OutboxService
             .set({
               status: "processed",
               processedAt: new Date(),
+              attempts: event.attempts + 1,
+              lastError: null,
             })
             .where(eq(outboxEvents.id, event.id));
 
-          this.logger.log(
+          this.logger.debug(
             `Event ${event.id} (${event.eventType}) processed successfully.`,
           );
         } catch (error) {
+          const nextAttempts = event.attempts + 1;
+          const maxAttempts = MAX_OUTBOX_ATTEMPTS;
+          const isFailed = nextAttempts >= maxAttempts;
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+
           this.logger.error(
-            `Failed to process event ${event.id} (${event.eventType})`,
+            `Failed to process event ${event.id} (${event.eventType}). Attempt ${String(nextAttempts)}/${String(maxAttempts)}`,
             error,
           );
 
           await this.db
             .update(outboxEvents)
             .set({
-              status: "failed",
+              status: isFailed ? "failed" : "pending",
+              processedAt: null,
+              attempts: nextAttempts,
+              lastError: errorMessage,
             })
             .where(eq(outboxEvents.id, event.id));
         }
@@ -105,12 +134,17 @@ export class OutboxService
   }
 
   private async dispatch(eventType: string, payload: unknown) {
-    switch (eventType) {
-      case OUTBOX_EVENT_TYPE.AUTH_VERIFICATION_EMAIL_REQUESTED:
-        await this.mailQueue.add("send-verification", payload);
-        break;
-      default:
-        throw new Error(`Unsupported event type: ${eventType}`);
+    const jobName = EVENT_TO_JOB_MAP[eventType];
+    if (!jobName) {
+      throw new Error(`Unsupported event type: ${eventType}`);
     }
+    await this.mailQueue.add(jobName, payload, {
+      attempts: 5,
+      backoff: {
+        type: "exponential",
+        delay: 2000,
+      },
+      removeOnComplete: true,
+    });
   }
 }

@@ -11,7 +11,18 @@ export function createMockDb() {
   const mockUpdate = mock(() => ({
     set: mockUpdateSet,
   }));
-  const mockDeleteWhere = mock(() => Promise.resolve({}));
+  const mockDeleteReturning = mock(() => {
+    if (selectResultsQueue.length > 0) {
+      const res = selectResultsQueue.shift();
+      return Promise.resolve(res ?? selectResult);
+    }
+    return Promise.resolve(selectResult);
+  });
+  const mockDeleteWhere = mock(() =>
+    Object.assign(Promise.resolve({}), {
+      returning: mockDeleteReturning,
+    }),
+  );
   const mockDelete = mock(() => ({
     where: mockDeleteWhere,
   }));
@@ -20,11 +31,17 @@ export function createMockDb() {
       from: mock(() => ({
         where: mock(() => ({
           limit: mock(() => {
-            if (selectResultsQueue.length > 0) {
-              const res = selectResultsQueue.shift();
-              return Promise.resolve(res ?? selectResult);
-            }
-            return Promise.resolve(selectResult);
+            const getResult = () => {
+              if (selectResultsQueue.length > 0) {
+                const res = selectResultsQueue.shift();
+                return Promise.resolve(res ?? selectResult);
+              }
+              return Promise.resolve(selectResult);
+            };
+            const resultPromise = getResult();
+            return Object.assign(resultPromise, {
+              for: mock(() => resultPromise),
+            });
           }),
         })),
       })),
