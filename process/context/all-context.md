@@ -155,8 +155,8 @@ ticket-booking/
       Database/       -- Database schema DBML, enum strategies, index audits, SQL prep
       DevOps/         -- Azure deploy, Docker Compose, HTTPS, Caddy/Nginx, zero-downtime deploy
       Workflows/      -- Domain workflows, TMDB sync, caching & localization strategies
+  docker/             -- Application containerization setups (Dockerfile, Dockerfile.prod, Dockerfile.prod.dockerignore)
   docker-compose.yml  -- Postgres & Redis development configuration
-  Dockerfile          -- Application containerization setup
 ```
 
 ## Technology Stack

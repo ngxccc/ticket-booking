@@ -38,7 +38,7 @@ jobs:
 
       - name: Package Build Artifacts
         run: |
-          tar -czf build.tar.gz dist bun.lock package.json Dockerfile.prod Dockerfile.prod.dockerignore scripts docker-compose.yml drizzle.config.ts
+          tar -czf build.tar.gz dist bun.lock package.json docker scripts docker-compose.yml drizzle.config.ts
 
       - name: Install Cloudflared
         run: |

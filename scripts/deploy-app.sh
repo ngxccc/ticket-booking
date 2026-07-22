@@ -31,9 +31,9 @@ cd "$PROJECT_DIR"
 
 # 3. Build the latest Docker Image
 echo "==> Building new Docker Image using pre-built artifacts..."
-cp Dockerfile.prod.dockerignore .dockerignore || true
+cp docker/Dockerfile.prod.dockerignore .dockerignore || true
 # WHY: Force legacy docker builder to bypass BuildKit socket timeouts/ping issues on limited-RAM VPS.
-DOCKER_BUILDKIT=0 $DOCKER_CMD build -f Dockerfile.prod -t ticket-booking-app:latest .
+DOCKER_BUILDKIT=0 $DOCKER_CMD build -f docker/Dockerfile.prod -t ticket-booking-app:latest .
 
 # 4. Start the next version container
 echo "==> Preparing container namespace for ticket-booking-app-$NEXT..."
