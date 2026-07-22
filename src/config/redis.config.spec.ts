@@ -36,6 +36,28 @@ describe("parseRedisOptions", () => {
     expect(config.skipVersionCheck).toBe(true);
   });
 
+  it("should fall back to fallback host/port when URL is missing port", () => {
+    const url = "redis://default:secretpass@redis.example.com";
+    const config = parseRedisOptions(url, "localhost", 6379);
+
+    expect(config.host).toBe("redis.example.com");
+    expect(config.port).toBe(6379);
+  });
+
+  it("should fall back gracefully when redisUrl is empty string or malformed", () => {
+    const emptyConfig = parseRedisOptions("", "fallback-host", 6380);
+    expect(emptyConfig.host).toBe("fallback-host");
+    expect(emptyConfig.port).toBe(6380);
+
+    const malformedConfig = parseRedisOptions(
+      "invalid-url-string",
+      "fallback-host",
+      6380,
+    );
+    expect(malformedConfig.host).toBe("fallback-host");
+    expect(malformedConfig.port).toBe(6380);
+  });
+
   it("should fall back to REDIS_HOST and REDIS_PORT when REDIS_URL is undefined", () => {
     const config = parseRedisOptions(undefined, "127.0.0.1", 6379);
 

@@ -17,6 +17,7 @@ import {
   OUTBOX_EVENT_TYPE,
   MAIL_JOB_NAME,
 } from "@/common/constants/event.constant";
+
 const EVENT_TO_JOB_MAP: Record<string, string> = {
   [OUTBOX_EVENT_TYPE.AUTH_VERIFICATION_EMAIL_REQUESTED]:
     MAIL_JOB_NAME.SEND_VERIFICATION,
@@ -127,7 +128,10 @@ export class OutboxService
         }
       }
     } catch (error) {
-      this.logger.error("Error occurred during outbox processing", error);
+      this.logger.error(
+        "Error occurred while processing outbox events.",
+        error,
+      );
     } finally {
       this.isProcessing = false;
     }
@@ -135,9 +139,12 @@ export class OutboxService
 
   private async dispatch(eventType: string, payload: unknown) {
     const jobName = EVENT_TO_JOB_MAP[eventType];
+
     if (!jobName) {
-      throw new Error(`Unsupported event type: ${eventType}`);
+      this.logger.warn(`No BullMQ job mapping found for event: ${eventType}`);
+      return;
     }
+
     await this.mailQueue.add(jobName, payload, {
       attempts: 5,
       backoff: {

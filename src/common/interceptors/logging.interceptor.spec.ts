@@ -1,28 +1,45 @@
-import { describe, it, expect, beforeEach, spyOn } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  spyOn,
+  afterEach,
+  type Mock,
+} from "bun:test";
 import { LoggingInterceptor } from "./logging.interceptor";
-import type {
-  Logger,
+import {
   type ExecutionContext,
   type CallHandler,
   HttpException,
   HttpStatus,
+  Logger,
 } from "@nestjs/common";
 import { of, throwError } from "rxjs";
 
-interface InterceptorWithLogger {
-  logger: Logger;
-}
-
-function getInterceptorLogger(interceptor: LoggingInterceptor): Logger {
-  const target = interceptor as unknown as InterceptorWithLogger;
-  return target.logger;
-}
-
 describe("LoggingInterceptor", () => {
   let interceptor: LoggingInterceptor;
+  let debugSpy: Mock<(...args: unknown[]) => void>;
+  let warnSpy: Mock<(...args: unknown[]) => void>;
+  let errorSpy: Mock<(...args: unknown[]) => void>;
 
   beforeEach(() => {
     interceptor = new LoggingInterceptor();
+    debugSpy = spyOn(Logger.prototype, "debug").mockImplementation(
+      () => undefined,
+    );
+    warnSpy = spyOn(Logger.prototype, "warn").mockImplementation(
+      () => undefined,
+    );
+    errorSpy = spyOn(Logger.prototype, "error").mockImplementation(
+      () => undefined,
+    );
+  });
+
+  afterEach(() => {
+    debugSpy.mockRestore();
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
   it("should ignore non-HTTP execution contexts", (done) => {
@@ -43,8 +60,6 @@ describe("LoggingInterceptor", () => {
   });
 
   it("should log HTTP 2xx success responses at debug level with formatted message", (done) => {
-    const loggerSpy = spyOn(getInterceptorLogger(interceptor), "debug");
-
     const mockRequest = { method: "GET", originalUrl: "/api/test" };
     const mockResponse = { statusCode: 200 };
 
@@ -62,7 +77,7 @@ describe("LoggingInterceptor", () => {
 
     interceptor.intercept(mockContext, mockHandler).subscribe({
       next: () => {
-        expect(loggerSpy).toHaveBeenCalledWith(
+        expect(debugSpy).toHaveBeenCalledWith(
           expect.stringMatching(/^\[GET\] \/api\/test 200 - \d+ms$/),
         );
         done();
@@ -71,8 +86,6 @@ describe("LoggingInterceptor", () => {
   });
 
   it("should log 4xx HttpExceptions at warn level with status code and error message", (done) => {
-    const loggerSpy = spyOn(getInterceptorLogger(interceptor), "warn");
-
     const mockRequest = { method: "POST", originalUrl: "/auth/login" };
     const mockResponse = { statusCode: 200 };
 
@@ -92,7 +105,7 @@ describe("LoggingInterceptor", () => {
     interceptor.intercept(mockContext, mockHandler).subscribe({
       error: (err) => {
         expect(err).toBe(error);
-        expect(loggerSpy).toHaveBeenCalledWith(
+        expect(warnSpy).toHaveBeenCalledWith(
           expect.stringMatching(
             /^\[POST\] \/auth\/login 400 - \d+ms - Error: Bad Request$/,
           ),
@@ -103,8 +116,6 @@ describe("LoggingInterceptor", () => {
   });
 
   it("should log 5xx HttpExceptions at error level with status code and error stack", (done) => {
-    const loggerSpy = spyOn(getInterceptorLogger(interceptor), "error");
-
     const mockRequest = { method: "GET", originalUrl: "/crash" };
     const mockResponse = { statusCode: 500 };
 
@@ -127,7 +138,7 @@ describe("LoggingInterceptor", () => {
     interceptor.intercept(mockContext, mockHandler).subscribe({
       error: (err) => {
         expect(err).toBe(error);
-        expect(loggerSpy).toHaveBeenCalledWith(
+        expect(errorSpy).toHaveBeenCalledWith(
           expect.stringMatching(
             /^\[GET\] \/crash 500 - \d+ms - Error: Database Failure$/,
           ),
@@ -138,8 +149,6 @@ describe("LoggingInterceptor", () => {
   });
 
   it("should handle non-HttpException generic errors and default status code to 500", (done) => {
-    const loggerSpy = spyOn(getInterceptorLogger(interceptor), "error");
-
     const mockRequest = { method: "DELETE", originalUrl: "/data" };
     const mockResponse = { statusCode: 200 };
 
@@ -159,7 +168,7 @@ describe("LoggingInterceptor", () => {
     interceptor.intercept(mockContext, mockHandler).subscribe({
       error: (err) => {
         expect(err).toBe(error);
-        expect(loggerSpy).toHaveBeenCalledWith(
+        expect(errorSpy).toHaveBeenCalledWith(
           expect.stringMatching(
             /^\[DELETE\] \/data 500 - \d+ms - Error: Unhandled runtime error$/,
           ),
