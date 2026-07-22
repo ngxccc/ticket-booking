@@ -23,6 +23,8 @@ import {
   RefreshTokenDto,
   RegisterDto,
   VerifyEmailDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
 } from "./dto";
 
 @UseGuards(CustomThrottlerGuard)
@@ -71,5 +73,25 @@ export class AuthController {
   @ApiOkResponseGeneric()
   logout(@Body() dto: RefreshTokenDto): Promise<ApiResponse<null>> {
     return this.authService.logout(dto);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post(AUTH_ROUTES.FORGOT_PASSWORD)
+  @Throttle({
+    auth: { limit: 3, ttl: 60000 },
+  })
+  @ApiOkResponseGeneric()
+  forgotPassword(@Body() dto: ForgotPasswordDto): Promise<ApiResponse<null>> {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post(AUTH_ROUTES.RESET_PASSWORD)
+  @Throttle({
+    auth: { limit: 5, ttl: 60000 },
+  })
+  @ApiOkResponseGeneric()
+  resetPassword(@Body() dto: ResetPasswordDto): Promise<ApiResponse<null>> {
+    return this.authService.resetPassword(dto);
   }
 }

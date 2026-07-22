@@ -42,14 +42,14 @@ describe("MailService", () => {
 
   it("should successfully call resend.emails.send", async () => {
     await service.sendVerificationEmail(
-      "test@example.com",
+      "test@testmail.io",
       "Test User",
       "token-xyz",
     );
 
     expect(mockSend).toHaveBeenCalledWith(
       expect.objectContaining({
-        to: "test@example.com",
+        to: "test@testmail.io",
         subject: "Xác thực tài khoản của bạn",
         html: expect.stringContaining("token-xyz") as unknown as string,
       }),
@@ -67,7 +67,7 @@ describe("MailService", () => {
     let thrown = false;
     try {
       await service.sendVerificationEmail(
-        "test@example.com",
+        "test@testmail.io",
         "Test User",
         "token-xyz",
       );

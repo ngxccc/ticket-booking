@@ -9,7 +9,13 @@ import {
   DATABASE_CONNECTION,
   type DrizzleDB,
 } from "@/database/database.module";
-import { LoginDto, RefreshTokenDto, RegisterDto } from "./dto";
+import {
+  LoginDto,
+  RefreshTokenDto,
+  RegisterDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+} from "./dto";
 import { refreshTokens, users, outboxEvents } from "@/database/schemas";
 import { OUTBOX_EVENT_TYPE } from "@/common/constants/event.constant";
 import { eq } from "drizzle-orm";
@@ -88,7 +94,7 @@ export class AuthService {
 
     const passwordHash = await hashPassword(dto.password);
     const verificationToken = randomBytes(32).toString("hex");
-    const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const verificationExpiresAt = getExpiryDate("24h");
     const status = env.NODE_ENV === "test" ? "active" : "pending_verification";
 
     await this.db.transaction(async (tx) => {
@@ -200,21 +206,20 @@ export class AuthService {
   async refreshToken(dto: RefreshTokenDto) {
     const hashedIncoming = sha256(dto.refreshToken);
 
-    const [tokenRecord] = await this.db
-      .select({
+    const [deletedToken] = await this.db
+      .delete(refreshTokens)
+      .where(eq(refreshTokens.tokenHash, hashedIncoming))
+      .returning({
         id: refreshTokens.id,
         userId: refreshTokens.userId,
         isRevoked: refreshTokens.isRevoked,
         expiresAt: refreshTokens.expiresAt,
-      })
-      .from(refreshTokens)
-      .where(eq(refreshTokens.tokenHash, hashedIncoming))
-      .limit(1);
+      });
 
     if (
-      !tokenRecord ||
-      tokenRecord.isRevoked ||
-      tokenRecord.expiresAt < new Date()
+      !deletedToken ||
+      deletedToken.isRevoked ||
+      deletedToken.expiresAt < new Date()
     ) {
       this.throwException(
         "auth.TOKEN_INVALID_OR_EXPIRED",
@@ -230,7 +235,7 @@ export class AuthService {
         status: users.status,
       })
       .from(users)
-      .where(eq(users.id, tokenRecord.userId))
+      .where(eq(users.id, deletedToken.userId))
       .limit(1);
 
     if (user?.status !== "active") {
@@ -239,10 +244,6 @@ export class AuthService {
         UnauthorizedException,
       );
     }
-
-    await this.db
-      .delete(refreshTokens)
-      .where(eq(refreshTokens.id, tokenRecord.id));
 
     const { accessToken, refreshToken } = await this.createTokenSession(
       user.id,
@@ -256,20 +257,19 @@ export class AuthService {
   async logout(dto: RefreshTokenDto): Promise<ApiResponse<null>> {
     const hashedIncoming = sha256(dto.refreshToken);
 
-    const [tokenRecord] = await this.db
-      .select({
+    const [deletedToken] = await this.db
+      .delete(refreshTokens)
+      .where(eq(refreshTokens.tokenHash, hashedIncoming))
+      .returning({
         id: refreshTokens.id,
         isRevoked: refreshTokens.isRevoked,
         expiresAt: refreshTokens.expiresAt,
-      })
-      .from(refreshTokens)
-      .where(eq(refreshTokens.tokenHash, hashedIncoming))
-      .limit(1);
+      });
 
     if (
-      !tokenRecord ||
-      tokenRecord.isRevoked ||
-      tokenRecord.expiresAt < new Date()
+      !deletedToken ||
+      deletedToken.isRevoked ||
+      deletedToken.expiresAt < new Date()
     ) {
       this.throwException(
         "auth.TOKEN_INVALID_OR_EXPIRED",
@@ -277,9 +277,84 @@ export class AuthService {
       );
     }
 
-    await this.db
-      .delete(refreshTokens)
-      .where(eq(refreshTokens.id, tokenRecord.id));
+    return apiSuccess(null);
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto): Promise<ApiResponse<null>> {
+    const [user] = await this.db
+      .select({
+        id: users.id,
+        fullName: users.fullName,
+        status: users.status,
+      })
+      .from(users)
+      .where(eq(users.email, dto.email))
+      .limit(1);
+
+    // WHY: Prevention of User Enumeration attacks. Return success generic message without exposing if email exists.
+    if (user?.status !== "active") {
+      return apiSuccess(null);
+    }
+
+    const resetToken = randomBytes(32).toString("hex");
+    const resetPasswordExpiresAt = getExpiryDate("15m");
+
+    await this.db.transaction(async (tx) => {
+      await tx
+        .update(users)
+        .set({
+          resetPasswordToken: resetToken,
+          resetPasswordExpiresAt,
+        })
+        .where(eq(users.id, user.id));
+
+      // WHY: Save email sending request event in outbox_events to decouple DB update and BullMQ publish.
+      await tx.insert(outboxEvents).values({
+        eventType: OUTBOX_EVENT_TYPE.AUTH_RESET_PASSWORD_EMAIL_REQUESTED,
+        payload: {
+          email: dto.email,
+          fullName: user.fullName,
+          token: resetToken,
+        },
+      });
+    });
+
+    return apiSuccess(null);
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<ApiResponse<null>> {
+    const [user] = await this.db
+      .select({
+        id: users.id,
+        resetPasswordExpiresAt: users.resetPasswordExpiresAt,
+      })
+      .from(users)
+      .where(eq(users.resetPasswordToken, dto.token))
+      .limit(1);
+
+    if (
+      !user?.resetPasswordExpiresAt ||
+      user.resetPasswordExpiresAt < new Date()
+    ) {
+      this.throwException("auth.RESET_PASSWORD_TOKEN_INVALID");
+    }
+
+    const passwordHash = await hashPassword(dto.password);
+
+    await this.db.transaction(async (tx) => {
+      // WHY: Update password hash and clean reset token fields to prevent token reuse.
+      await tx
+        .update(users)
+        .set({
+          passwordHash,
+          resetPasswordToken: null,
+          resetPasswordExpiresAt: null,
+        })
+        .where(eq(users.id, user.id));
+
+      // WHY: Session invalidation (force-logout from all devices). Delete all active refresh tokens.
+      await tx.delete(refreshTokens).where(eq(refreshTokens.userId, user.id));
+    });
 
     return apiSuccess(null);
   }

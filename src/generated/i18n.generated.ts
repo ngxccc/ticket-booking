@@ -17,6 +17,7 @@ export type I18nTranslations = {
         "INVALID_CREDENTIALS": string;
         "EMAIL_NOT_VERIFIED": string;
         "TOKEN_INVALID_OR_EXPIRED": string;
+        "RESET_PASSWORD_TOKEN_INVALID": string;
     };
     "validation": {
         "isNotEmpty": string;
