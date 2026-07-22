@@ -35,6 +35,17 @@ describe("parseRedisOptions", () => {
     expect(config.enableReadyCheck).toBe(false);
     expect(config.skipVersionCheck).toBe(true);
   });
+  it("should NOT treat malicious hostnames containing upstash.io substring as Upstash", () => {
+    const url1 = "rediss://default:secretpass@fakeupstash.io:6379";
+    const config1 = parseRedisOptions(url1);
+    expect(config1.enableReadyCheck).toBe(true);
+    expect(config1.skipVersionCheck).toBe(false);
+
+    const url2 = "rediss://default:secretpass@upstash.io.attacker.com:6379";
+    const config2 = parseRedisOptions(url2);
+    expect(config2.enableReadyCheck).toBe(true);
+    expect(config2.skipVersionCheck).toBe(false);
+  });
 
   it("should fall back to fallback host/port when URL is missing port", () => {
     const url = "redis://default:secretpass@redis.example.com";
