@@ -10,16 +10,13 @@
       "name": "Auth",
       "item": [
         {
-          "name": "Register Suite",
-          "item": [
-            {
-              "name": "Register",
+          "name": "Register",
               "event": [
                 {
                   "listen": "prerequest",
                   "script": {
                     "exec": [
-                      "if (pm.iterationData.get(\"generateEmail\") === true || pm.iterationData.get(\"generateEmail\") === undefined) {",
+                      "if (pm.iterationData.get(\"generateEmail\") === true) {",
                       "    pm.environment.set(\"email\", \"test-\" + Date.now() + \"@example.com\");",
                       "} else if (pm.iterationData.get(\"emailOverride\")) {",
                       "    pm.environment.set(\"email\", pm.iterationData.get(\"emailOverride\"));",
@@ -263,8 +260,6 @@
                   "body": "{\n    \"statusCode\": 400,\n    \"message\": [\n        {\n            \"property\": \"confirmPassword\",\n            \"children\": [],\n            \"constraints\": {\n                \"match\": \"Mật khẩu xác nhận không khớp\"\n            }\n        }\n    ],\n    \"error\": \"Bad Request\"\n}"
                 }
               ]
-            }
-          ]
         },
         {
           "name": "Verify Email",
@@ -416,6 +411,94 @@
               ],
               "cookie": [],
               "body": "{\n    \"message\": \"Mã xác thực không hợp lệ hoặc đã được sử dụng\",\n    \"error\": \"Bad Request\",\n    \"statusCode\": 400\n}"
+            }
+          ]
+        },
+        {
+          "name": "Resend Verification Email",
+          "protocolProfileBehavior": {
+            "strictSSL": false,
+            "followRedirects": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-lang",
+                "value": "{{lang}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"user@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/resend-verification",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "resend-verification"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"email\": \"user@example.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/resend-verification",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "resend-verification"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "description": "",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"data\": null\n}"
             }
           ]
         },

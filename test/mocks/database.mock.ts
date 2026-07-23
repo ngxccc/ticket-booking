@@ -29,8 +29,8 @@ export function createMockDb() {
   const mockDb = {
     select: mock(() => ({
       from: mock(() => ({
-        where: mock(() => ({
-          limit: mock(() => {
+        where: mock(() => {
+          const limitMock = mock(() => {
             const getResult = () => {
               if (selectResultsQueue.length > 0) {
                 const res = selectResultsQueue.shift();
@@ -42,8 +42,12 @@ export function createMockDb() {
             return Object.assign(resultPromise, {
               for: mock(() => resultPromise),
             });
-          }),
-        })),
+          });
+          return {
+            limit: limitMock,
+            for: mock(() => ({ limit: limitMock })),
+          };
+        }),
       })),
     })),
     insert: mock(() => ({
