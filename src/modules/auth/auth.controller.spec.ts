@@ -43,6 +43,9 @@ describe("AuthController", () => {
     ),
     forgotPassword: mock(() => Promise.resolve({ success: true, data: null })),
     resetPassword: mock(() => Promise.resolve({ success: true, data: null })),
+    resendVerificationEmail: mock(() =>
+      Promise.resolve({ success: true, data: null }),
+    ),
   };
 
   beforeEach(async () => {
@@ -53,6 +56,7 @@ describe("AuthController", () => {
     mockAuthService.logout.mockClear();
     mockAuthService.forgotPassword.mockClear();
     mockAuthService.resetPassword.mockClear();
+    mockAuthService.resendVerificationEmail.mockClear();
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
@@ -104,6 +108,18 @@ describe("AuthController", () => {
       });
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(authService.verifyEmail).toHaveBeenCalledWith(dto.token);
+    });
+  });
+
+  describe("resendVerification", () => {
+    it("should call authService.resendVerificationEmail and return success-data JSON", () => {
+      const dto = { email: "test@example.com" };
+      expect(controller.resendVerification(dto)).resolves.toEqual({
+        success: true,
+        data: null,
+      });
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(authService.resendVerificationEmail).toHaveBeenCalledWith(dto);
     });
   });
 

@@ -30,6 +30,7 @@ describe("AuthService", () => {
       this.verifyAsync.mockClear();
     },
   };
+
   beforeEach(async () => {
     mockDb.clearAll();
     mockI18nService.clearAll();
@@ -118,6 +119,7 @@ describe("AuthService", () => {
       expect(mockDb.select).toHaveBeenCalled();
       expect(mockDb.insert).not.toHaveBeenCalled();
     });
+
     it("should catch Postgres UNIQUE_VIOLATION on DB insert and throw ConflictException", async () => {
       mockDb.setSelectResult([]);
       const pgError = Object.assign(new Error("Duplicate key"), {
@@ -215,6 +217,99 @@ describe("AuthService", () => {
 
       expect(mockDb.select).toHaveBeenCalled();
       expect(mockDb.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("resendVerificationEmail", () => {
+    it("should generate a new verification token and insert outbox event if user exists and is unverified", async () => {
+      mockDb.setSelectResult([
+        {
+          id: "unverified-user-id",
+          fullName: "Unverified User",
+          status: "pending_verification",
+        },
+      ]);
+
+      const result = await service.resendVerificationEmail({
+        email: "unverified@example.com",
+      });
+
+      expect(result).toEqual({ success: true, data: null });
+      expect(mockDb.select).toHaveBeenCalled();
+      expect(mockDb.transaction).toHaveBeenCalled();
+    });
+    it("should return success(null) silently without updating if resend request is within 60s cooldown window", async () => {
+      const recentExpiresAt = new Date(
+        Date.now() + (24 * 60 * 60 * 1000 - 10 * 1000),
+      );
+      mockDb.setSelectResult([
+        {
+          id: "unverified-user-id",
+          fullName: "Unverified User",
+          status: "pending_verification",
+          verificationExpiresAt: recentExpiresAt,
+        },
+      ]);
+
+      const result = await service.resendVerificationEmail({
+        email: "unverified@example.com",
+      });
+
+      expect(result).toEqual({ success: true, data: null });
+      expect(mockDb.select).toHaveBeenCalled();
+      expect(mockDb.mockUpdateSet).not.toHaveBeenCalled();
+      expect(mockDb.mockInsertValues).not.toHaveBeenCalled();
+    });
+
+    it("should return success(null) silently without updating if user is already verified or active (anti-enumeration)", async () => {
+      mockDb.setSelectResult([
+        {
+          id: "verified-user-id",
+          fullName: "Verified User",
+          status: "active",
+        },
+      ]);
+
+      const result = await service.resendVerificationEmail({
+        email: "verified@example.com",
+      });
+
+      expect(result).toEqual({ success: true, data: null });
+      expect(mockDb.select).toHaveBeenCalled();
+      expect(mockDb.mockUpdateSet).not.toHaveBeenCalled();
+      expect(mockDb.mockInsertValues).not.toHaveBeenCalled();
+    });
+
+    it("should return success(null) silently without updating if user status is suspended or inactive (anti-enumeration)", async () => {
+      mockDb.setSelectResult([
+        {
+          id: "suspended-user-id",
+          fullName: "Suspended User",
+          status: "suspended",
+        },
+      ]);
+
+      const result = await service.resendVerificationEmail({
+        email: "suspended@example.com",
+      });
+
+      expect(result).toEqual({ success: true, data: null });
+      expect(mockDb.select).toHaveBeenCalled();
+      expect(mockDb.mockUpdateSet).not.toHaveBeenCalled();
+      expect(mockDb.mockInsertValues).not.toHaveBeenCalled();
+    });
+
+    it("should return success(null) silently without error if user is not found (anti-enumeration)", async () => {
+      mockDb.setSelectResult([]);
+
+      const result = await service.resendVerificationEmail({
+        email: "nonexistent@example.com",
+      });
+
+      expect(result).toEqual({ success: true, data: null });
+      expect(mockDb.select).toHaveBeenCalled();
+      expect(mockDb.mockUpdateSet).not.toHaveBeenCalled();
+      expect(mockDb.mockInsertValues).not.toHaveBeenCalled();
     });
   });
 

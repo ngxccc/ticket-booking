@@ -25,6 +25,7 @@ import {
   VerifyEmailDto,
   ForgotPasswordDto,
   ResetPasswordDto,
+  ResendVerificationDto,
 } from "./dto";
 
 @UseGuards(CustomThrottlerGuard)
@@ -47,6 +48,18 @@ export class AuthController {
   @ApiOkResponseGeneric()
   verifyEmail(@Body() dto: VerifyEmailDto): Promise<ApiResponse<null>> {
     return this.authService.verifyEmail(dto.token);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post(AUTH_ROUTES.RESEND_VERIFICATION)
+  @Throttle({
+    auth: { limit: 3, ttl: 60000 },
+  })
+  @ApiOkResponseGeneric()
+  resendVerification(
+    @Body() dto: ResendVerificationDto,
+  ): Promise<ApiResponse<null>> {
+    return this.authService.resendVerificationEmail(dto);
   }
 
   @HttpCode(HttpStatus.OK)

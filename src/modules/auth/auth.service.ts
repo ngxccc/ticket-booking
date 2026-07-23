@@ -15,6 +15,7 @@ import {
   RegisterDto,
   ForgotPasswordDto,
   ResetPasswordDto,
+  ResendVerificationDto,
 } from "./dto";
 import { refreshTokens, users, outboxEvents } from "@/database/schemas";
 import { OUTBOX_EVENT_TYPE } from "@/common/constants/event.constant";
@@ -160,6 +161,64 @@ export class AuthService {
         verificationExpiresAt: null,
       })
       .where(eq(users.id, user.id));
+
+    return apiSuccess(null);
+  }
+
+  async resendVerificationEmail(
+    dto: ResendVerificationDto,
+  ): Promise<ApiResponse<null>> {
+    const TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+    const RESEND_COOLDOWN_MS = 60 * 1000; // 1 minute
+
+    await this.db.transaction(async (tx) => {
+      const [user] = await tx
+        .select({
+          id: users.id,
+          email: users.email,
+          fullName: users.fullName,
+          status: users.status,
+          verificationExpiresAt: users.verificationExpiresAt,
+        })
+        .from(users)
+        .where(eq(users.email, dto.email))
+        .for("update")
+        .limit(1);
+
+      // WHY: Protect against user enumeration — return silently if user missing or not pending verification.
+      if (user?.status !== "pending_verification") {
+        return;
+      }
+
+      // WHY: Enforce 60s cooldown between resend requests to prevent email spamming and token override race conditions.
+      if (user.verificationExpiresAt) {
+        const tokenCreatedAt =
+          user.verificationExpiresAt.getTime() - TOKEN_TTL_MS;
+        if (Date.now() - tokenCreatedAt < RESEND_COOLDOWN_MS) {
+          return;
+        }
+      }
+
+      const verificationToken = randomBytes(32).toString("hex");
+      const verificationExpiresAt = getExpiryDate("24h");
+
+      await tx
+        .update(users)
+        .set({
+          verificationToken,
+          verificationExpiresAt,
+        })
+        .where(eq(users.id, user.id));
+
+      await tx.insert(outboxEvents).values({
+        eventType: OUTBOX_EVENT_TYPE.AUTH_VERIFICATION_EMAIL_REQUESTED,
+        payload: {
+          email: user.email,
+          fullName: user.fullName,
+          token: verificationToken,
+        },
+      });
+    });
 
     return apiSuccess(null);
   }
