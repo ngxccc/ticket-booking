@@ -1,7 +1,12 @@
 import { NestFactory } from "@nestjs/core";
-import { LOG_LEVELS, type LogLevel } from "@nestjs/common";
+import {
+  BadRequestException,
+  ValidationPipe,
+  LOG_LEVELS,
+  type LogLevel,
+} from "@nestjs/common";
 import { env, ENVIRONMENT_MODES } from "./env";
-import { I18nValidationExceptionFilter, I18nValidationPipe } from "nestjs-i18n";
+import { type ValidationError } from "class-validator";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import type { Request, Response } from "express";
 import { AppModule } from "./app.module";
@@ -30,16 +35,29 @@ async function bootstrap() {
 
   // WHY: Enable shutdown hooks explicitly so NestJS can trigger onApplicationShutdown in OutboxService to clear background timers gracefully.
   app.enableShutdownHooks();
-
+  // WHY: Use ValidationPipe with exceptionFactory to flatten DTO validation errors into RFC 9457 invalidParams.
   app.useGlobalPipes(
-    new I18nValidationPipe({
+    new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-      validationError: { target: false, value: false },
+      exceptionFactory: (errors: ValidationError[]) => {
+        const invalidParams = errors.map((err) => {
+          const firstConstraintKey = Object.keys(err.constraints ?? {})[0];
+          return {
+            name: err.property,
+            reason: firstConstraintKey
+              ? (err.constraints?.[firstConstraintKey] ?? "Invalid value")
+              : "Invalid value",
+          };
+        });
+
+        return new BadRequestException({
+          invalidParams,
+        });
+      },
     }),
   );
-  app.useGlobalFilters(new I18nValidationExceptionFilter());
 
   // WHY: Generate OpenAPI schema for automatic documentation, testing via Apidog/MCP, and SDK generation.
   const config = new DocumentBuilder()
