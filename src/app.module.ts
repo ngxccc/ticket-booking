@@ -1,5 +1,6 @@
 import { BullModule } from "@nestjs/bullmq";
-import { APP_INTERCEPTOR } from "@nestjs/core";
+import { APP_FILTER, APP_INTERCEPTOR } from "@nestjs/core";
+import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { ThrottlerStorageRedisService } from "@nest-lab/throttler-storage-redis";
@@ -61,6 +62,10 @@ const getRedisOptions = () =>
   ],
   controllers: [AppController],
   providers: [
+    {
+      provide: APP_FILTER,
+      useClass: GlobalExceptionFilter,
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
