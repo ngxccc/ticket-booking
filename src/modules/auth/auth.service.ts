@@ -360,6 +360,19 @@ export class AuthService {
     return apiSuccess(null);
   }
 
+  async logoutAll(userId: string): Promise<ApiResponse<null>> {
+    if (!userId) {
+      this.throwException(
+        "auth.TOKEN_INVALID_OR_EXPIRED",
+        UnauthorizedException,
+      );
+    }
+
+    await this.db.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
+
+    return apiSuccess(null);
+  }
+
   async forgotPassword(dto: ForgotPasswordDto): Promise<ApiResponse<null>> {
     const [user] = await this.db
       .select({
