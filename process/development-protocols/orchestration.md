@@ -33,6 +33,15 @@ mkdir -p process/features/{name}/{active,completed,backlog,reports,references}
 
 Then update both `AGENTS.md` and `CLAUDE.md` so the current-features list stays in sync.
 
+## Subagent Invocation & Lifecycle Protocol (6-Step Workflow)
+
+1. **Intent Detection & Skill Discovery**: Scan `.agents/skills/` to surface candidate skills, pick the appropriate subagent role (`ag-research-agent`, `ag-innovate-agent`, `ag-plan-agent`, `ag-execute-agent`, `ag-debugger`, `ag-code-reviewer`, `ag-tester`, `ag-code-simplifier`), or execute a trivial fix directly (<15 lines).
+2. **Mandatory Phased Todo Initialization**: Initialize a phased task list via `todo` tool before executing commands or delegating work.
+3. **Context Isolation Prompting**: Spawn subagent via `task` (Claude Code) or `spawn_agent` (Codex) passing explicit `Work context`, `Feature`, `Plans`, `Reports`, and plan file path stubs without conversation history.
+4. **Automated Verification Chain (Mandatory `ag-tester` Gate)**: After `ag-execute-agent` reports `DONE`, automatically invoke `ag-tester` (or run Quality Gate: `bun test src/`, `bun run check-types`, `bun run lint`) to verify 100% test pass, 0 TS errors, and 0 lint errors before offering UPDATE PROCESS.
+5. **Senior Code Review & Commit Checkpoint**: Pre-PR review via `ag-code-reviewer` and optional commit splitting via `ag-git-manager`.
+6. **UPDATE PROCESS Closeout Packet**: Present closeout packet, archive plan file to `completed/`, update reports, and run `ag-audit-context` & `ag-audit-ag` to maintain context router health.
+
 ## Subagent Status Protocol
 
 Subagents must end with one of:
@@ -93,8 +102,13 @@ Relevant skills: [comma-separated skill names]
 Chain subagents when work depends on prior outputs:
 
 - Research -> design -> plan
-- Plan -> implementation -> testing -> review
+- Plan -> implementation -> automated test verification -> review -> UPDATE PROCESS
 
+Automated Subagent Verification Chain:
+- When `execute-agent` finishes implementation and yields `DONE`, the Orchestrator MUST automatically invoke `ag-tester` (or run Quality Gate suite: `bun test src/`, `bun run check-types`, `bun run lint`) to verify 100% test pass, 0 type errors, and 0 lint issues BEFORE asking the user to transition to `UPDATE PROCESS`.
+
+Periodic Maintenance:
+- Run `ag-audit-context` and `ag-audit-ag` periodically to prune stale context files and prevent context bloat whenever new context groups or harness protocols change.
 Run in parallel only when scopes are independent and integration boundaries are clear.
 
 ## Large Project Phase Programs
@@ -181,7 +195,11 @@ Required closeout packet:
    - `Keep in active/testing`
    - `Needs PLAN/UPDATE PROCESS reconciliation`
 3. what was actually finished
-4. what was verified and what remains unverified
+4. Automated Verification Results (Mandatory `ag-tester` / Quality Gate Execution):
+   - must explicitly record `bun test src/` (or targeted spec) pass count
+   - must explicitly record `bun run check-types` result (0 errors required)
+   - must explicitly record `bun run lint` result (0 errors required)
+   - state clearly if any test or check remains unverified
 5. what cleanup is already done versus still needed
 6. the single best next valid state
    - `ENTER UPDATE PROCESS MODE`
