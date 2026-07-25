@@ -117,6 +117,20 @@ export class AuthController {
   }
 
   @HttpCode(HttpStatus.OK)
+  @Post(AUTH_ROUTES.LOGOUT_ALL)
+  @UseGuards(JwtAuthGuard)
+  @Throttle({
+    auth: { limit: 2, ttl: 60000 },
+  })
+  @ApiBearerAuth()
+  @ApiOkResponseGeneric()
+  @ApiUnauthorizedResponseRfc9457()
+  @ApiInternalServerErrorResponseRfc9457()
+  logoutAll(@CurrentUser("sub") userId: string): Promise<ApiResponse<null>> {
+    return this.authService.logoutAll(userId);
+  }
+
+  @HttpCode(HttpStatus.OK)
   @Post(AUTH_ROUTES.FORGOT_PASSWORD)
   @Throttle({
     auth: { limit: 3, ttl: 60000 },

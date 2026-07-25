@@ -512,6 +512,27 @@ describe("AuthService", () => {
     });
   });
 
+  describe("logoutAll", () => {
+    it("should successfully delete all refresh tokens for user", async () => {
+      const result = await service.logoutAll("user-uuid-123");
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBeNull();
+      expect(mockDb.delete).toHaveBeenCalled();
+    });
+
+    it("should throw UnauthorizedException if userId is empty", async () => {
+      let thrown = false;
+      try {
+        await service.logoutAll("");
+      } catch (err) {
+        thrown = true;
+        expect(err).toBeInstanceOf(UnauthorizedException);
+      }
+      expect(thrown).toBe(true);
+    });
+  });
+
   describe("forgotPassword", () => {
     it("should return success generic response if user is not found", async () => {
       mockDb.setSelectResult([]);

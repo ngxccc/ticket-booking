@@ -46,6 +46,7 @@ describe("AuthController", () => {
     forgotPassword: mock(() => Promise.resolve({ success: true, data: null })),
     resetPassword: mock(() => Promise.resolve({ success: true, data: null })),
     changePassword: mock(() => Promise.resolve({ success: true, data: null })),
+    logoutAll: mock(() => Promise.resolve({ success: true, data: null })),
     resendVerificationEmail: mock(() =>
       Promise.resolve({ success: true, data: null }),
     ),
@@ -61,6 +62,7 @@ describe("AuthController", () => {
     mockAuthService.resetPassword.mockClear();
     mockAuthService.resendVerificationEmail.mockClear();
     mockAuthService.changePassword.mockClear();
+    mockAuthService.logoutAll.mockClear();
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
@@ -217,6 +219,15 @@ describe("AuthController", () => {
       const result = await controller.changePassword("user-id", dto);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(authService.changePassword).toHaveBeenCalledWith("user-id", dto);
+      expect(result).toEqual({ success: true, data: null });
+    });
+  });
+
+  describe("logoutAll", () => {
+    it("should call authService.logoutAll with sub userId", async () => {
+      const result = await controller.logoutAll("user-id");
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(authService.logoutAll).toHaveBeenCalledWith("user-id");
       expect(result).toEqual({ success: true, data: null });
     });
   });

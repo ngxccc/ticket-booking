@@ -6,6 +6,7 @@ export const AUTH_ROUTES = {
   LOGIN: "login",
   REFRESH: "refresh",
   LOGOUT: "logout",
+  LOGOUT_ALL: "logout-all",
   FORGOT_PASSWORD: "forgot-password",
   RESET_PASSWORD: "reset-password",
   CHANGE_PASSWORD: "change-password",

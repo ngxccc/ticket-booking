@@ -695,4 +695,58 @@ describe("Auth Module Integration (Supertest)", () => {
       expect(changePwdRes.status).toBe(400);
     });
   });
+
+  describe("Logout All Sessions Flow", () => {
+    it("should successfully revoke all refresh tokens for the user", async () => {
+      await request(getHttpServer()).post("/auth/register").send({
+        email: "logout-all-user@example.com",
+        fullName: "Logout All User",
+        phoneNumber: "0912345681",
+        password: "LogoutPassword123!",
+        confirmPassword: "LogoutPassword123!",
+        agreeTerms: true,
+      });
+
+      await db
+        .update(users)
+        .set({ status: "active" })
+        .where(eq(users.email, "logout-all-user@example.com"));
+
+      const loginRes1 = await request(getHttpServer())
+        .post("/auth/login")
+        .send({
+          email: "logout-all-user@example.com",
+          password: "LogoutPassword123!",
+        });
+      const authData1 = (loginRes1.body as unknown as AuthResponse).data;
+
+      const loginRes2 = await request(getHttpServer())
+        .post("/auth/login")
+        .send({
+          email: "logout-all-user@example.com",
+          password: "LogoutPassword123!",
+        });
+      const authData2 = (loginRes2.body as unknown as AuthResponse).data;
+
+      const logoutAllRes = await request(getHttpServer())
+        .post("/auth/logout-all")
+        .set("Authorization", `Bearer ${authData1.accessToken}`);
+      expect(logoutAllRes.status).toBe(200);
+
+      const refreshRes1 = await request(getHttpServer())
+        .post("/auth/refresh")
+        .send({ refreshToken: authData1.refreshToken });
+      expect(refreshRes1.status).toBe(401);
+
+      const refreshRes2 = await request(getHttpServer())
+        .post("/auth/refresh")
+        .send({ refreshToken: authData2.refreshToken });
+      expect(refreshRes2.status).toBe(401);
+    });
+
+    it("should reject logout-all request without Authorization token", async () => {
+      const res = await request(getHttpServer()).post("/auth/logout-all");
+      expect(res.status).toBe(401);
+    });
+  });
 });
