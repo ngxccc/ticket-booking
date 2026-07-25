@@ -8,4 +8,5 @@ export const AUTH_ROUTES = {
   LOGOUT: "logout",
   FORGOT_PASSWORD: "forgot-password",
   RESET_PASSWORD: "reset-password",
+  CHANGE_PASSWORD: "change-password",
 } as const;

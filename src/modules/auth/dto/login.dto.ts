@@ -1,9 +1,9 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from "class-validator";
+import { IsNotEmpty, IsString, MinLength } from "class-validator";
 import { i18nMsg } from "@/common/utils/i18n-message.util";
+import { IsEmailField } from "@/common/decorators";
 
 export class LoginDto {
-  @IsEmail({}, { message: i18nMsg("validation.isEmail") })
-  @IsNotEmpty({ message: i18nMsg("validation.isNotEmpty") })
+  @IsEmailField()
   email!: string;
 
   @IsString({ message: i18nMsg("validation.isString") })

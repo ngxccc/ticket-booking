@@ -9,6 +9,7 @@
   "matches": "{property} does not meet complexity requirements",
   "passwordMustContainUppercase": "{property} must contain at least 1 uppercase letter",
   "passwordMustContainNumber": "{property} must contain at least 1 number",
+  "passwordMustContainSpecialChar": "{property} must contain at least 1 special character",
   "phoneNumberInvalid": "Invalid Vietnamese phone number",
   "passwordsMustMatch": "Passwords do not match",
   "mustAcceptTerms": "You must accept the terms of service"

@@ -9,6 +9,7 @@
   "matches": "{property} không đáp ứng yêu cầu độ phức tạp",
   "passwordMustContainUppercase": "{property} phải chứa ít nhất 1 chữ cái viết hoa",
   "passwordMustContainNumber": "{property} phải chứa ít nhất 1 chữ số",
+  "passwordMustContainSpecialChar": "{property} phải chứa ít nhất 1 ký tự đặc biệt",
   "phoneNumberInvalid": "Số điện thoại không đúng định dạng Việt Nam",
   "passwordsMustMatch": "Mật khẩu xác nhận không trùng khớp",
   "mustAcceptTerms": "Bạn phải đồng ý với điều khoản sử dụng"

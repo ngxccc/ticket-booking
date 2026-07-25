@@ -9,29 +9,22 @@ export async function runMigrations(db: DrizzleDB): Promise<void> {
   await migrate(db, { migrationsFolder });
 }
 
-// WHY: Reset database state between tests to maintain test isolation and prevent state pollution.
+// WHY: Reset database state dynamically between tests by querying pg_tables, avoiding manual table list maintenance.
 export async function truncateAllTables(db: DrizzleDB): Promise<void> {
-  const tables = [
-    "payments",
-    "booking_combos",
-    "tickets",
-    "bookings",
-    "show_seats",
-    "shows",
-    "seats",
-    "halls",
-    "cinemas",
-    "seat_types",
-    "combos",
-    "vouchers",
-    "movie_genres",
-    "movie_translations",
-    "movies",
-    "genres",
-    "refresh_tokens",
-    "users",
-    "outbox_events",
-  ];
+  if (process.env.NODE_ENV !== "test") {
+    throw new Error(
+      "Safety Guard Violation: truncateAllTables can only be executed when NODE_ENV=test!",
+    );
+  }
+  const result = await db.execute<{ tablename: string }>(
+    sql`SELECT tablename FROM pg_tables WHERE schemaname = 'public';`,
+  );
+
+  const tables = result.rows
+    .map((r) => r.tablename)
+    .filter((t) => t !== "__drizzle_migrations");
+
+  if (tables.length === 0) return;
 
   const query = `TRUNCATE TABLE ${tables.map((t) => `"${t}"`).join(", ")} CASCADE;`;
   await db.execute(sql.raw(query));

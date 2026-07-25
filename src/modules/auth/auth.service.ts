@@ -5,6 +5,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
+import { eq } from "drizzle-orm";
 import {
   DATABASE_CONNECTION,
   type DrizzleDB,
@@ -16,25 +17,25 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
   ResendVerificationDto,
+  ChangePasswordDto,
 } from "./dto";
 import { refreshTokens, users, outboxEvents } from "@/database/schemas";
 import { OUTBOX_EVENT_TYPE } from "@/common/constants/event.constant";
 import { PG_ERROR_CODE } from "@/common/constants/error.constant";
 import { isPostgresErrorCode } from "@/common/utils/error.util";
-import { eq } from "drizzle-orm";
+import { apiSuccess, type ApiResponse } from "@/common/utils/api-response.util";
+import type { ClientMetadata } from "@/common/utils/client-info.util";
 import {
-  hashPassword,
   comparePassword,
+  hashPassword,
   sha256,
 } from "@/common/utils/crypto.util";
 import { randomBytes } from "node:crypto";
 import { getExpiryDate } from "@/common/utils/date.util";
 import { I18nContext, I18nService } from "nestjs-i18n";
 import type { I18nTranslations, I18nPath } from "@/generated/i18n.generated";
-import { apiSuccess, type ApiResponse } from "@/common/utils/api-response.util";
 import { JwtService } from "@nestjs/jwt";
 import { env } from "@/env";
-
 @Injectable()
 export class AuthService {
   constructor(
@@ -66,6 +67,7 @@ export class AuthService {
     userId: string,
     email: string,
     role: string,
+    metadata?: ClientMetadata,
   ) {
     const { accessToken, refreshToken } = await this.generateTokens(
       userId,
@@ -74,9 +76,13 @@ export class AuthService {
     );
     const tokenHash = sha256(refreshToken);
     const expiresAt = getExpiryDate(env.JWT_REFRESH_EXPIRES_IN || "7d");
-    await this.db
-      .insert(refreshTokens)
-      .values({ userId, tokenHash, expiresAt });
+    await this.db.insert(refreshTokens).values({
+      userId,
+      tokenHash,
+      expiresAt,
+      deviceName: metadata?.deviceName,
+      ipAddress: metadata?.ipAddress,
+    });
     return { accessToken, refreshToken };
   }
 
@@ -223,7 +229,7 @@ export class AuthService {
     return apiSuccess(null);
   }
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, metadata?: ClientMetadata) {
     const [user] = await this.db
       .select({
         id: users.id,
@@ -261,6 +267,7 @@ export class AuthService {
       user.id,
       user.email,
       user.role,
+      metadata,
     );
 
     return apiSuccess({
@@ -275,7 +282,7 @@ export class AuthService {
     });
   }
 
-  async refreshToken(dto: RefreshTokenDto) {
+  async refreshToken(dto: RefreshTokenDto, metadata?: ClientMetadata) {
     const hashedIncoming = sha256(dto.refreshToken);
 
     const [deletedToken] = await this.db
@@ -321,6 +328,7 @@ export class AuthService {
       user.id,
       user.email,
       user.role,
+      metadata,
     );
 
     return apiSuccess({ accessToken, refreshToken });
@@ -426,6 +434,59 @@ export class AuthService {
 
       // WHY: Session invalidation (force-logout from all devices). Delete all active refresh tokens.
       await tx.delete(refreshTokens).where(eq(refreshTokens.userId, user.id));
+    });
+
+    return apiSuccess(null);
+  }
+
+  async changePassword(
+    userId: string,
+    dto: ChangePasswordDto,
+  ): Promise<ApiResponse<null>> {
+    const [user] = await this.db
+      .select({ id: users.id, passwordHash: users.passwordHash })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user) {
+      this.throwException("auth.INVALID_CREDENTIALS", BadRequestException);
+    }
+
+    if (!user.passwordHash) {
+      this.throwException(
+        "auth.CANNOT_CHANGE_OAUTH_PASSWORD",
+        BadRequestException,
+      );
+    }
+
+    const isPasswordValid = await comparePassword(
+      dto.currentPassword,
+      user.passwordHash,
+    );
+    if (!isPasswordValid) {
+      this.throwException(
+        "auth.INVALID_CURRENT_PASSWORD",
+        UnauthorizedException,
+      );
+    }
+
+    if (dto.currentPassword === dto.newPassword) {
+      this.throwException("auth.NEW_PASSWORD_SAME_AS_OLD", BadRequestException);
+    }
+
+    const newPasswordHash = await hashPassword(dto.newPassword);
+
+    await this.db.transaction(async (tx) => {
+      await tx
+        .update(users)
+        .set({
+          passwordHash: newPasswordHash,
+        })
+        .where(eq(users.id, userId));
+
+      // WHY: Global session revocation (force-logout all devices). Delete all active refresh tokens for the user.
+      await tx.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
     });
 
     return apiSuccess(null);

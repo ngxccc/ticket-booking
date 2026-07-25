@@ -8,7 +8,8 @@ import {
 } from "bun:test";
 import request from "supertest";
 import { type INestApplication } from "@nestjs/common";
-import { type Server } from "node:http";
+import type { Server } from "node:http";
+import { JwtService } from "@nestjs/jwt";
 import { eq } from "drizzle-orm";
 import { createTestApp } from "../helpers/app.helper";
 import { runMigrations, truncateAllTables } from "../helpers/database.helper";
@@ -496,6 +497,196 @@ describe("Auth Module Integration (Supertest)", () => {
         .post("/auth/forgot-password")
         .send({ email: "not-an-email" });
       expect(res.status).toBe(400);
+    });
+  });
+
+  describe("Change Password Flow", () => {
+    it("should successfully change password, revoke all refresh tokens, and allow login with new password", async () => {
+      // 1. Register user
+      const registerRes = await request(getHttpServer())
+        .post("/auth/register")
+        .send({
+          email: "change-pwd-user@example.com",
+          fullName: "Change Password User",
+          phoneNumber: "0912345678",
+          password: "OldPassword123!",
+          confirmPassword: "OldPassword123!",
+          agreeTerms: true,
+        });
+      expect(registerRes.status).toBe(201);
+
+      // 2. Activate user status in DB
+      await db
+        .update(users)
+        .set({ status: "active" })
+        .where(eq(users.email, "change-pwd-user@example.com"));
+
+      // 3. Login to get Access & Refresh Tokens
+      const loginRes = await request(getHttpServer()).post("/auth/login").send({
+        email: "change-pwd-user@example.com",
+        password: "OldPassword123!",
+      });
+      expect(loginRes.status).toBe(200);
+      const loginBody = loginRes.body as unknown as AuthResponse;
+      const { accessToken, refreshToken } = loginBody.data;
+      expect(accessToken).toBeDefined();
+      expect(refreshToken).toBeDefined();
+
+      // Verify refresh token exists in DB before change password
+      const activeTokensBefore = await db.select().from(refreshTokens);
+      expect(activeTokensBefore.length).toBeGreaterThan(0);
+
+      // 4. Change Password
+      const changePwdRes = await request(getHttpServer())
+        .post("/auth/change-password")
+        .set("Authorization", `Bearer ${accessToken}`)
+        .send({
+          currentPassword: "OldPassword123!",
+          newPassword: "NewSecurePassword456!",
+        });
+      expect(changePwdRes.status).toBe(200);
+      const changePwdBody = changePwdRes.body as unknown as SuccessResponse;
+      expect(changePwdBody.success).toBe(true);
+
+      // 5. Assert refresh tokens were deleted from DB (Global Session Revocation)
+      const activeTokensAfter = await db.select().from(refreshTokens);
+      expect(activeTokensAfter.length).toBe(0);
+
+      // 6. Assert login with OLD password fails
+      const failedLoginRes = await request(getHttpServer())
+        .post("/auth/login")
+        .send({
+          email: "change-pwd-user@example.com",
+          password: "OldPassword123!",
+        });
+      expect(failedLoginRes.status).toBeGreaterThanOrEqual(400);
+
+      // 7. Assert login with NEW password succeeds
+      const newLoginRes = await request(getHttpServer())
+        .post("/auth/login")
+        .send({
+          email: "change-pwd-user@example.com",
+          password: "NewSecurePassword456!",
+        });
+      expect(newLoginRes.status).toBe(200);
+      const newLoginBody = newLoginRes.body as unknown as AuthResponse;
+      expect(newLoginBody.data.accessToken).toBeDefined();
+    });
+
+    it("should reject change password request without Authorization token", async () => {
+      const res = await request(getHttpServer())
+        .post("/auth/change-password")
+        .send({
+          currentPassword: "OldPassword123!",
+          newPassword: "NewSecurePassword456!",
+        });
+      expect(res.status).toBe(401);
+    });
+
+    it("should reject change password request with invalid Authorization token", async () => {
+      const res = await request(getHttpServer())
+        .post("/auth/change-password")
+        .set("Authorization", "Bearer invalid-jwt-token")
+        .send({
+          currentPassword: "OldPassword123!",
+          newPassword: "NewSecurePassword456!",
+        });
+      expect(res.status).toBe(401);
+    });
+
+    it("should reject when current password is wrong", async () => {
+      await request(getHttpServer()).post("/auth/register").send({
+        email: "wrong-pwd-user@example.com",
+        fullName: "Wrong Password User",
+        phoneNumber: "0912345679",
+        password: "RealPassword123!",
+        confirmPassword: "RealPassword123!",
+        agreeTerms: true,
+      });
+
+      await db
+        .update(users)
+        .set({ status: "active" })
+        .where(eq(users.email, "wrong-pwd-user@example.com"));
+
+      const loginRes = await request(getHttpServer()).post("/auth/login").send({
+        email: "wrong-pwd-user@example.com",
+        password: "RealPassword123!",
+      });
+      const accessToken = (loginRes.body as unknown as AuthResponse).data
+        .accessToken;
+
+      const changePwdRes = await request(getHttpServer())
+        .post("/auth/change-password")
+        .set("Authorization", `Bearer ${accessToken}`)
+        .send({
+          currentPassword: "IncorrectOldPassword123!",
+          newPassword: "NewSecurePassword456!",
+        });
+      expect(changePwdRes.status).toBe(401);
+    });
+
+    it("should reject when new password is identical to current password", async () => {
+      await request(getHttpServer()).post("/auth/register").send({
+        email: "same-pwd-user@example.com",
+        fullName: "Same Password User",
+        phoneNumber: "0912345680",
+        password: "SamePassword123!",
+        confirmPassword: "SamePassword123!",
+        agreeTerms: true,
+      });
+
+      await db
+        .update(users)
+        .set({ status: "active" })
+        .where(eq(users.email, "same-pwd-user@example.com"));
+
+      const loginRes = await request(getHttpServer()).post("/auth/login").send({
+        email: "same-pwd-user@example.com",
+        password: "SamePassword123!",
+      });
+      const accessToken = (loginRes.body as unknown as AuthResponse).data
+        .accessToken;
+
+      const changePwdRes = await request(getHttpServer())
+        .post("/auth/change-password")
+        .set("Authorization", `Bearer ${accessToken}`)
+        .send({
+          currentPassword: "SamePassword123!",
+          newPassword: "SamePassword123!",
+        });
+      expect(changePwdRes.status).toBe(400);
+    });
+
+    it("should reject OAuth users without passwordHash from changing password", async () => {
+      const [oauthUser] = await db
+        .insert(users)
+        .values({
+          email: "oauth-only-user@example.com",
+          fullName: "OAuth Only User",
+          googleId: "google-oauth-12345",
+          passwordHash: null,
+          status: "active",
+          role: "user",
+        })
+        .returning();
+      if (!oauthUser) throw new Error("OAuth user not created");
+      // Sign JWT token directly for testing OAuth user session
+      const jwtService = app.get(JwtService);
+      const accessToken = await jwtService.signAsync({
+        sub: oauthUser.id,
+        email: oauthUser.email,
+        role: oauthUser.role,
+      });
+
+      const changePwdRes = await request(getHttpServer())
+        .post("/auth/change-password")
+        .set("Authorization", `Bearer ${accessToken}`)
+        .send({
+          currentPassword: "SomeDummyPassword123!",
+          newPassword: "NewSecurePassword456!",
+        });
+      expect(changePwdRes.status).toBe(400);
     });
   });
 });

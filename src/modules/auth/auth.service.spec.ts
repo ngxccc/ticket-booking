@@ -592,4 +592,70 @@ describe("AuthService", () => {
       expect(mockDb.delete).toHaveBeenCalled();
     });
   });
+
+  describe("changePassword", () => {
+    it("should throw BadRequestException if user is not found", () => {
+      mockDb.setSelectResult([]);
+      expect(
+        service.changePassword("user-id", {
+          currentPassword: "OldPassword123!",
+          newPassword: "NewPassword456!",
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it("should throw BadRequestException if OAuth user has no passwordHash", () => {
+      mockDb.setSelectResult([{ id: "user-id", passwordHash: null }]);
+      expect(
+        service.changePassword("user-id", {
+          currentPassword: "OldPassword123!",
+          newPassword: "NewPassword456!",
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it("should throw UnauthorizedException if currentPassword is invalid", async () => {
+      const hashedOldPassword = await hashPassword("RealOldPassword123!");
+      mockDb.setSelectResult([
+        { id: "user-id", passwordHash: hashedOldPassword },
+      ]);
+
+      expect(
+        service.changePassword("user-id", {
+          currentPassword: "WrongOldPassword123!",
+          newPassword: "NewPassword456!",
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it("should throw BadRequestException if newPassword is identical to currentPassword", async () => {
+      const hashedOldPassword = await hashPassword("SamePassword123!");
+      mockDb.setSelectResult([
+        { id: "user-id", passwordHash: hashedOldPassword },
+      ]);
+
+      expect(
+        service.changePassword("user-id", {
+          currentPassword: "SamePassword123!",
+          newPassword: "SamePassword123!",
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it("should change password and delete refresh tokens on success", async () => {
+      const hashedOldPassword = await hashPassword("OldPassword123!");
+      mockDb.setSelectResult([
+        { id: "user-id", passwordHash: hashedOldPassword },
+      ]);
+
+      const result = await service.changePassword("user-id", {
+        currentPassword: "OldPassword123!",
+        newPassword: "NewPassword456!",
+      });
+
+      expect(result).toEqual({ success: true, data: null });
+      expect(mockDb.update).toHaveBeenCalled();
+      expect(mockDb.delete).toHaveBeenCalled();
+    });
+  });
 });

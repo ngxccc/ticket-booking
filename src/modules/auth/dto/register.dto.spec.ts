@@ -17,8 +17,8 @@ describe("RegisterDto Validation", () => {
     email: "test@example.com",
     fullName: "John Doe",
     phoneNumber: "0912345678",
-    password: "Password123",
-    confirmPassword: "Password123",
+    password: "Password123!",
+    confirmPassword: "Password123!",
     agreeTerms: true,
   });
 
@@ -144,8 +144,8 @@ describe("RegisterDto Validation", () => {
 
     it("should fail when password does not contain an uppercase letter", async () => {
       const dto = getValidDto();
-      dto.password = "password123";
-      dto.confirmPassword = "password123";
+      dto.password = "password123!";
+      dto.confirmPassword = "password123!";
       const errors = await validateDto(dto);
       expect(errors.length).toBeGreaterThan(0);
       const passwordError = errors.find((e) => e.property === "password");
@@ -154,17 +154,26 @@ describe("RegisterDto Validation", () => {
 
     it("should fail when password does not contain a number", async () => {
       const dto = getValidDto();
-      dto.password = "Password";
-      dto.confirmPassword = "Password";
+      dto.password = "Password!";
+      dto.confirmPassword = "Password!";
       const errors = await validateDto(dto);
       expect(errors.length).toBeGreaterThan(0);
       const passwordError = errors.find((e) => e.property === "password");
       expect(passwordError).toBeDefined();
     });
 
+    it("should fail when password does not contain a special character", async () => {
+      const dto = getValidDto();
+      dto.password = "Password123";
+      dto.confirmPassword = "Password123";
+      const errors = await validateDto(dto);
+      expect(errors.length).toBeGreaterThan(0);
+      const passwordError = errors.find((e) => e.property === "password");
+      expect(passwordError).toBeDefined();
+    });
     it("should fail when password and confirmPassword do not match", async () => {
       const dto = getValidDto();
-      dto.confirmPassword = "DifferentPassword123";
+      dto.confirmPassword = "DifferentPassword123!";
       const errors = await validateDto(dto);
       expect(errors.length).toBeGreaterThan(0);
       const confirmError = errors.find((e) => e.property === "confirmPassword");

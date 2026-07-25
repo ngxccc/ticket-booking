@@ -1,6 +1,10 @@
 import { Test, type TestingModule } from "@nestjs/testing";
-import { type INestApplication } from "@nestjs/common";
-import { I18nValidationExceptionFilter, I18nValidationPipe } from "nestjs-i18n";
+import {
+  BadRequestException,
+  ValidationPipe,
+  type INestApplication,
+} from "@nestjs/common";
+import { type ValidationError } from "class-validator";
 import { AppModule } from "@/app.module";
 import { MailService } from "@/modules/mail/mail.service";
 import {
@@ -31,14 +35,28 @@ export async function createTestApp(): Promise<TestAppSetup> {
 
   // WHY: Match the global pipes/filters configuration defined in src/main.ts for request validation.
   app.useGlobalPipes(
-    new I18nValidationPipe({
+    new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-      validationError: { target: false, value: false },
+      exceptionFactory: (errors: ValidationError[]) => {
+        const invalidParams = errors.map((err) => {
+          const firstConstraintKey = Object.keys(err.constraints ?? {})[0];
+          return {
+            name: err.property,
+            reason: firstConstraintKey
+              ? (err.constraints?.[firstConstraintKey] ?? "Invalid value")
+              : "Invalid value",
+          };
+        });
+
+        return new BadRequestException({
+          detail: "Invalid payload format",
+          invalidParams,
+        });
+      },
     }),
   );
-  app.useGlobalFilters(new I18nValidationExceptionFilter());
 
   await app.init();
 
