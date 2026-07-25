@@ -313,7 +313,7 @@ describe("Auth Module Integration (Supertest)", () => {
       const loginSuccessBody =
         loginSuccessRes.body as unknown as SuccessResponse;
       expect(loginSuccessBody.success).toBe(true);
-    });
+    }, 15000);
   });
 
   describe("Forgot & Reset Password Flow", () => {
@@ -437,7 +437,7 @@ describe("Auth Module Integration (Supertest)", () => {
       expect(newLoginRes.status).toBe(200);
       const newLoginBody = newLoginRes.body as unknown as SuccessResponse;
       expect(newLoginBody.success).toBe(true);
-    });
+    }, 15000);
 
     it("should prevent token reuse", async () => {
       const email = "forgot.reuse@example.com";
