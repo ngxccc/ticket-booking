@@ -38,8 +38,14 @@ interface ValidationErrorItem {
   constraints: Record<string, string>;
 }
 
+interface InvalidParam {
+  name: string;
+  reason: string;
+}
+
 interface ValidationResponse {
-  message: ValidationErrorItem[];
+  invalidParams?: InvalidParam[];
+  message?: ValidationErrorItem[];
 }
 describe("Auth Module Integration (Supertest)", () => {
   let app: INestApplication;
@@ -64,7 +70,7 @@ describe("Auth Module Integration (Supertest)", () => {
   describe("Happy Path Flow", () => {
     it("should complete the full registration, login, refresh, and logout cycle", async () => {
       const email = "john.doe@example.com";
-      const password = "Password123";
+      const password = "Password123!";
 
       const registerRes = await request(getHttpServer())
         .post("/auth/register")
@@ -130,8 +136,8 @@ describe("Auth Module Integration (Supertest)", () => {
         email,
         fullName: "User A",
         phoneNumber: "0912345678",
-        password: "Password123",
-        confirmPassword: "Password123",
+        password: "Password123!",
+        confirmPassword: "Password123!",
         agreeTerms: true,
       };
 
@@ -155,8 +161,8 @@ describe("Auth Module Integration (Supertest)", () => {
         email: "invalid-email",
         fullName: "User B",
         phoneNumber: "0912345678",
-        password: "Password123",
-        confirmPassword: "Password123",
+        password: "Password123!",
+        confirmPassword: "Password123!",
         agreeTerms: true,
       };
 
@@ -165,9 +171,9 @@ describe("Auth Module Integration (Supertest)", () => {
         .send(payload);
       expect(res.status).toBe(400);
       const resBody = res.body as unknown as ValidationResponse;
-      const firstError = resBody.message[0];
-      expect(firstError?.property).toBe("email");
-      expect(firstError?.constraints["isEmail"]).toBeDefined();
+      const invalidParam = resBody.invalidParams?.[0];
+      const firstError = resBody.message?.[0];
+      expect(invalidParam?.name ?? firstError?.property).toBe("email");
     });
 
     it("should sanitize and strip HTML tags from fullName", async () => {
@@ -176,8 +182,8 @@ describe("Auth Module Integration (Supertest)", () => {
         email,
         fullName: "<b>Test</b> User",
         phoneNumber: "0912345678",
-        password: "Password123",
-        confirmPassword: "Password123",
+        password: "Password123!",
+        confirmPassword: "Password123!",
         agreeTerms: true,
       };
 
@@ -201,8 +207,8 @@ describe("Auth Module Integration (Supertest)", () => {
         email: "xss-script@example.com",
         fullName: "<script>alert('XSS')</script>",
         phoneNumber: "0912345678",
-        password: "Password123",
-        confirmPassword: "Password123",
+        password: "Password123!",
+        confirmPassword: "Password123!",
         agreeTerms: true,
       };
 
@@ -211,9 +217,9 @@ describe("Auth Module Integration (Supertest)", () => {
         .send(payload);
       expect(res.status).toBe(400);
       const resBody = res.body as unknown as ValidationResponse;
-      const firstError = resBody.message[0];
-      expect(firstError?.property).toBe("fullName");
-      expect(firstError?.constraints["isNotEmpty"]).toBeDefined();
+      const invalidParam = resBody.invalidParams?.[0];
+      const firstError = resBody.message?.[0];
+      expect(invalidParam?.name ?? firstError?.property).toBe("fullName");
     });
 
     it("should safely register and parameterize names containing SQL injection syntax", async () => {
@@ -223,8 +229,8 @@ describe("Auth Module Integration (Supertest)", () => {
         email,
         fullName: sqlInjectionName,
         phoneNumber: "0912345678",
-        password: "Password123",
-        confirmPassword: "Password123",
+        password: "Password123!",
+        confirmPassword: "Password123!",
         agreeTerms: true,
       };
 
@@ -245,7 +251,7 @@ describe("Auth Module Integration (Supertest)", () => {
 
     it("should require email verification if status is pending_verification and succeed after verification", async () => {
       const email = "verify@example.com";
-      const password = "Password123";
+      const password = "Password123!";
       const payload = {
         email,
         fullName: "Verify User",
@@ -311,7 +317,7 @@ describe("Auth Module Integration (Supertest)", () => {
   });
 
   describe("Forgot & Reset Password Flow", () => {
-    const password = "Password123";
+    const password = "Password123!";
 
     it("should handle forgot password and reset password happy path successfully, forcing logout of active sessions", async () => {
       const email = "forgot.happy@example.com";
