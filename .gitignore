@@ -63,6 +63,7 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .omp
 AGENTS.md
 CLAUDE.md
+GEMINI.md
 
 # Local docs symlink
 second-brain
