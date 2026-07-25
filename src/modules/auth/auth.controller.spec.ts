@@ -1,8 +1,10 @@
 import type { TestingModule } from "@nestjs/testing";
 import { Test } from "@nestjs/testing";
+import type { Request } from "express";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { CustomThrottlerGuard } from "@/common/guards/throttler.guard";
+import { JwtAuthGuard } from "@/common/guards/jwt-auth.guard";
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type {
   RegisterDto,
@@ -43,6 +45,7 @@ describe("AuthController", () => {
     ),
     forgotPassword: mock(() => Promise.resolve({ success: true, data: null })),
     resetPassword: mock(() => Promise.resolve({ success: true, data: null })),
+    changePassword: mock(() => Promise.resolve({ success: true, data: null })),
     resendVerificationEmail: mock(() =>
       Promise.resolve({ success: true, data: null }),
     ),
@@ -57,7 +60,7 @@ describe("AuthController", () => {
     mockAuthService.forgotPassword.mockClear();
     mockAuthService.resetPassword.mockClear();
     mockAuthService.resendVerificationEmail.mockClear();
-
+    mockAuthService.changePassword.mockClear();
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
@@ -68,6 +71,8 @@ describe("AuthController", () => {
       ],
     })
       .overrideGuard(CustomThrottlerGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(JwtAuthGuard)
       .useValue({ canActivate: () => true })
       .compile();
 
@@ -163,6 +168,56 @@ describe("AuthController", () => {
       });
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(authService.resetPassword).toHaveBeenCalledWith(dto);
+    });
+  });
+
+  describe("login", () => {
+    it("should extract client metadata from req and call authService.login", async () => {
+      const dto = { email: "test@example.com", password: "Password123!" };
+      const req = {
+        headers: {
+          "user-agent": "TestBrowser/1.0",
+          "x-forwarded-for": "1.2.3.4",
+        },
+        ip: "1.2.3.4",
+      } as unknown as Request;
+
+      await controller.login(dto, req);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(authService.login).toHaveBeenCalledWith(dto, {
+        deviceName: "TestBrowser/1.0",
+        ipAddress: "1.2.3.4",
+      });
+    });
+  });
+
+  describe("refresh", () => {
+    it("should extract client metadata from req and call authService.refreshToken", async () => {
+      const dto = { refreshToken: "some_refresh_token" };
+      const req = {
+        headers: { "user-agent": "TestBrowser/1.0" },
+        ip: "5.6.7.8",
+      } as unknown as Request;
+
+      await controller.refresh(dto, req);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(authService.refreshToken).toHaveBeenCalledWith(dto, {
+        deviceName: "TestBrowser/1.0",
+        ipAddress: "5.6.7.8",
+      });
+    });
+  });
+
+  describe("changePassword", () => {
+    it("should call authService.changePassword with userId and dto", async () => {
+      const dto = {
+        currentPassword: "OldPassword123!",
+        newPassword: "NewPassword456!",
+      };
+      const result = await controller.changePassword("user-id", dto);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(authService.changePassword).toHaveBeenCalledWith("user-id", dto);
+      expect(result).toEqual({ success: true, data: null });
     });
   });
 });

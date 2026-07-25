@@ -18,6 +18,10 @@ export type I18nTranslations = {
         "EMAIL_NOT_VERIFIED": string;
         "TOKEN_INVALID_OR_EXPIRED": string;
         "RESET_PASSWORD_TOKEN_INVALID": string;
+        "CHANGE_PASSWORD_SUCCESS": string;
+        "INVALID_CURRENT_PASSWORD": string;
+        "NEW_PASSWORD_SAME_AS_OLD": string;
+        "CANNOT_CHANGE_OAUTH_PASSWORD": string;
     };
     "validation": {
         "isNotEmpty": string;
@@ -30,6 +34,7 @@ export type I18nTranslations = {
         "matches": string;
         "passwordMustContainUppercase": string;
         "passwordMustContainNumber": string;
+        "passwordMustContainSpecialChar": string;
         "phoneNumberInvalid": string;
         "passwordsMustMatch": string;
         "mustAcceptTerms": string;

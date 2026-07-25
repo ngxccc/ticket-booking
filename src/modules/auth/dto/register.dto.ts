@@ -1,23 +1,16 @@
-import {
-  Equals,
-  IsBoolean,
-  IsEmail,
-  IsNotEmpty,
-  IsNumberString,
-  IsString,
-  Matches,
-  MaxLength,
-  MinLength,
-} from "class-validator";
+import { Equals, IsBoolean, IsNotEmpty, IsString } from "class-validator";
 import { Transform } from "class-transformer";
 import { i18nMsg } from "@/common/utils/i18n-message.util";
-import { Match } from "@/common/decorators/match.decorator";
+import {
+  IsEmailField,
+  IsPassword,
+  IsPhoneNumberField,
+  Match,
+} from "@/common/decorators";
 import { sanitizeString } from "@/common/utils/sanitize.util";
 
 export class RegisterDto {
-  @Transform(({ value }) => sanitizeString(value))
-  @IsEmail({}, { message: i18nMsg("validation.isEmail") })
-  @IsNotEmpty({ message: i18nMsg("validation.isNotEmpty") })
+  @IsEmailField()
   email!: string;
 
   @Transform(({ value }) => sanitizeString(value))
@@ -25,23 +18,10 @@ export class RegisterDto {
   @IsNotEmpty({ message: i18nMsg("validation.isNotEmpty") })
   fullName!: string;
 
-  @Transform(({ value }) => sanitizeString(value))
-  @IsNumberString({}, { message: i18nMsg("validation.isNumberString") })
-  @MinLength(10, { message: i18nMsg("validation.minLength") })
-  @MaxLength(10, { message: i18nMsg("validation.maxLength") })
-  @Matches(/^(0[35789])\d{8}$/, {
-    message: i18nMsg("validation.phoneNumberInvalid"),
-  })
+  @IsPhoneNumberField()
   phoneNumber!: string;
 
-  @IsString({ message: i18nMsg("validation.isString") })
-  @MinLength(8, { message: i18nMsg("validation.minLength") })
-  @Matches(/[A-Z]/, {
-    message: i18nMsg("validation.passwordMustContainUppercase"),
-  })
-  @Matches(/[0-9]/, {
-    message: i18nMsg("validation.passwordMustContainNumber"),
-  })
+  @IsPassword()
   password!: string;
 
   @IsString({ message: i18nMsg("validation.isString") })
