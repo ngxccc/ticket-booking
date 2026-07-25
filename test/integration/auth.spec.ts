@@ -30,7 +30,8 @@ interface AuthResponse {
 }
 
 interface MessageResponse {
-  message: string;
+  message?: string;
+  detail?: string;
 }
 
 interface ValidationErrorItem {
@@ -151,8 +152,9 @@ describe("Auth Module Integration (Supertest)", () => {
         .send(payload);
       expect(secondReg.status).toBe(409);
       const secondRegBody = secondReg.body as unknown as MessageResponse;
+      const actualMsg = secondRegBody.detail ?? secondRegBody.message ?? "";
       expect(["auth.EMAIL_ALREADY_EXISTS", "Email đã tồn tại"]).toContain(
-        secondRegBody.message,
+        actualMsg,
       );
     });
 
@@ -284,11 +286,9 @@ describe("Auth Module Integration (Supertest)", () => {
         .send({ email, password });
       expect(loginFailRes.status).toBe(400);
       const loginFailBody = loginFailRes.body as unknown as MessageResponse;
-      const hasEmailNotVerified = loginFailBody.message.includes(
-        "auth.EMAIL_NOT_VERIFIED",
-      );
-      const hasNotVerifiedVietnamese =
-        loginFailBody.message.includes("chưa được xác thực");
+      const errorMsg = loginFailBody.detail ?? loginFailBody.message ?? "";
+      const hasEmailNotVerified = errorMsg.includes("auth.EMAIL_NOT_VERIFIED");
+      const hasNotVerifiedVietnamese = errorMsg.includes("chưa được xác thực");
       expect(hasEmailNotVerified || hasNotVerifiedVietnamese).toBe(true);
 
       const [userWithToken] = await db
