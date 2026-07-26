@@ -145,13 +145,20 @@ export class OutboxService
       return;
     }
 
-    await this.mailQueue.add(jobName, payload, {
-      attempts: 5,
-      backoff: {
-        type: "exponential",
-        delay: 2000,
-      },
-      removeOnComplete: true,
-    });
+    await Promise.race([
+      this.mailQueue.add(jobName, payload, {
+        attempts: 5,
+        backoff: {
+          type: "exponential",
+          delay: 2000,
+        },
+        removeOnComplete: true,
+      }),
+      new Promise((_, reject) =>
+        setTimeout(() => {
+          reject(new Error("BullMQ mailQueue.add timeout after 5s"));
+        }, 5000),
+      ),
+    ]);
   }
 }
