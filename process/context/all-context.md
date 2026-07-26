@@ -133,6 +133,9 @@ When durable project knowledge changes:
 ```text
 ticket-booking/
   src/                -- NestJS application source code
+    modules/          -- Feature modules
+      auth/           -- Authentication module (register, login, logout, verify-email, refresh-token, change-password)
+      users/          -- Users module (GET /api/users/me profile endpoint)
     database/         -- Database connection module and schema definitions
       schemas/        -- Drizzle table schemas (auth, movies, cinemas, shows, bookings, payments, etc.)
     config/           -- Configuration management module
@@ -182,6 +185,12 @@ ticket-booking/
 - **Second Brain Note Storage:** When creating general notes, explanations, or documentation, store them under the `second-brain/Docs/` directory structured by topic (`Architecture/`, `Auth/`, `Database/`, `DevOps/`, `Workflows/`). Business specifications, architecture designs, critical trade-offs (e.g. concurrency, outbox pattern), and interview preparation notes must be written to `second-brain/` to facilitate future learning and study. This directory is a symlink pointing to the Obsidian second brain vault (`secondbrain`).
 - **Dependency Management:** Use Bun for installing dependencies, running scripts, and testing.
 
+## API Surface
+
+| Method | Path | Module | Auth | Description |
+| :----- | :--- | :----- | :--- | :---------- |
+| `GET` | `/api/users/me` | `UsersModule` | `JwtAuthGuard` + throttle (30/min) | Returns current user profile (`id`, `email`, `fullName`, `role`, `isVerified`, `status`). Derives `isVerified` server-side (`status !== 'pending_verification'`). Returns 403 for `suspended`/`inactive` accounts. Response: `ApiResponse<UserResponseDto>`. |
+
 ## Environment and Configuration
 
 - **Config Files:** `package.json`, `tsconfig.json`, `drizzle.config.ts`, `nest-cli.json`, `eslint.config.ts`, `docker-compose.yml`, `Caddyfile`, `scripts/redeploy.sh`, `scripts/setup-vps-system.sh`, `scripts/deploy-db.sh`, `scripts/deploy-app.sh`, `scripts/reload-caddy.sh`.
@@ -190,10 +199,10 @@ ticket-booking/
 
 ## Scan Metadata
 
-- Generated: 2026-07-05
-- Repo HEAD: d006cc6d4e30f79b0c6303af5a72c1f0b0c5252a
+- Generated: 2026-07-26
+- Repo HEAD: feat/issue-24-users-me
 - Mode: Delta Update
-- Changes since last update: Categorized `second-brain/Docs/` into 5 subdirectories (`Architecture/`, `Auth/`, `Database/`, `DevOps/`, `Workflows/`), updated `000_Ticket_Booking_MOC.md` backlinks and documentation router rules.
+- Changes since last update: Added `UsersModule` (`src/modules/users/`) with `GET /api/users/me` endpoint (Issue #24). Post-audit: `GlobalExceptionFilter` HTTP 429 title fixed to "Too Many Requests"; `auth.TOKEN_INVALID_OR_EXPIRED` i18n key generalized. Quality gate: 125/125 unit tests, 0 type errors, 0 lint errors.
 - Package manager: bun (uses `bun.lock` at root)
 
 ## Source References
