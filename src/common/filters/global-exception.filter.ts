@@ -51,7 +51,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
-      title = this.formatTitle(exception.name);
+      title = this.formatTitle(exception.name, exception.getResponse());
 
       const parsed = this.parseHttpExceptionResponse(
         exception.getResponse(),
@@ -197,7 +197,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     return rawReason;
   }
 
-  private formatTitle(exceptionName: string): string {
+  private formatTitle(exceptionName: string, resResponse?: unknown): string {
+    if (
+      isRecordObject(resResponse) &&
+      typeof resResponse["error"] === "string" &&
+      resResponse["error"]
+    ) {
+      return resResponse["error"];
+    }
     const rawName = exceptionName.replace(/Exception$/, "");
     return rawName.replace(/([a-z])([A-Z])/g, "$1 $2");
   }
