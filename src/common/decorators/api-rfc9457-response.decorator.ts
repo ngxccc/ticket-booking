@@ -73,6 +73,35 @@ export function ApiUnauthorizedResponseRfc9457(options?: { detail?: string }) {
   });
 }
 
+export function ApiForbiddenResponseRfc9457(options?: { detail?: string }) {
+  return ApiRfc9457Response({
+    status: HttpStatus.FORBIDDEN,
+    description: "Forbidden access (Forbidden)",
+    title: "Forbidden",
+    detail: options?.detail ?? "Account suspended or inactive",
+  });
+}
+
+export function ApiNotFoundResponseRfc9457(options?: { detail?: string }) {
+  return ApiRfc9457Response({
+    status: HttpStatus.NOT_FOUND,
+    description: "Resource not found (Not Found)",
+    title: "Not Found",
+    detail: options?.detail ?? "User profile not found",
+  });
+}
+
+export function ApiTooManyRequestsResponseRfc9457(options?: {
+  detail?: string;
+}) {
+  return ApiRfc9457Response({
+    status: HttpStatus.TOO_MANY_REQUESTS,
+    description: "Rate limit exceeded (Too Many Requests)",
+    title: "Too Many Requests",
+    detail: options?.detail ?? "Rate limit exceeded. Please try again later.",
+  });
+}
+
 export function ApiConflictResponseRfc9457(options?: { detail?: string }) {
   return ApiRfc9457Response({
     status: HttpStatus.CONFLICT,
@@ -81,7 +110,6 @@ export function ApiConflictResponseRfc9457(options?: { detail?: string }) {
     detail: options?.detail ?? "Email address already exists",
   });
 }
-
 export function ApiInternalServerErrorResponseRfc9457() {
   return ApiRfc9457Response({
     status: HttpStatus.INTERNAL_SERVER_ERROR,

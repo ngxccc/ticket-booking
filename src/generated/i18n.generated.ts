@@ -23,6 +23,14 @@ export type I18nTranslations = {
         "NEW_PASSWORD_SAME_AS_OLD": string;
         "CANNOT_CHANGE_OAUTH_PASSWORD": string;
     };
+    "common": {
+        "INTERNAL_SERVER_ERROR": string;
+        "INVALID_INPUT": string;
+    };
+    "users": {
+        "USER_NOT_FOUND": string;
+        "ACCOUNT_SUSPENDED_OR_INACTIVE": string;
+    };
     "validation": {
         "isNotEmpty": string;
         "isEmail": string;
