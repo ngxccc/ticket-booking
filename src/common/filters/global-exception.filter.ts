@@ -167,11 +167,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     return rawParams.map((param) => ({
       name: param.name,
-      reason: this.formatReason(param.reason, lang),
+      reason: this.formatReason(param.reason, lang, param.name),
     }));
   }
 
-  private formatReason(rawReason: string, lang?: string): string {
+  private formatReason(
+    rawReason: string,
+    lang?: string,
+    propName?: string,
+  ): string {
     if (!rawReason) return "Invalid value";
 
     // WHY: Format nestjs-i18n raw validation message string "key|{args_json}" into localized human-readable error text.
@@ -189,12 +193,21 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         }
       }
 
+      if (
+        propName &&
+        (!args["property"] ||
+          typeof args["property"] !== "string" ||
+          !args["property"].trim())
+      ) {
+        args["property"] = propName;
+      }
+
       if (key) {
-        return this.translateWithArgs(key, lang, args, key);
+        const translated = this.translateWithArgs(key, lang, args, key);
+        return translated.trim();
       }
     }
-
-    return rawReason;
+    return rawReason.trim();
   }
 
   private formatTitle(exceptionName: string, resResponse?: unknown): string {

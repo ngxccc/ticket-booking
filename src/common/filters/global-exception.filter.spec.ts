@@ -123,7 +123,6 @@ describe("GlobalExceptionFilter", () => {
       }),
     );
   });
-
   it("should sanitize unhandled Error to HTTP 500 without leaking stack traces", () => {
     const exception = new Error("Database query failed: SELECT * FROM secret");
 
@@ -172,21 +171,32 @@ describe("GlobalExceptionFilter", () => {
 
   it("should decode raw nestjs-i18n pipe strings in invalidParams reason field", () => {
     const mockI18n = {
-      translate: mock().mockImplementation((key: string) => {
-        if (key === "validation.isEmail") return "Email không đúng định dạng";
-        return key;
-      }),
+      translate: mock().mockImplementation(
+        (key: string, options?: { args?: Record<string, unknown> }) => {
+          if (key === "validation.minLength") {
+            const prop =
+              typeof options?.args?.["property"] === "string"
+                ? options.args["property"]
+                : "";
+            const constraints = Array.isArray(options?.args?.["constraints"])
+              ? options.args["constraints"]
+              : [];
+            const firstVal = String(constraints[0] ?? "");
+            return `${prop} must be at least ${firstVal} characters`.trim();
+          }
+          return key;
+        },
+      ),
     };
     const i18nFilter = new GlobalExceptionFilter(
       mockI18n as unknown as I18nService,
     );
-
     const exception = new BadRequestException({
       detail: "Submitted data format is invalid",
       invalidParams: [
         {
-          name: "email",
-          reason: 'validation.isEmail|{"value":"invalid-email"}',
+          name: "password",
+          reason: 'validation.minLength|{"constraints":[8]}',
         },
       ],
     });
@@ -197,8 +207,8 @@ describe("GlobalExceptionFilter", () => {
       expect.objectContaining({
         invalidParams: [
           {
-            name: "email",
-            reason: "Email không đúng định dạng",
+            name: "password",
+            reason: "password must be at least 8 characters",
           },
         ],
       }),
