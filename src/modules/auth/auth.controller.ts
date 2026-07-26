@@ -39,13 +39,11 @@ import {
 } from "./dto";
 
 @UseGuards(CustomThrottlerGuard)
-@Throttle({
-  auth: { limit: 5, ttl: 60000 },
-})
 @Controller(AUTH_ROUTES.BASE)
-@ApiTags("Auth")
+@ApiTags(AUTH_ROUTES.BASE)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
   @Post(AUTH_ROUTES.REGISTER)
   @ApiCreatedResponseGeneric()
   @ApiBadRequestResponseRfc9457()
@@ -63,6 +61,7 @@ export class AuthController {
   verifyEmail(@Body() dto: VerifyEmailDto): Promise<ApiResponse<null>> {
     return this.authService.verifyEmail(dto.token);
   }
+
   @HttpCode(HttpStatus.OK)
   @Post(AUTH_ROUTES.RESEND_VERIFICATION)
   @Throttle({
