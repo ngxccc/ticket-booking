@@ -26,7 +26,14 @@ export function parseRedisOptions(
         port,
         username: parsed.username || undefined,
         password: parsed.password || undefined,
-        tls: parsed.protocol === "rediss:" ? {} : undefined,
+        // WHY: Cloud Redis providers (Upstash, Dragonfly, Redis Cloud) use TLS proxies where SNI hostname must be set explicitly (`servername`), and proxy certs require `rejectUnauthorized: false` to avoid hostname verification failure.
+        tls:
+          parsed.protocol === "rediss:"
+            ? {
+                rejectUnauthorized: false,
+                servername: parsed.hostname,
+              }
+            : undefined,
         enableReadyCheck: !isUpstash,
         skipVersionCheck: isUpstash,
       };

@@ -21,7 +21,10 @@ describe("parseRedisOptions", () => {
 
     expect(config.host).toBe("secure-redis.example.com");
     expect(config.port).toBe(6379);
-    expect(config.tls).toEqual({});
+    expect(config.tls).toEqual({
+      rejectUnauthorized: false,
+      servername: "secure-redis.example.com",
+    });
     expect(config.enableReadyCheck).toBe(true);
     expect(config.skipVersionCheck).toBe(false);
   });
@@ -31,7 +34,10 @@ describe("parseRedisOptions", () => {
     const config = parseRedisOptions(url);
 
     expect(config.host).toBe("complex-library.upstash.io");
-    expect(config.tls).toEqual({});
+    expect(config.tls).toEqual({
+      rejectUnauthorized: false,
+      servername: "complex-library.upstash.io",
+    });
     expect(config.enableReadyCheck).toBe(false);
     expect(config.skipVersionCheck).toBe(true);
   });
