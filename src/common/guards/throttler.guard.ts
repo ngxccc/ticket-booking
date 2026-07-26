@@ -8,16 +8,24 @@ import { env } from "@/env";
 
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
-  protected override async shouldSkip(
-    context: ExecutionContext,
-  ): Promise<boolean> {
+  override async canActivate(context: ExecutionContext): Promise<boolean> {
     // WHY: Disable rate limiting in development/test modes to allow E2E and Postman testing without triggering 429 errors.
     if (env.NODE_ENV !== "production") {
       return true;
     }
-    return await super.shouldSkip(context);
+    // WHY: Safety timeout (2s) to prevent Redis connection stalls or offline command queues from hanging HTTP requests (Cloudflare 524).
+    try {
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => {
+          reject(new Error("Rate limiting check timed out"));
+        }, 2000),
+      );
+      return await Promise.race([super.canActivate(context), timeoutPromise]);
+    } catch {
+      // WHY: Fail-open strategy if Redis rate-limiter is offline or timing out, prioritizing API availability over rate limiting.
+      return true;
+    }
   }
-
   protected override throwThrottlingException(
     _context: ExecutionContext,
     _throttlerLimitDetail: ThrottlerLimitDetail,

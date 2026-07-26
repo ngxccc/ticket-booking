@@ -6,6 +6,9 @@ export interface RedisConnectionConfig {
   tls?: Record<string, unknown>;
   enableReadyCheck?: boolean;
   skipVersionCheck?: boolean;
+  enableOfflineQueue?: boolean;
+  connectTimeout?: number;
+  maxRetriesPerRequest?: number | null;
 }
 
 export function parseRedisOptions(
@@ -36,6 +39,9 @@ export function parseRedisOptions(
             : undefined,
         enableReadyCheck: !isUpstash,
         skipVersionCheck: isUpstash,
+        enableOfflineQueue: false,
+        connectTimeout: 5000,
+        maxRetriesPerRequest: null,
       };
     } catch {
       // Fallback gracefully on malformed or invalid Redis URL strings
@@ -44,5 +50,8 @@ export function parseRedisOptions(
   return {
     host: fallbackHost,
     port: fallbackPort,
+    enableOfflineQueue: false,
+    connectTimeout: 5000,
+    maxRetriesPerRequest: null,
   };
 }
