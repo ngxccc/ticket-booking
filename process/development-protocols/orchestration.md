@@ -105,11 +105,13 @@ Chain subagents when work depends on prior outputs:
 - Plan -> implementation -> automated test verification -> review -> UPDATE PROCESS
 
 Automated Subagent Verification Chain:
+
 - When `execute-agent` finishes implementation and yields `DONE`, the Orchestrator MUST automatically invoke `ag-tester` (or run Quality Gate suite: `bun test src/`, `bun run check-types`, `bun run lint`) to verify 100% test pass, 0 type errors, and 0 lint issues BEFORE asking the user to transition to `UPDATE PROCESS`.
 
 Periodic Maintenance:
+
 - Run `ag-audit-context` and `ag-audit-ag` periodically to prune stale context files and prevent context bloat whenever new context groups or harness protocols change.
-Run in parallel only when scopes are independent and integration boundaries are clear.
+  Run in parallel only when scopes are independent and integration boundaries are clear.
 
 ## Large Project Phase Programs
 
@@ -278,15 +280,17 @@ High-risk classes:
 Controller rules:
 
 1. Note the risk class in the task summary or selected plan context.
-2. Route debugger/tester/code-reviewer with the same risk context when those roles are used.
-3. Expect a reports `harness/` pack for high-risk work:
-   - `risk-gate.json`
+2. Require a Formal Specification document following the naming governance rule: `process/features/{feature}/active/<Feature>_<Topic>_Formal_Spec.md` (where `<Feature>` strictly matches the feature slug or plan stem).
+3. Declare `formalSpecPath` explicitly inside `risk-gate.json` and in the Plan frontmatter to ensure 100% auditability.
+4. Route debugger/tester/code-reviewer with the same risk context and Formal Spec reference when those roles are used.
+5. Expect a reports `harness/` pack for high-risk work:
+   - `risk-gate.json` (containing explicit `formalSpecPath` manifest link)
    - `context-snippets.json`
-   - `verification.json`
+   - `verification.json` (including Counter-Example payloads if verification fails)
    - `review-decision.json`
-   - `adversarial-validation.json` when the path is high-risk or attack-sensitive
-4. If the risk gate says `mustStopBeforeFinalize: true`, do not imply the work is fully proven until the pack exists and the reviewer decision is present.
-5. Keep this manual-first. Do not invent a blocking hook or alternate workflow owner.
+   - `adversarial-validation.json` (containing frozen Level 2 Property-Based & Adversarial Test Matrix)
+6. If the risk gate says `mustStopBeforeFinalize: true`, do not imply the work is fully proven until the pack exists, all Level 2 tests pass, and the reviewer decision is present.
+7. Keep this manual-first. Do not invent a blocking hook or alternate workflow owner.
 
 ## Research First for Service-Shaped Features
 
