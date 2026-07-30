@@ -6,7 +6,12 @@ import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended"
 import { defineConfig, globalIgnores } from "eslint/config";
 
 export default defineConfig(
-  globalIgnores(["node_modules/**", "dist/**"]),
+  globalIgnores([
+    "node_modules/**",
+    "dist/**",
+    "src/generated/**",
+    "test/generated/**",
+  ]),
 
   eslintJs.configs.recommended,
   ...tseslint.strictTypeChecked,
