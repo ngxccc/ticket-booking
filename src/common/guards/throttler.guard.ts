@@ -13,6 +13,7 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     if (env.NODE_ENV !== "production") {
       return true;
     }
+
     // WHY: Safety timeout (2s) to prevent Redis connection stalls or offline command queues from hanging HTTP requests (Cloudflare 524).
     try {
       const timeoutPromise = new Promise<never>((_, reject) =>
@@ -21,7 +22,10 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
         }, 2000),
       );
       return await Promise.race([super.canActivate(context), timeoutPromise]);
-    } catch {
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
       // WHY: Fail-open strategy if Redis rate-limiter is offline or timing out, prioritizing API availability over rate limiting.
       return true;
     }

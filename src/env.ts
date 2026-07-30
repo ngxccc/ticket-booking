@@ -36,6 +36,7 @@ export const env = createEnv({
         ]),
       )
       .default(ENVIRONMENT_MODES.DEVELOPMENT),
+
     // Logging configuration
     LOG_LEVEL: z.enum(LOG_LEVELS).default("log"),
 
