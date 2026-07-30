@@ -1,0 +1,8 @@
+{
+  "SEATS_ALREADY_LOCKED": "One or more selected seats are currently being locked by another transaction",
+  "SHOWTIME_NOT_FOUND": "Showtime not found",
+  "SEAT_NOT_BELONG_TO_SHOWTIME": "One or more seat IDs do not belong to this showtime",
+  "SEATS_NOT_AVAILABLE": "One or more requested seats are no longer available",
+  "BOOKING_FAILED": "Failed to create booking record",
+  "IDEMPOTENCY_KEY_REQUIRED": "Header 'Idempotency-Key' is required for seat reservation"
+}

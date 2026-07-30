@@ -23,6 +23,14 @@ export type I18nTranslations = {
         "NEW_PASSWORD_SAME_AS_OLD": string;
         "CANNOT_CHANGE_OAUTH_PASSWORD": string;
     };
+    "booking": {
+        "SEATS_ALREADY_LOCKED": string;
+        "SHOWTIME_NOT_FOUND": string;
+        "SEAT_NOT_BELONG_TO_SHOWTIME": string;
+        "SEATS_NOT_AVAILABLE": string;
+        "BOOKING_FAILED": string;
+        "IDEMPOTENCY_KEY_REQUIRED": string;
+    };
     "common": {
         "INTERNAL_SERVER_ERROR": string;
         "INVALID_INPUT": string;
