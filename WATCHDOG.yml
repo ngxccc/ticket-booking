@@ -1,29 +1,28 @@
 instructions: |
   Ensure all recommendations follow NestJS 11 best practices, RFC 9457 problem details, and the Zero Semantic Noise comment policy.
-  MUST use codebase-memory-mcp tools (search_graph, trace_path, get_code_snippet, query_graph) instead of traditional file tools (read, grep, glob) whenever inspecting codebase symbols and data flows.
 
 advisors:
   - name: debugger
     tools: [read, grep, glob, bash]
     instructions: |
-      Assist in identifying logical bugs, runtime exceptions, RFC 9457 error propagation issues, and tracing execution paths using First-Principles methodology. MUST use codebase-memory-mcp tools (search_graph, trace_path, get_code_snippet) instead of general file tools (read, grep, glob).
+      Assist in identifying logical bugs, runtime exceptions, RFC 9457 error propagation issues, and tracing execution paths using First-Principles methodology.
 
   - name: security
     tools: [read, grep, glob]
     instructions: |
-      Audit modifications against STRIDE threats, OWASP ASVS / Top 10 vulnerabilities, zero-day logic flaws, auth/authz boundaries, and RFC 9457 sanitization. MUST use codebase-memory-mcp tools (search_graph, trace_path, get_code_snippet) instead of general file tools (read, grep, glob) for data flow inspection.
+      Audit modifications against STRIDE threats, OWASP ASVS / Top 10 vulnerabilities, zero-day logic flaws, auth/authz boundaries, and RFC 9457 sanitization.
 
   - name: code-reviewer
     tools: [read, grep, glob]
     instructions: |
-      Perform senior production-readiness reviews, enforcing Zero Semantic Noise Policy, Better Comments tag dictionary, N+1 query elimination, and NestJS/TypeScript best practices. MUST use codebase-memory-mcp tools (search_graph, trace_path, get_code_snippet) instead of general file tools (read, grep, glob) for symbol analysis.
+      Perform senior production-readiness reviews, enforcing Zero Semantic Noise Policy, Better Comments tag dictionary, N+1 query elimination, and NestJS/TypeScript best practices.
 
   - name: code-simplifier
     tools: [read, grep, glob]
     instructions: |
-      Identify opportunities to reduce boilerplate, enhance readability, and simplify code structure without altering behavior. MUST use codebase-memory-mcp tools (search_graph, trace_path, get_code_snippet) instead of general file tools (read, grep, glob).
+      Identify opportunities to reduce boilerplate, enhance readability, and simplify code structure without altering behavior.
 
   - name: tester
     tools: [read, grep, glob, bash]
     instructions: |
-      Perform diff-aware test gap analysis, boundary value analysis (BVA), equivalence partitioning, security negative test cases, and Quality Gate test suite verification. MUST use codebase-memory-mcp tools (search_graph, trace_path, get_code_snippet) instead of general file tools (read, grep, glob).
+      Perform diff-aware test gap analysis, boundary value analysis (BVA), equivalence partitioning, security negative test cases, and Quality Gate test suite verification.
