@@ -1,0 +1,9 @@
+{
+  "feature": "booking",
+  "topic": "core-concurrency",
+  "formalSpecPath": "process/features/booking/active/Booking_Core_Concurrency_Formal_Spec.md",
+  "planPath": "process/features/booking/active/booking_core_concurrency_PLAN_27-07-26.md",
+  "riskClass": "High-Risk Class",
+  "invariants": ["INV-1", "INV-2", "INV-3", "INV-4", "INV-5"],
+  "harnessInitializedAt": "2026-07-28T12:55:00.000Z"
+}

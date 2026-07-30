@@ -190,7 +190,7 @@ ticket-booking/
 | Method | Path | Module | Auth | Description |
 | :----- | :--- | :----- | :--- | :---------- |
 | `GET` | `/api/users/me` | `UsersModule` | `JwtAuthGuard` + throttle (30/min) | Returns current user profile (`id`, `email`, `fullName`, `role`, `isVerified`, `status`). Derives `isVerified` server-side (`status !== 'pending_verification'`). Returns 403 for `suspended`/`inactive` accounts. Response: `ApiResponse<UserResponseDto>`. |
-
+| `POST` | `/bookings/reserve` | `BookingModule` | `JwtAuthGuard` + `CustomThrottlerGuard` (10/min) + `Idempotency-Key` header | Reserves 1 to 6 show seats for 10 minutes (`lockedUntil`). Implements Redis Redlock + PostgreSQL `SELECT ... FOR UPDATE` double-locking. Triggers BullMQ delayed cancellation queue & 5-min backup cron cleanup. Response: `ApiResponse<ReserveSeatsResponseDto>`. |
 ## Environment and Configuration
 
 - **Config Files:** `package.json`, `tsconfig.json`, `drizzle.config.ts`, `nest-cli.json`, `eslint.config.ts`, `docker-compose.yml`, `Caddyfile`, `scripts/redeploy.sh`, `scripts/setup-vps-system.sh`, `scripts/deploy-db.sh`, `scripts/deploy-app.sh`, `scripts/reload-caddy.sh`.
@@ -199,11 +199,10 @@ ticket-booking/
 
 ## Scan Metadata
 
-- Generated: 2026-07-26
-- Repo HEAD: feat/issue-24-users-me
+- Generated: 2026-07-28
+- Repo HEAD: feat/booking-core-concurrency
 - Mode: Delta Update
-- Changes since last update: Added `UsersModule` (`src/modules/users/`) with `GET /api/users/me` endpoint (Issue #24). Post-audit: `GlobalExceptionFilter` HTTP 429 title fixed to "Too Many Requests"; `auth.TOKEN_INVALID_OR_EXPIRED` i18n key generalized. Quality gate: 125/125 unit tests, 0 type errors, 0 lint errors.
-- Package manager: bun (uses `bun.lock` at root)
+- Changes since last update: Implemented `BookingModule` (`src/modules/booking/`) with `POST /bookings/reserve` endpoint, Redlock distributed locking (`RedlockService`), `SELECT ... FOR UPDATE` pessimistic DB locking, BullMQ delayed cancellation queue processor, backup cron job, UUIDv7 DTO validation (`@IsUUID("7")`), CustomThrottlerGuard rate limiting, and RFC 9457 Swagger OpenAPI documentation. Quality gate: 100% unit tests pass, 0 type errors, 0 lint errors.
 
 ## Source References
 

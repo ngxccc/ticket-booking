@@ -66,19 +66,32 @@ Recommended footer:
 **Concerns/Blockers:** [if applicable]
 ```
 
-## Context Isolation
+## Context Isolation & Orchestrator Codebase Retrieval Directive
 
-Subagents receive only the context they need.
+Subagents (Sonnet/Opus) are specialized for coding, planning, and execution, but have context limits and can get choked or frozen when performing broad manual codebase scanning.
+The Orchestrator (Gemini 3.6 Flash / main session) has a massive context window (1M+ tokens) and access to `codebase_memory_mcp` tools (`search_graph`, `trace_path`, `get_code_snippet`, `get_architecture`, `detect_changes`).
+
+### 1. Top-Down Context Packaging (Orchestrator Responsibility)
+
+Before spawning any subagent, the Orchestrator **MUST** use `codebase_memory_mcp` tools to search, extract, and package relevant code symbols, caller/callee graphs, dependency paths, and code snippets.
+The Orchestrator attaches this pre-packaged context directly into the subagent prompt under a `## Codebase Memory & Context Package` section.
+
+### 2. Bottom-Up Context Offloading (Subagent Responsibility)
+
+Subagents MUST NOT perform open-ended, heavy codebase scanning (`grep`/`glob`/`read` across dozens of files) themselves.
+If a subagent requires additional codebase context, symbol definitions, or call graphs during execution, it MUST set status `NEEDS_CONTEXT` (or reply) specifying the exact queries (e.g. `trace_path for OrderService`, `get_code_snippet for AuthGuard`).
+The Orchestrator will fetch the requested information using its large context window + `codebase_memory_mcp` tools and re-supply the digested context.
 
 Rules:
 
 1. Provide a fresh task summary, not raw chat history.
 2. List exact files to read or modify.
-3. If following a plan, pass the exact selected plan file path and relevant phase excerpt.
-4. Keep orchestration and coordination state in the main session.
-5. Mention relevant shared skills when they match the task.
-6. Team/orchestration helpers such as `team` or FAST-mode flows may not bypass the same human approval gates required by the canonical RIPER workflow.
-7. **Context routing depth:** `all-*.md` entrypoints are routers, not the full knowledge. Subagents MUST follow the routing tables in `all-*.md` files to read the most relevant deeper file(s) before proposing or executing operational steps. Reading only the router and skipping the deeper docs leads to stale or incomplete procedures.
+3. Provide pre-fetched `## Codebase Memory & Context Package` containing key symbols, snippets, and graph structures.
+4. If following a plan, pass the exact selected plan file path and relevant phase excerpt.
+5. Keep orchestration and coordination state in the main session.
+6. Mention relevant shared skills when they match the task.
+7. Team/orchestration helpers such as `team` or FAST-mode flows may not bypass the same human approval gates required by the canonical RIPER workflow.
+8. **Context routing depth:** `all-*.md` entrypoints are routers, not the full knowledge. Subagents MUST follow the routing tables in `all-*.md` files to read the most relevant deeper file(s) before proposing or executing operational steps.
 
 Prompt template:
 
@@ -89,6 +102,11 @@ Files to read for context: [list]
 Acceptance criteria: [list]
 Constraints: [list]
 Plan reference: [exact plan file path or phase path]
+
+## Codebase Memory & Context Package (Pre-Fetched by Orchestrator)
+- Symbols & Definitions: [symbols extracted via search_graph/get_code_snippet]
+- Call Graphs & Dependencies: [call chains via trace_path/get_architecture]
+- Key Code Snippets: [pre-extracted relevant snippets]
 
 Work context: [project path]
 Feature: [feature-name]
