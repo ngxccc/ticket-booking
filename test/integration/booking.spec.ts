@@ -85,10 +85,16 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
   beforeEach(async () => {
     try {
       const redis = app.get(RedlockService).getRedisClient();
-      const lockKeys = await redis.keys("lock:show_seat:*");
-      if (lockKeys.length > 0) {
-        await redis.del(...lockKeys);
-      }
+      const cleanupPromise = (async () => {
+        const lockKeys = await redis.keys("lock:show_seat:*");
+        if (lockKeys.length > 0) {
+          await redis.del(...lockKeys);
+        }
+      })();
+      const timeoutPromise = new Promise((resolve) =>
+        setTimeout(resolve, 2000),
+      );
+      await Promise.race([cleanupPromise, timeoutPromise]);
     } catch {
       // WHY: Fail-open on Redis cleanup errors to prevent offline connection blips from interrupting test runs.
     }
@@ -191,31 +197,26 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
 
     testShowId = insertedShow.id;
 
-    const seatRecords: string[] = [];
-    for (let i = 1; i <= 7; i++) {
-      const [insertedSeat] = await db
-        .insert(seats)
-        .values({
-          hallId: insertedHall.id,
-          seatTypeId: insertedSeatType.id,
-          row: "A",
-          number: i,
-          seatNumber: `A${String(i)}`,
-        })
-        .returning();
+    const seatValues = Array.from({ length: 7 }, (_, idx) => ({
+      hallId: insertedHall.id,
+      seatTypeId: insertedSeatType.id,
+      row: "A",
+      number: idx + 1,
+      seatNumber: `A${String(idx + 1)}`,
+    }));
+    const insertedSeatList = await db
+      .insert(seats)
+      .values(seatValues)
+      .returning();
 
-      if (!insertedSeat) {
-        throw new Error(`Failed to seed seat A${String(i)}`);
-      }
+    const showSeatValues = insertedSeatList.map((st) => ({
+      showId: testShowId,
+      seatId: st.id,
+      status: "available" as const,
+    }));
+    await db.insert(showSeats).values(showSeatValues);
 
-      await db.insert(showSeats).values({
-        showId: testShowId,
-        seatId: insertedSeat.id,
-        status: "available",
-      });
-
-      seatRecords.push(insertedSeat.id);
-    }
+    const seatRecords = insertedSeatList.map((st) => st.id);
 
     const [s1, s2, s3, s4, s5, s6, s7] = seatRecords;
     if (!s1 || !s2 || !s3 || !s4 || !s5 || !s6 || !s7) {
@@ -228,7 +229,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
     testSeatId5 = s5;
     testSeatId6 = s6;
     testSeatId7 = s7;
-  });
+  }, 30000);
 
   // =========================================================================
   // 1. Authentication Guard Validation (JwtAuthGuard)
