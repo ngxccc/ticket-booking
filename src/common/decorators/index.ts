@@ -5,3 +5,4 @@ export * from "./is-password.decorator";
 export * from "./is-phone-number.decorator";
 export * from "./match.decorator";
 export * from "./api-rfc9457-response.decorator";
+export * from "./transform-enum.decorator";

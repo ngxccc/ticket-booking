@@ -12,5 +12,9 @@
   "passwordMustContainSpecialChar": "{property} phải chứa ít nhất 1 ký tự đặc biệt",
   "phoneNumberInvalid": "Số điện thoại không đúng định dạng Việt Nam",
   "passwordsMustMatch": "Mật khẩu xác nhận không trùng khớp",
-  "mustAcceptTerms": "Bạn phải đồng ý với điều khoản sử dụng"
+  "mustAcceptTerms": "Bạn phải đồng ý với điều khoản sử dụng",
+  "isUuid": "{property} phải là chuỗi UUID hợp lệ",
+  "isInt": "{property} phải là số nguyên",
+  "isPositive": "{property} phải là số dương",
+  "isIn": "{property} phải là một trong các giá trị: {constraints.0}"
 }

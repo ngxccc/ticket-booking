@@ -7,6 +7,7 @@ import { ThrottlerStorageRedisService } from "@nest-lab/throttler-storage-redis"
 import { env } from "./env";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { LoggerModule } from "nestjs-pino";
 import {
   AcceptLanguageResolver,
   HeaderResolver,
@@ -26,6 +27,22 @@ const getRedisOptions = () =>
 
 @Module({
   imports: [
+    LoggerModule.forRoot({
+      pinoHttp: {
+        autoLogging: false,
+        level: env.NODE_ENV === "production" ? "info" : "debug",
+        transport:
+          env.NODE_ENV !== "production" && env.NODE_ENV !== "test"
+            ? {
+                target: "pino-pretty",
+                options: {
+                  colorize: true,
+                  singleLine: true,
+                },
+              }
+            : undefined,
+      },
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
     }),

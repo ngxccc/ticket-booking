@@ -3,14 +3,16 @@ import { Logger } from "@nestjs/common";
 import { Job } from "bullmq";
 import { MailService } from "@/modules/mail/mail.service";
 import { MAIL_JOB_NAME } from "@/common/constants/event.constant";
+import { QUEUE_NAMES } from "@/common/constants/queue.constants";
 
-@Processor("mail")
+@Processor(QUEUE_NAMES.MAIL)
 export class MailProcessor extends WorkerHost {
   private readonly logger = new Logger(MailProcessor.name);
 
   constructor(private readonly mailService: MailService) {
     super();
   }
+
   async process(
     job: Job<{ email: string; fullName: string; token: string }>,
   ): Promise<void> {

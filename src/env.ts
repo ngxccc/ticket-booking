@@ -63,6 +63,11 @@ export const env = createEnv({
       .default("super-secret-jwt-key-minimum-32-chars-long"),
     JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
     JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
+
+    // PayOS configuration
+    PAYOS_CLIENT_ID: z.string().default("dummy-client-id"),
+    PAYOS_API_KEY: z.string().default("dummy-api-key"),
+    PAYOS_CHECKSUM_KEY: z.string().default("dummy-checksum-key"),
   },
 
   runtimeEnv: {
@@ -85,6 +90,9 @@ export const env = createEnv({
     JWT_ACCESS_EXPIRES_IN: process.env["JWT_ACCESS_EXPIRES_IN"],
     JWT_REFRESH_EXPIRES_IN: process.env["JWT_REFRESH_EXPIRES_IN"],
     LOG_LEVEL: process.env["LOG_LEVEL"],
+    PAYOS_CLIENT_ID: process.env["PAYOS_CLIENT_ID"],
+    PAYOS_API_KEY: process.env["PAYOS_API_KEY"],
+    PAYOS_CHECKSUM_KEY: process.env["PAYOS_CHECKSUM_KEY"],
   },
 
   emptyStringAsUndefined: true,

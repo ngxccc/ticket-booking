@@ -30,6 +30,13 @@ export type I18nTranslations = {
         "SEATS_NOT_AVAILABLE": string;
         "BOOKING_FAILED": string;
         "IDEMPOTENCY_KEY_REQUIRED": string;
+        "BOOKING_NOT_FOUND": string;
+        "BOOKING_EXPIRED": string;
+        "PAYMENT_AMOUNT_MISMATCH": string;
+        "DUPLICATE_TRANSACTION": string;
+        "RECORD_PAYMENT_FAILED": string;
+        "PAYOS_WEBHOOK_INVALID_SIGNATURE": string;
+        "PAYOS_WEBHOOK_STALE_TIMESTAMP": string;
     };
     "common": {
         "INTERNAL_SERVER_ERROR": string;
@@ -54,6 +61,10 @@ export type I18nTranslations = {
         "phoneNumberInvalid": string;
         "passwordsMustMatch": string;
         "mustAcceptTerms": string;
+        "isUuid": string;
+        "isInt": string;
+        "isPositive": string;
+        "isIn": string;
     };
 };
 /* prettier-ignore */

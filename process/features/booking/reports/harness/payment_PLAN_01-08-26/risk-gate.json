@@ -1,0 +1,32 @@
+{
+  "feature": "booking",
+  "topic": "payment-confirmation",
+  "formalSpecPath": "process/features/booking/completed/Payment_Confirmation_Formal_Spec.md",
+  "adrPath": "docs/adr/0004-payment-confirmation-architecture.md",
+  "adversarialValidationPath": "process/features/booking/reports/harness/payment_PLAN_01-08-26/adversarial-validation.json",
+  "interrogationReportPath": "process/features/booking/reports/harness/payment_PLAN_01-08-26/interrogation-report.json",
+  "reviewDecisionPath": "process/features/booking/reports/harness/payment_PLAN_01-08-26/review-decision.json",
+  "planPath": "process/features/booking/completed/payment-plan-01-08-26.md",
+  "riskClass": "High-Risk Class (Billing & Payment Transactions)",
+  "invariants": [
+    "INV-1: Atomicity & Anti-Double-Processing via DB Pessimistic Locking",
+    "INV-2: Transactional Dual-Write Outbox & 7-Day Retention",
+    "INV-3: Expiry, Locking & Idempotency Safety",
+    "INV-4: Reconciliation & Auto-Refund Safety (PaymentReconciliationProcessor)",
+    "INV-5: Strict Ownership & Anti-Enumeration Defense",
+    "INV-6: PayOS Signature Verification & Anti-Replay Defense",
+    "INV-7: Redis Fail-Closed Fallback",
+    "INV-8: DB Statement Timeout & Observability Guard",
+    "INV-9: UI/UX State Machine & Status Polling Contract"
+  ],
+  "verificationGates": {
+    "typeCheck": "PASSED (0 type errors)",
+    "linter": "PASSED (0 lint warnings/errors)",
+    "unitTests": "PASSED (143/143 tests pass)",
+    "supertestSpecs": "PASSED (8 Supertest E2E specs in test/integration/booking.spec.ts)",
+    "interrogationReport": "PASSED (9 Socratic Q&A turns, 5 layers evaluated)",
+    "reviewDecision": "APPROVED (CodeReviewer & SecurityReviewer subagents verified)"
+  },
+  "status": "PHASE_6_UPDATE_PROCESS_COMPLETE",
+  "updatedAt": "2026-08-04T00:00:00.000Z"
+}

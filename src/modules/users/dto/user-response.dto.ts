@@ -16,7 +16,7 @@ export class UserResponseDto {
   @ApiProperty({
     example: true,
     description:
-      "True nếu người dùng đã xác minh email (status !== 'pending_verification')",
+      "True if user email is verified (status !== 'pending_verification')",
   })
   isVerified!: boolean;
 

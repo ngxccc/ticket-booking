@@ -1,6 +1,6 @@
 {
   "info": {
-    "_postman_id": "0e3547e8-8f5d-491c-86ac-6efaa8cd786a",
+    "_postman_id": "f209e80f-ad31-4b1b-a800-50bc0b8a59b2",
     "name": "Ticket Booking System",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "43139394"
@@ -2307,6 +2307,244 @@
               ],
               "cookie": [],
               "body": "{\n  \"type\": \"https://tools.ietf.org/html/rfc9110#section-15.5.10\",\n  \"title\": \"Conflict\",\n  \"status\": 409,\n  \"detail\": \"Ghế đã có người đặt hoặc giữ chỗ\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Confirm Booking",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "if (pm.iterationData.get(\"generateIdempotencyKey\") !== false) {",
+                  "    pm.environment.set('idempotencyKey', pm.variables.replaceIn('{{$randomUUID}}'));",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var expectedStatus = pm.iterationData.get(\"expectedStatus\") || 200;",
+                  "var caseName = pm.iterationData.get(\"caseName\") || \"Confirm Booking: Success (Happy Path)\";",
+                  "",
+                  "pm.test(caseName + \" - Status code is \" + expectedStatus, function () {",
+                  "    pm.response.to.have.status(expectedStatus);",
+                  "});",
+                  "",
+                  "if (expectedStatus === 200) {",
+                  "    pm.test(caseName + \" - Response contains confirmed status\", function () {",
+                  "        var jsonData = pm.response.json();",
+                  "        pm.expect(jsonData.data).to.have.property('status', 'confirmed');",
+                  "        pm.expect(jsonData.data).to.have.property('paymentId');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {}
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "strictSSL": false,
+            "followRedirects": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "string"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "string"
+              },
+              {
+                "key": "x-lang",
+                "value": "{{lang}}",
+                "type": "string"
+              },
+              {
+                "key": "idempotency-key",
+                "value": "{{idempotencyKey}}",
+                "type": "string"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{bookingId}}\",\n  \"orderCode\": 123456,\n  \"paymentMethod\": \"PAYOS\",\n  \"transactionId\": \"PAYOS-TX-{{$timestamp}}\",\n  \"amount\": 200000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookings",
+                "confirm"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success (200 OK)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "idempotency-key",
+                    "value": "{{idempotencyKey}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"bookingId\": \"{{bookingId}}\",\n  \"orderCode\": 123456,\n  \"paymentMethod\": \"PAYOS\",\n  \"transactionId\": \"PAYOS-TX-123456\",\n  \"amount\": 200000\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/bookings/confirm",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "bookings",
+                    "confirm"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"bookingId\": \"018f3a5e-9a1b-7123-8123-999999999999\",\n    \"paymentId\": \"018f3a5e-9a1b-7123-8123-888888888888\",\n    \"transactionId\": \"PAYOS-TX-123456\",\n    \"status\": \"confirmed\",\n    \"confirmedAt\": \"2026-07-29T10:15:00.000Z\",\n    \"totalPrice\": 200000,\n    \"tickets\": [\n      {\n        \"ticketId\": \"018f3a5e-9a1b-7123-8123-777777777771\",\n        \"ticketCode\": \"TKT-A1B2C3D4\",\n        \"showSeatId\": \"018f3a5e-9a1b-7123-8123-000000000001\",\n        \"finalPrice\": 100000\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "PayOS Webhook",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {}
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "strictSSL": false,
+            "followRedirects": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "string"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"00\",\n  \"desc\": \"success\",\n  \"data\": {\n    \"orderCode\": 123456,\n    \"amount\": 200000,\n    \"description\": \"Thanh toan ve xem phim\",\n    \"accountNumber\": \"123456789\",\n    \"reference\": \"PAYOS123456\",\n    \"transactionDateTime\": \"2026-07-29 10:15:00\",\n    \"currency\": \"VND\",\n    \"paymentLinkId\": \"link123\"\n  },\n  \"signature\": \"sample_signature_hash\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/payos-webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "payos-webhook"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success (200 OK)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"code\": \"00\",\n  \"desc\": \"success\",\n  \"data\": {\n    \"orderCode\": 123456,\n    \"amount\": 200000,\n    \"description\": \"Thanh toan ve xem phim\",\n    \"accountNumber\": \"123456789\",\n    \"reference\": \"PAYOS123456\",\n    \"transactionDateTime\": \"2026-07-29 10:15:00\",\n    \"currency\": \"VND\",\n    \"paymentLinkId\": \"link123\"\n  },\n  \"signature\": \"sample_signature_hash\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/payments/payos-webhook",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "payments",
+                    "payos-webhook"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Webhook processed\"\n}"
             }
           ]
         }

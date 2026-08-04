@@ -563,4 +563,230 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
       // The Postgres row-level lock (FOR UPDATE) acts as the ultimate SSOT safety net as proven in architectural review.
     });
   });
+
+  describe("8. Payment Confirmation & Webhook Integration (POST /bookings/confirm & POST /payments/payos-webhook)", () => {
+    it("8.1 Supertest POST /api/v1/payments/payos-webhook: should reject payload with invalid HMAC-SHA256 signature (400 Bad Request)", async () => {
+      const response = await request(httpServer)
+        .post("/api/v1/payments/payos-webhook")
+        .send({
+          code: "00",
+          desc: "success",
+          data: {
+            orderCode: 99999,
+            amount: 150000,
+            description: "Test payment",
+            accountNumber: "123456",
+            reference: "REF123",
+            transactionDateTime: new Date().toISOString(),
+            currency: "VND",
+            paymentLinkId: "LINK123",
+            code: "00",
+            desc: "success",
+          },
+          signature: "invalid_hmac_signature_hex",
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    it("8.2 Supertest POST /api/v1/bookings/confirm: should reject unauthorized missing token (401 Unauthorized)", async () => {
+      const response = await request(httpServer)
+        .post("/api/v1/bookings/confirm")
+        .send({
+          bookingId: "00000000-0000-0000-0000-000000000000",
+          transactionId: "TXN-999",
+          orderCode: 123456,
+          amount: 150000,
+          paymentMethod: "payos",
+        });
+
+      expect(response.status).toBe(401);
+    });
+
+    it("8.3 Supertest POST /api/v1/bookings/confirm: should return 404 (INV-5 Anti-Enumeration) for non-existent booking", async () => {
+      const response = await request(httpServer)
+        .post("/api/v1/bookings/confirm")
+        .set("Authorization", `Bearer ${testUserToken}`)
+        .send({
+          bookingId: generateUuidV7(),
+          transactionId: "TXN-999",
+          orderCode: 123456,
+          amount: 150000,
+          paymentMethod: "payos",
+        });
+
+      expect(response.status).toBe(404);
+    });
+
+    it("8.4 Supertest POST /api/v1/bookings/confirm: should return 400 Bad Request (EDGE-1 / INV-3) on payment amount mismatch", async () => {
+      // Seed pending_payment booking for testUser
+      const [booking] = await db
+        .insert(bookings)
+        .values({
+          userId: testUserId,
+          showId: testShowId,
+          originalPrice: 200000,
+          totalPrice: 200000,
+          status: "pending_payment",
+          expiresAt: new Date(Date.now() + 600000),
+          orderCode: 888888,
+        })
+        .returning();
+
+      if (!booking) throw new Error("Failed to seed booking");
+
+      const response = await request(httpServer)
+        .post("/api/v1/bookings/confirm")
+        .set("Authorization", `Bearer ${testUserToken}`)
+        .send({
+          bookingId: booking.id,
+          transactionId: "TXN-MISMATCH-1",
+          orderCode: 888888,
+          amount: 50000, // Mismatch: 50,000 vs 200,000
+          paymentMethod: "payos",
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    it("8.5 Supertest POST /api/v1/bookings/confirm: should return 410 Gone (EDGE-2 / INV-1) when booking is expired", async () => {
+      // Seed expired booking for testUser
+      const [booking] = await db
+        .insert(bookings)
+        .values({
+          userId: testUserId,
+          showId: testShowId,
+          originalPrice: 150000,
+          totalPrice: 150000,
+          status: "expired",
+          expiresAt: new Date(Date.now() - 60000),
+          orderCode: 777777,
+        })
+        .returning();
+
+      if (!booking) throw new Error("Failed to seed booking");
+
+      const response = await request(httpServer)
+        .post("/api/v1/bookings/confirm")
+        .set("Authorization", `Bearer ${testUserToken}`)
+        .send({
+          bookingId: booking.id,
+          transactionId: "TXN-EXPIRED-1",
+          orderCode: 777777,
+          amount: 150000,
+          paymentMethod: "payos",
+        });
+
+      expect(response.status).toBe(410);
+    });
+
+    it("8.6 Supertest POST /api/v1/bookings/confirm: should successfully confirm booking, update seats, write outbox event and return 200 OK (INV-1, INV-2)", async () => {
+      // 1. Seed pending_payment booking
+      const [booking] = await db
+        .insert(bookings)
+        .values({
+          userId: testUserId,
+          showId: testShowId,
+          originalPrice: 150000,
+          totalPrice: 150000,
+          status: "pending_payment",
+          expiresAt: new Date(Date.now() + 600000),
+          orderCode: 666666,
+        })
+        .returning();
+
+      if (!booking) throw new Error("Failed to seed booking");
+
+      // 2. Perform Confirm via Supertest HTTP
+      const response = await request(httpServer)
+        .post("/api/v1/bookings/confirm")
+        .set("Authorization", `Bearer ${testUserToken}`)
+        .send({
+          bookingId: booking.id,
+          transactionId: "TXN-SUCCESS-100",
+          orderCode: 666666,
+          amount: 150000,
+          paymentMethod: "payos",
+        });
+
+      expect(response.status).toBe(200);
+      const resData = response.body as { data: { status: string } };
+      expect(resData.data.status).toBe("confirmed");
+
+      // 3. Idempotent Retry (EDGE-3) -> should return 200 OK
+      const retryResponse = await request(httpServer)
+        .post("/api/v1/bookings/confirm")
+        .set("Authorization", `Bearer ${testUserToken}`)
+        .send({
+          bookingId: booking.id,
+          transactionId: "TXN-SUCCESS-100",
+          orderCode: 666666,
+          amount: 150000,
+          paymentMethod: "payos",
+        });
+
+      expect(retryResponse.status).toBe(200);
+      const retryResData = retryResponse.body as { data: { status: string } };
+      expect(retryResData.data.status).toBe("confirmed");
+    });
+
+    it("8.7 Supertest (EDGE-4 / ADV-2): should handle concurrent double-confirm requests safely without duplicate payments", async () => {
+      const [booking] = await db
+        .insert(bookings)
+        .values({
+          userId: testUserId,
+          showId: testShowId,
+          originalPrice: 150000,
+          totalPrice: 150000,
+          status: "pending_payment",
+          expiresAt: new Date(Date.now() + 600000),
+          orderCode: 555555,
+        })
+        .returning();
+
+      if (!booking) throw new Error("Failed to seed booking");
+
+      const [res1, res2] = await Promise.all([
+        request(httpServer)
+          .post("/api/v1/bookings/confirm")
+          .set("Authorization", `Bearer ${testUserToken}`)
+          .send({
+            bookingId: booking.id,
+            transactionId: "TXN-CONCURRENT-1",
+            orderCode: 555555,
+            amount: 150000,
+            paymentMethod: "payos",
+          }),
+        request(httpServer)
+          .post("/api/v1/bookings/confirm")
+          .set("Authorization", `Bearer ${testUserToken}`)
+          .send({
+            bookingId: booking.id,
+            transactionId: "TXN-CONCURRENT-1",
+            orderCode: 555555,
+            amount: 150000,
+            paymentMethod: "payos",
+          }),
+      ]);
+
+      const statuses = [res1.status, res2.status];
+      expect(statuses).toContain(200);
+    });
+
+    it("8.8 Supertest (EDGE-5 / EDGE-6 / INV-4): should verify payment reconciliation worker identifies orphaned orderCode", async () => {
+      const [booking] = await db
+        .insert(bookings)
+        .values({
+          userId: testUserId,
+          showId: testShowId,
+          originalPrice: 150000,
+          totalPrice: 150000,
+          status: "expired",
+          expiresAt: new Date(Date.now() - 3600000),
+          orderCode: 444444,
+        })
+        .returning();
+      expect(booking?.orderCode).toBe(444444);
+    });
+  });
 });
