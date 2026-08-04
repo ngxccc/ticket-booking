@@ -26,6 +26,9 @@ import {
   shows,
   showSeats,
   bookings,
+  payments,
+  tickets,
+  outboxEvents,
 } from "@/database/schemas";
 
 type ReserveSeatsResponseData =
@@ -73,25 +76,6 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
     httpServer = app.getHttpServer() as Server;
 
     await runMigrations(db);
-  });
-
-  afterAll(async () => {
-    await truncateAllTables(db);
-    await app.close();
-  });
-
-  beforeEach(async () => {
-    try {
-      const redis = app.get(RedlockService).getRedisClient();
-      const lockKeys = await redis.keys("lock:show_seat:*");
-      const idempotencyKeys = await redis.keys("idempotency:*");
-      const allKeys = [...lockKeys, ...idempotencyKeys];
-      if (allKeys.length > 0) {
-        await redis.del(...allKeys);
-      }
-    } catch {
-      // FAIL-OPEN
-    }
     await truncateAllTables(db);
 
     const timestamp = Date.now().toString();
@@ -132,7 +116,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
     const loginData = (loginRes.body as { data: { accessToken: string } }).data;
     testUserToken = loginData.accessToken;
 
-    // 2. Seed Movie, Cinema, Hall, Seat Type, Seats, Show, Show Seats
+    // Seed Movie, Cinema, Hall, Seat Type, Seats, Show, Show Seats
     const [insertedMovie] = await db
       .insert(movies)
       .values({
@@ -226,8 +210,32 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
     testSeatId7 = s7;
   }, 30000);
 
-  // =========================================================================
-  // 1. Authentication Guard Validation (JwtAuthGuard)
+  afterAll(async () => {
+    await truncateAllTables(db);
+    await app.close();
+  });
+
+  beforeEach(async () => {
+    try {
+      const redis = app.get(RedlockService).getRedisClient();
+      const lockKeys = await redis.keys("lock:show_seat:*");
+      const idempotencyKeys = await redis.keys("idempotency:*");
+      const allKeys = [...lockKeys, ...idempotencyKeys];
+      if (allKeys.length > 0) {
+        await redis.del(...allKeys);
+      }
+    } catch {
+      // FAIL-OPEN
+    }
+    await db.delete(payments);
+    await db.delete(outboxEvents);
+    await db.delete(tickets);
+    await db.delete(bookings);
+    await db
+      .update(showSeats)
+      .set({ status: "available", lockedUntil: null })
+      .where(eq(showSeats.showId, testShowId));
+  });
   // =========================================================================
   describe("1. Authentication (JwtAuthGuard)", () => {
     it("should return 401 Unauthorized when Authorization header is missing", async () => {
@@ -391,8 +399,6 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
     });
   });
 
-  // =========================================================================
-  // 5. Conflict Handling (409 Conflict on Double Reservation)
   // =========================================================================
   describe("5. Conflict Handling (409 Conflict)", () => {
     it("should return 409 Conflict when attempting to reserve already reserved/locked seats", async () => {
@@ -558,7 +564,6 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
       expect(updatedShowSeat?.status).toBe("available");
       expect(updatedShowSeat?.lockedUntil).toBeNull();
     });
-
     it.skip("7.4 Redlock TTL Expiry Fallback: should rely on Postgres FOR UPDATE pessimistic locking when Redlock TTL (>2000ms) expires during high DB latency", async () => {
       // WHY: Simulating >2000ms database transaction latency requires a custom DB connection pool latency injector or mocked DrizzleDB transaction.
       // The Postgres row-level lock (FOR UPDATE) acts as the ultimate SSOT safety net as proven in architectural review.
