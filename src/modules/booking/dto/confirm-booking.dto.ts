@@ -15,7 +15,7 @@ import { i18nMsg } from "@/common/utils/i18n-message.util";
 import { TransformEnum } from "@/common/decorators";
 
 export class ConfirmBookingDto {
-  @IsUUID(undefined, { message: i18nMsg("validation.isUuid") })
+  @IsUUID("7", { message: i18nMsg("validation.isUuid") })
   @IsNotEmpty({ message: i18nMsg("validation.isNotEmpty") })
   bookingId!: string;
 

@@ -26,9 +26,6 @@ import {
   shows,
   showSeats,
   bookings,
-  payments,
-  tickets,
-  outboxEvents,
 } from "@/database/schemas";
 
 type ReserveSeatsResponseData =
@@ -69,7 +66,6 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
       .padStart(12, "0");
     return `${timestamp.slice(0, 8)}-${timestamp.slice(8, 12)}-7${rand1}-${rand2}-${rand3}`;
   };
-
   beforeAll(async () => {
     const setup = await createTestApp();
     app = setup.app;
@@ -77,6 +73,25 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
     httpServer = app.getHttpServer() as Server;
 
     await runMigrations(db);
+  });
+
+  afterAll(async () => {
+    await truncateAllTables(db);
+    await app.close();
+  });
+
+  beforeEach(async () => {
+    try {
+      const redis = app.get(RedlockService).getRedisClient();
+      const lockKeys = await redis.keys("lock:show_seat:*");
+      const idempotencyKeys = await redis.keys("idempotency:*");
+      const allKeys = [...lockKeys, ...idempotencyKeys];
+      if (allKeys.length > 0) {
+        await redis.del(...allKeys);
+      }
+    } catch {
+      // FAIL-OPEN
+    }
     await truncateAllTables(db);
 
     const timestamp = Date.now().toString();
@@ -210,33 +225,6 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
     testSeatId6 = s6;
     testSeatId7 = s7;
   }, 30000);
-
-  afterAll(async () => {
-    await truncateAllTables(db);
-    await app.close();
-  });
-
-  beforeEach(async () => {
-    try {
-      const redis = app.get(RedlockService).getRedisClient();
-      const lockKeys = await redis.keys("lock:show_seat:*");
-      const idempotencyKeys = await redis.keys("idempotency:*");
-      const allKeys = [...lockKeys, ...idempotencyKeys];
-      if (allKeys.length > 0) {
-        await redis.del(...allKeys);
-      }
-    } catch {
-      // FAIL-OPEN
-    }
-    await db.delete(payments);
-    await db.delete(outboxEvents);
-    await db.delete(tickets);
-    await db.delete(bookings);
-    await db
-      .update(showSeats)
-      .set({ status: "available", lockedUntil: null })
-      .where(eq(showSeats.showId, testShowId));
-  });
 
   // =========================================================================
   // 1. Authentication Guard Validation (JwtAuthGuard)
@@ -607,7 +595,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
         .post("/bookings/confirm")
         .set("idempotency-key", generateUuidV7())
         .send({
-          bookingId: "00000000-0000-0000-0000-000000000000",
+          bookingId: generateUuidV7(),
           transactionId: "TXN-999",
           orderCode: 123456,
           amount: 150000,
