@@ -7,12 +7,13 @@ import {
   type DrizzleDB,
 } from "../../../database/database.module";
 import { bookings, showSeats, tickets } from "../../../database/schemas";
+import { BOOKING_QUEUES } from "../booking.constants";
 
 export interface CancelBookingJobData {
   bookingId: string;
 }
 
-@Processor("booking")
+@Processor(BOOKING_QUEUES.BOOKING)
 export class BookingCancellationProcessor extends WorkerHost {
   private readonly logger = new Logger(BookingCancellationProcessor.name);
 
@@ -25,7 +26,7 @@ export class BookingCancellationProcessor extends WorkerHost {
 
   async process(job: Job<CancelBookingJobData>): Promise<void> {
     const { bookingId } = job.data;
-    this.logger.log(
+    this.logger.debug(
       `Processing delayed booking cancellation for: ${bookingId}`,
     );
 
@@ -40,10 +41,10 @@ export class BookingCancellationProcessor extends WorkerHost {
             eq(bookings.status, "pending_payment"),
           ),
         )
-        .returning();
+        .returning({ id: bookings.id });
 
       if (!updatedBooking) {
-        this.logger.log(
+        this.logger.debug(
           `Booking ${bookingId} was not in pending_payment state during update, cancellation skipped`,
         );
         return;
@@ -51,7 +52,7 @@ export class BookingCancellationProcessor extends WorkerHost {
 
       // Fetch linked tickets to find reserved show_seats
       const bookingTickets = await tx
-        .select()
+        .select({ showSeatId: tickets.showSeatId })
         .from(tickets)
         .where(eq(tickets.bookingId, bookingId));
 

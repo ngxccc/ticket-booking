@@ -1,4 +1,5 @@
 import {
+  bigint,
   boolean,
   index,
   integer,
@@ -46,8 +47,10 @@ export const bookings = snakeCase.table(
     totalPrice: integer().notNull(),
     status: bookingStatusEnum().default("pending_payment").notNull(),
     expiresAt: timestamp({ withTimezone: true, mode: "date" }).notNull(),
+    orderCode: bigint({ mode: "number" }),
   },
   (table) => [
+    uniqueIndex("bookings_order_code_uidx").on(table.orderCode),
     index("bookings_user_id_created_at_idx").on(
       table.userId,
       table.createdAt.desc(),

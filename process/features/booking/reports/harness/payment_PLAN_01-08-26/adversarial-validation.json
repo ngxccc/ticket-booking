@@ -1,0 +1,98 @@
+{
+  "feature": "booking",
+  "topic": "payment-confirmation",
+  "formalSpecPath": "process/features/booking/active/Payment_Confirmation_Formal_Spec.md",
+  "adrPath": "docs/adr/0004-payment-confirmation-architecture.md",
+  "status": "GREEN_PASSED",
+  "verifiedAt": "2026-08-03T11:15:00.000Z",
+  "phase": "PHASE_2_VERIFIER_PREP_COMPLETE",
+  "testSuite": {
+    "propertyBasedTests": [
+      {
+        "id": "PBT-01",
+        "name": "Pessimistic Locking & Anti-Double Confirmation",
+        "boundInvariant": "INV-1",
+        "status": "PASSED"
+      },
+      {
+        "id": "PBT-02",
+        "name": "Transactional Outbox Dual-Write Integrity",
+        "boundInvariant": "INV-2",
+        "status": "PASSED"
+      },
+      {
+        "id": "PBT-03",
+        "name": "PayOS Amount Matching & Auto-Refund Safeguard",
+        "boundInvariant": "INV-3",
+        "status": "PASSED"
+      },
+      {
+        "id": "PBT-04",
+        "name": "Strict Ownership & Anti-Enumeration",
+        "boundInvariant": "INV-5",
+        "status": "PASSED"
+      },
+      {
+        "id": "PBT-05",
+        "name": "PayOS Webhook HMAC-SHA256 & Timestamp Anti-Replay",
+        "boundInvariant": "INV-6",
+        "status": "PASSED"
+      }
+    ],
+    "adversarialMatrix": [
+      {
+        "id": "ADV-1",
+        "scenario": "Confirm vs Expiry Timeout Race Condition",
+        "status": "PASSED"
+      },
+      {
+        "id": "ADV-2",
+        "scenario": "Concurrent PayOS Webhooks at t=0ms",
+        "status": "PASSED"
+      },
+      {
+        "id": "ADV-3",
+        "scenario": "Outbox / BullMQ Outage Fault Tolerance",
+        "status": "PASSED"
+      }
+    ],
+    "edgeCases": [
+      {
+        "id": "EDGE-1",
+        "scenario": "Payment Amount Mismatch",
+        "status": "PASSED"
+      },
+      {
+        "id": "EDGE-2",
+        "scenario": "Booking Expired Prior to Confirm",
+        "status": "PASSED"
+      },
+      {
+        "id": "EDGE-3",
+        "scenario": "Duplicate Payment Transaction ID",
+        "status": "PASSED"
+      },
+      {
+        "id": "EDGE-4",
+        "scenario": "Backend Crash Mid-Transaction",
+        "status": "PASSED"
+      },
+      {
+        "id": "EDGE-5",
+        "scenario": "Backend Down >10m & Booking Expired",
+        "status": "PASSED"
+      },
+      {
+        "id": "EDGE-6",
+        "scenario": "Payment In Limbo (No Payment Row Created)",
+        "status": "PASSED"
+      }
+    ]
+  },
+  "verificationResults": {
+    "typeCheck": "0 errors",
+    "linter": "0 warnings/errors",
+    "unitTests": "13/13 tests passed",
+    "supertestSpecs": "8 Supertest E2E specs passed"
+  }
+}

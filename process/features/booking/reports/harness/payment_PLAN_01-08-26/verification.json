@@ -1,0 +1,44 @@
+{
+  "feature": "booking",
+  "topic": "payment-confirmation",
+  "formalSpecPath": "process/features/booking/active/Payment_Confirmation_Formal_Spec.md",
+  "contractVersion": "Payment Plan Contract: EXECUTE (TDD GREEN)",
+  "verifiedAt": "2026-08-01T00:00:00.000Z",
+  "status": "GREEN_PASSED",
+  "verificationResults": {
+    "typeCheck": "PASSED (0 errors)",
+    "linter": "PASSED (0 errors, 0 warnings)",
+    "unitTests": "PASSED (13/13 tests pass in src/modules/booking/)",
+    "supertestSpecs": "PASSED (8 Supertest E2E specs in test/integration/booking.spec.ts)",
+    "i18nCoverage": "PASSED (all exception messages translated via nestjs-i18n in vi/en booking.json)",
+    "drizzleDerivation": "PASSED (PaymentMethod derived directly from paymentMethodEnum in enums.schema.ts)"
+  },
+  "invariantsVerified": [
+    "INV-1: Atomicity & Anti-Double-Processing via DB Pessimistic Locking",
+    "INV-2: Transactional Dual-Write Outbox & 7-Day Retention",
+    "INV-3: Expiry, Locking & Idempotency Safety",
+    "INV-4: Reconciliation & Auto-Refund Safety (PaymentReconciliationProcessor)",
+    "INV-5: Strict Ownership & Anti-Enumeration Defense (404)",
+    "INV-6: PayOS Signature Verification & Anti-Replay Defense",
+    "INV-7: Redis Fail-Closed Fallback",
+    "INV-8: DB Statement Timeout (3s) & Observability Guard",
+    "INV-9: UI/UX State Machine & Status Polling Contract"
+  ],
+  "edgeCasesCoverage": [
+    { "id": "EDGE-1", "name": "Payment Amount Mismatch", "layer": "Supertest E2E (8.4) & Unit Spec (requires_refund & auto-refund)", "status": "VERIFIED_GREEN" },
+    { "id": "EDGE-2", "name": "Booking Expired Prior to Confirm", "layer": "Supertest E2E (8.5) & Unit Spec (410 Gone)", "status": "VERIFIED_GREEN" },
+    { "id": "EDGE-3", "name": "Duplicate Payment Transaction ID", "layer": "Supertest E2E (8.6) & Unique Constraint (payments_transaction_id_uidx)", "status": "VERIFIED_GREEN" },
+    { "id": "EDGE-4", "name": "PayOS Crash Mid-Transaction & Webhook Retry", "layer": "Supertest E2E (8.7) & PayOSWebhookController Spec", "status": "VERIFIED_GREEN" },
+    { "id": "EDGE-5", "name": "Backend Down >10m & Booking Expired", "layer": "PaymentReconciliationProcessor Unit & Worker Logic (payos.cancelPaymentLink)", "status": "VERIFIED_GREEN" },
+    { "id": "EDGE-6", "name": "Payment In Limbo (No Payment Row Created)", "layer": "PaymentReconciliationProcessor Unit & SSOT OrderCode query", "status": "VERIFIED_GREEN" }
+  ],
+  "adversarialMatrixCoverage": [
+    { "id": "ADV-1", "name": "Confirm vs Expiry Timeout Race Condition", "layer": "PostgreSQL DB Engine (SELECT FOR UPDATE bi-locking)", "status": "VERIFIED_GREEN" },
+    { "id": "ADV-2", "name": "Concurrent PayOS Webhooks at t=0ms", "layer": "Supertest E2E (8.7 Promise.all parallel HTTP)", "status": "VERIFIED_GREEN" },
+    { "id": "ADV-3", "name": "Outbox / BullMQ Outage Fault Tolerance", "layer": "Transactional Dual-Write (outbox_events DB table persistence)", "status": "VERIFIED_GREEN" }
+  ],
+  "counterExampleLoop": {
+    "failuresEncountered": 0,
+    "counterExamples": []
+  }
+}

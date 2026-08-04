@@ -1,6 +1,6 @@
 # NestJS Ticket Booking - All Context
 
-Last updated: 2026-07-05
+Last updated: 2026-08-04
 
 This file is the root context entrypoint for the ticket-booking repository.
 
@@ -136,9 +136,12 @@ ticket-booking/
     modules/          -- Feature modules
       auth/           -- Authentication module (register, login, logout, verify-email, refresh-token, change-password)
       users/          -- Users module (GET /api/users/me profile endpoint)
+      booking/        -- Booking module (POST /bookings/reserve seat lock & payment confirmation engine)
+      outbox/         -- Transactional outbox module (OutboxService background event relayer)
     database/         -- Database connection module and schema definitions
-      schemas/        -- Drizzle table schemas (auth, movies, cinemas, shows, bookings, payments, etc.)
+      schemas/        -- Drizzle table schemas (auth, movies, cinemas, shows, bookings, payments, outbox_events, etc.)
     config/           -- Configuration management module
+    common/           -- Common interceptors, filters, guards, utilities, and constants
     app.controller.ts -- Main controller
     app.service.ts    -- Main service
     app.module.ts     -- Root application module
@@ -153,10 +156,13 @@ ticket-booking/
   second-brain/       -- Symlink to Obsidian second brain vault
     000_Ticket_Booking_MOC.md -- Master Map of Content
     Docs/             -- Categorized technical documentation notes
+      ADRs/           -- Centralized Architectural Decision Records (0001-0005)
       Architecture/   -- Core system specs, roadmap, and architecture
       Auth/           -- Auth schema, WBS deconstruction, and refresh token strategies
+      Booking/        -- Seat locking, composite indexes, Drizzle update projections
       Database/       -- Database schema DBML, enum strategies, index audits, SQL prep
       DevOps/         -- Azure deploy, Docker Compose, HTTPS, Caddy/Nginx, zero-downtime deploy
+      NestJS/         -- Global exception filter, Logger vs console.log, ExecutionContext
       Workflows/      -- Domain workflows, TMDB sync, caching & localization strategies
   docker/             -- Application containerization setups (Dockerfile, Dockerfile.prod, Dockerfile.prod.dockerignore)
   docker-compose.yml  -- Postgres & Redis development configuration
@@ -168,7 +174,8 @@ ticket-booking/
 - **Languages:** TypeScript 6.0
 - **Runtimes:** Bun 1.1+ (uses `bun.lock` and `package.json` for dependency management)
 - **Database:** PostgreSQL via Drizzle ORM
-- **Cache/Queue:** Redis & BullMQ (for background job processing / ticket queuing)
+- **Cache/Queue:** Redis 8-alpine & BullMQ (for background job processing / ticket queuing)
+- **Logging:** Pino (`nestjs-pino` with `pino-pretty` in dev, raw NDJSON stdout in production)
 - **Database Tools:** Drizzle Kit (for database migrations and Drizzle Studio)
 - **Containerization:** Docker & Docker Compose (running PostgreSQL 18-alpine & Redis 8-alpine)
 - **Linting & Formatting:** ESLint & Prettier
@@ -176,33 +183,44 @@ ticket-booking/
 
 ## Key Patterns and Conventions
 
-- **RIPER-5 Flow:** Strictly phased spec-driven development workflow (Research -> Innovate -> Plan -> Execute -> Update Process).
+- **RIPER-5 & Architect/Verifier Flow:** Strictly phased spec-driven development workflow (Research -> Innovate -> Plan -> Execute -> Code Interrogation -> Proof Review -> Update Process) integrated with the Architect & Verifier Paradigm for High-Risk features (Auth, Billing, DB Migration, Public APIs, Secrets) and Socratic Code Interrogation (`ag-code-interrogation`).
+- **Level 2 TDD & Counter-Example Verification:** High-Risk features freeze property-based & adversarial tests into `adversarial-validation.json` (TDD RED) and fix bugs driven by `verification.json` counter-example payloads (TDD GREEN).
+- **Centralized ADR Management:** Architectural Decision Records are stored in `docs/adr/000X-<name>.md` (with mirrors/redirects in `second-brain/Docs/ADRs/`) and validated automatically via `bun run .claude/skills/ag-docs/scripts/validate-adrs.mjs` upon phase closure.
 - **All-\*.md Convention:** Entry points for context (`all-context.md`) and groups (`all-tests.md`, `all-planning.md`) act as quick context routers to keep context windows small.
+- **Agent/Skill Mirroring:** Codex TOML agents mirror Claude Code Markdown agents; `.agents/skills` is symlinked to `.claude/skills`.
+- **Validation Gates:** CI workflow `validate.yml` runs a set of validation scripts under `ag-audit-ag`, `ag-audit-context`, `ag-audit-plans`, `ag-generate-context`, and `ag-docs`.
+- **Coding Fix Skill-Logging:** When `ag-debugger` resolves a non-trivial bug (3+ steps or framework quirk), and during `ag-update-process-agent` Phase 2, the native `manage_skill` tool is invoked to persist the fix recipe as a managed skill at `~/.omp/agent/managed-skills/<name>/SKILL.md`. Naming convention: `fix-<domain>-<issue>`.
+- **Workflow Documentation Standard:** Architectural and feature workflow specifications must follow the SSOT standard at `process/development-protocols/references/workflow-documentation-standard.md` (via `ag-docs` skill). Documents use `docType: feature-workflow` or `docType: infrastructure-workflow`, include a 4-level WBS table, autonumbered Mermaid sequence diagrams, and are saved using kebab-case naming to `docs/design/<kebab-case>-workflow.md` (or `second-brain/Docs/<Topic>/` as fallback). Grounding via Codebase Memory MCP graph tools is mandatory.
 - **Transactional Outbox Pattern:** Dual-write operations (such as registering a user and dispatching a verification email) are decoupled via the `outbox_events` table within a single DB transaction. An `OutboxService` relay polling worker runs every 5 seconds, publishing events to BullMQ queues and marking them `processed` or `failed`. Event types are derived at the application layer via `as const` constants (`OUTBOX_EVENT_TYPE`).
 - **Swagger OpenAPI Auto-Mapping:** Controller endpoints returning `{ success: true, data: T }` use `@ApiOkResponseGeneric(DtoClass)` with explicit return types (`: Promise<ApiResponse<DtoClass>>`) to allow the NestJS Swagger CLI plugin to auto-map schemas without manual `@ApiProperty` decorators on DTOs.
 - **Database Connection Security:** Database connection strings containing legacy SSL modes (`require`, `prefer`, `verify-ca`) are automatically normalized to `sslmode=verify-full` via case-insensitive regex in `DatabaseModule` to prevent deprecation security warnings.
 - **Mail & Verification Link Architecture:** Verification emails contain links pointing to the Frontend SPA (`${env.FRONTEND_URL}/verify-email?token=${token}`). The Frontend loads the page and calls `POST /auth/verify-email` with `VerifyEmailDto` (`{"token": "..."}`) on the Backend.
-- **Second Brain Note Storage:** When creating general notes, explanations, or documentation, store them under the `second-brain/Docs/` directory structured by topic (`Architecture/`, `Auth/`, `Database/`, `DevOps/`, `Workflows/`). Business specifications, architecture designs, critical trade-offs (e.g. concurrency, outbox pattern), and interview preparation notes must be written to `second-brain/` to facilitate future learning and study. This directory is a symlink pointing to the Obsidian second brain vault (`secondbrain`).
+- **Second Brain Note Storage:** When creating general notes, explanations, or documentation, store them under the `second-brain/Docs/` directory structured by topic (`Architecture/`, `Auth/`, `Booking/`, `Database/`, `DevOps/`, `NestJS/`, `Workflows/`). Official Architectural Decision Records (ADRs) belong in `docs/adr/`, formal workflow specifications belong in `docs/design/`, while deep-dive conceptual study notes and interview preparation notes are kept in `second-brain/`. This directory is a symlink pointing to the Obsidian second brain vault (`secondbrain`).
 - **Dependency Management:** Use Bun for installing dependencies, running scripts, and testing.
 
 ## API Surface
 
-| Method | Path | Module | Auth | Description |
-| :----- | :--- | :----- | :--- | :---------- |
-| `GET` | `/api/users/me` | `UsersModule` | `JwtAuthGuard` + throttle (30/min) | Returns current user profile (`id`, `email`, `fullName`, `role`, `isVerified`, `status`). Derives `isVerified` server-side (`status !== 'pending_verification'`). Returns 403 for `suspended`/`inactive` accounts. Response: `ApiResponse<UserResponseDto>`. |
+| Method | Path                | Module          | Auth                                                                        | Description                                                                                                                                                                                                                                                        |
+| :----- | :------------------ | :-------------- | :-------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/api/users/me`     | `UsersModule`   | `JwtAuthGuard` + throttle (30/min)                                          | Returns current user profile (`id`, `email`, `fullName`, `role`, `isVerified`, `status`). Derives `isVerified` server-side (`status !== 'pending_verification'`). Returns 403 for `suspended`/`inactive` accounts. Response: `ApiResponse<UserResponseDto>`.       |
 | `POST` | `/bookings/reserve` | `BookingModule` | `JwtAuthGuard` + `CustomThrottlerGuard` (10/min) + `Idempotency-Key` header | Reserves 1 to 6 show seats for 10 minutes (`lockedUntil`). Implements Redis Redlock + PostgreSQL `SELECT ... FOR UPDATE` double-locking. Triggers BullMQ delayed cancellation queue & 5-min backup cron cleanup. Response: `ApiResponse<ReserveSeatsResponseDto>`. |
+| `POST` | `/bookings/confirm` | `BookingModule` | `JwtAuthGuard` + `CustomThrottlerGuard` (10/min) + `Idempotency-Key` header | Confirms booking & executes payment processing. Updates `bookings` (`confirmed`), `show_seats` (`booked`), inserts `payments` (`completed`), and `outbox_events` (`booking.confirmed`) atomically. Response: `ApiResponse<ConfirmBookingResponseDto>`.             |
+| `POST` | `/payments/payos-webhook` | `BookingModule` | HMAC-SHA256 signature + 5-min anti-replay (no JWT) | PayOS webhook gateway. Verifies HMAC-SHA256 signature via `timingSafeEqual`, validates 5-min timestamp window, and executes atomic payment processing. Response: `{ success: true }`. |
+
 ## Environment and Configuration
 
 - **Config Files:** `package.json`, `tsconfig.json`, `drizzle.config.ts`, `nest-cli.json`, `eslint.config.ts`, `docker-compose.yml`, `Caddyfile`, `scripts/redeploy.sh`, `scripts/setup-vps-system.sh`, `scripts/deploy-db.sh`, `scripts/deploy-app.sh`, `scripts/reload-caddy.sh`.
 - **Environment Variables (names only):**
   - Database: `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASE`.
+  - Redis: `REDIS_HOST`, `REDIS_PORT`, `REDIS_URL`.
+  - PayOS: `PAYOS_CLIENT_ID`, `PAYOS_API_KEY`, `PAYOS_CHECKSUM_KEY`.
 
 ## Scan Metadata
 
-- Generated: 2026-07-28
-- Repo HEAD: feat/booking-core-concurrency
-- Mode: Delta Update
-- Changes since last update: Implemented `BookingModule` (`src/modules/booking/`) with `POST /bookings/reserve` endpoint, Redlock distributed locking (`RedlockService`), `SELECT ... FOR UPDATE` pessimistic DB locking, BullMQ delayed cancellation queue processor, backup cron job, UUIDv7 DTO validation (`@IsUUID("7")`), CustomThrottlerGuard rate limiting, and RFC 9457 Swagger OpenAPI documentation. Quality gate: 100% unit tests pass, 0 type errors, 0 lint errors.
+- Generated: 2026-08-04
+- Repo HEAD: main
+- Mode: Delta Update (Phase 6 — UPDATE PROCESS)
+- Changes since last update: Completed Payment Confirmation & Ticket Issuance feature (`POST /bookings/confirm` + `POST /payments/payos-webhook`). Archived formal spec and execution plan under `process/features/booking/completed/`. All 11 SSOT workflow docs, 8 ADRs, and 11 design docs pass `validate-docs.mjs` with 0 errors. Added ADR-0004 (payment-confirmation-architecture), ADRs 0006-0008 (concurrency micro-collisions, password hashing, refresh token separation). Risk gate advanced to `PHASE_6_UPDATE_PROCESS_COMPLETE`.
 
 ## Source References
 
@@ -210,6 +228,9 @@ ticket-booking/
 - `docker-compose.yml`
 - `process/context/tests/all-tests.md`
 - `second-brain/000_Ticket_Booking_MOC.md`
+- `second-brain/Docs/ADRs/`
+- `docs/design/booking-payment-confirmation-workflow.md`
+- `docs/adr/0004-payment-confirmation-architecture.md`
 
 ## Open Questions
 

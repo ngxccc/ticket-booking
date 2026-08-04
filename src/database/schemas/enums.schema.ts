@@ -25,6 +25,8 @@ export const showSeatStatusEnum = pgEnum("show_seat_status", [
   "booked",
 ]);
 
+export type ShowSeatStatus = (typeof showSeatStatusEnum.enumValues)[number];
+
 // 4. Booking & Order Enums
 export const bookingStatusEnum = pgEnum("booking_status", [
   "pending_payment",
@@ -32,6 +34,8 @@ export const bookingStatusEnum = pgEnum("booking_status", [
   "cancelled",
   "expired",
 ]);
+
+export type BookingStatus = (typeof bookingStatusEnum.enumValues)[number];
 
 export const discountTypeEnum = pgEnum("discount_type", ["percentage", "flat"]);
 
@@ -41,18 +45,26 @@ export const paymentStatusEnum = pgEnum("payment_status", [
   "completed",
   "failed",
   "refunded",
+  "requires_refund",
 ]);
+
+export type PaymentStatus = (typeof paymentStatusEnum.enumValues)[number];
 
 export const paymentMethodEnum = pgEnum("payment_method", [
   "MOMO",
   "VNPAY",
   "Credit_Card",
   "ShopeePay",
+  "PAYOS",
 ]);
 
-// 6. Outbox Pattern Enums
+export type PaymentMethod = (typeof paymentMethodEnum.enumValues)[number];
+
 export const outboxEventStatusEnum = pgEnum("outbox_event_status", [
   "pending",
   "processed",
   "failed",
 ]);
+
+export type OutboxEventStatus =
+  (typeof outboxEventStatusEnum.enumValues)[number];

@@ -35,3 +35,11 @@ export function parseDuration(
 export function getExpiryDate(duration: string): Date {
   return new Date(Date.now() + parseDuration(duration));
 }
+
+/**
+ * Calculate a past Date object from a duration string (e.g., "7d", "15m").
+ * @param duration The duration string
+ */
+export function getPastDate(duration: string): Date {
+  return new Date(Date.now() - parseDuration(duration));
+}

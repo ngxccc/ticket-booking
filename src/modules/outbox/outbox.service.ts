@@ -17,6 +17,7 @@ import {
   OUTBOX_EVENT_TYPE,
   MAIL_JOB_NAME,
 } from "@/common/constants/event.constant";
+import { QUEUE_NAMES } from "@/common/constants/queue.constants";
 
 const EVENT_TO_JOB_MAP: Record<string, string> = {
   [OUTBOX_EVENT_TYPE.AUTH_VERIFICATION_EMAIL_REQUESTED]:
@@ -38,7 +39,7 @@ export class OutboxService
   constructor(
     @Inject(DATABASE_CONNECTION)
     private readonly db: DrizzleDB,
-    @InjectQueue("mail")
+    @InjectQueue(QUEUE_NAMES.MAIL)
     private readonly mailQueue: Queue,
   ) {}
 
