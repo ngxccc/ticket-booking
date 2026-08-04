@@ -15,6 +15,7 @@ import { runMigrations, truncateAllTables } from "../helpers/database.helper";
 import type { DrizzleDB } from "@/database/database.module";
 import { RedlockService } from "@/common/services/redlock.service";
 import { BookingCronService } from "@/modules/booking/booking-cron.service";
+import type { components } from "../generated/api-schema";
 import {
   users,
   movies,
@@ -25,9 +26,10 @@ import {
   shows,
   showSeats,
   bookings,
+  payments,
+  tickets,
+  outboxEvents,
 } from "@/database/schemas";
-
-import type { components } from "../generated/api-schema";
 
 type ReserveSeatsResponseData =
   components["schemas"]["ReserveSeatsResponseDto"];
@@ -75,30 +77,8 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
     httpServer = app.getHttpServer() as Server;
 
     await runMigrations(db);
-  });
-
-  afterAll(async () => {
     await truncateAllTables(db);
-    await app.close();
-  });
 
-  beforeEach(async () => {
-    try {
-      const redis = app.get(RedlockService).getRedisClient();
-      const cleanupPromise = (async () => {
-        const lockKeys = await redis.keys("lock:show_seat:*");
-        if (lockKeys.length > 0) {
-          await redis.del(...lockKeys);
-        }
-      })();
-      const timeoutPromise = new Promise((resolve) =>
-        setTimeout(resolve, 2000),
-      );
-      await Promise.race([cleanupPromise, timeoutPromise]);
-    } catch {
-      // WHY: Fail-open on Redis cleanup errors to prevent offline connection blips from interrupting test runs.
-    }
-    await truncateAllTables(db);
     const timestamp = Date.now().toString();
     const userEmail = `booking-test-${timestamp}@example.com`;
     const userPassword = "Password123!";
@@ -231,6 +211,33 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
     testSeatId7 = s7;
   }, 30000);
 
+  afterAll(async () => {
+    await truncateAllTables(db);
+    await app.close();
+  });
+
+  beforeEach(async () => {
+    try {
+      const redis = app.get(RedlockService).getRedisClient();
+      const lockKeys = await redis.keys("lock:show_seat:*");
+      const idempotencyKeys = await redis.keys("idempotency:*");
+      const allKeys = [...lockKeys, ...idempotencyKeys];
+      if (allKeys.length > 0) {
+        await redis.del(...allKeys);
+      }
+    } catch {
+      // FAIL-OPEN
+    }
+    await db.delete(payments);
+    await db.delete(outboxEvents);
+    await db.delete(tickets);
+    await db.delete(bookings);
+    await db
+      .update(showSeats)
+      .set({ status: "available", lockedUntil: null })
+      .where(eq(showSeats.showId, testShowId));
+  });
+
   // =========================================================================
   // 1. Authentication Guard Validation (JwtAuthGuard)
   // =========================================================================
@@ -305,9 +312,11 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
       const body = response.body as Rfc9457ErrorResponse;
       expect(body.detail).toBe("Invalid payload format");
       expect(body.invalidParams).toBeDefined();
-      expect(body.invalidParams?.some((param) => param.name === "showId")).toBe(
-        true,
-      );
+      expect(
+        body.invalidParams?.some(
+          (param: { name: string }) => param.name === "showId",
+        ),
+      ).toBe(true);
     });
 
     it("should return 400 Bad Request when seatIds array is empty (violates @ArrayMinSize(1))", async () => {
@@ -326,7 +335,9 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
       const body = response.body as Rfc9457ErrorResponse;
       expect(body.invalidParams).toBeDefined();
       expect(
-        body.invalidParams?.some((param) => param.name === "seatIds"),
+        body.invalidParams?.some(
+          (param: { name: string }) => param.name === "seatIds",
+        ),
       ).toBe(true);
     });
 
@@ -354,7 +365,9 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
       const body = response.body as Rfc9457ErrorResponse;
       expect(body.invalidParams).toBeDefined();
       expect(
-        body.invalidParams?.some((param) => param.name === "seatIds"),
+        body.invalidParams?.some(
+          (param: { name: string }) => param.name === "seatIds",
+        ),
       ).toBe(true);
     });
   });
@@ -565,9 +578,9 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
   });
 
   describe("8. Payment Confirmation & Webhook Integration (POST /bookings/confirm & POST /payments/payos-webhook)", () => {
-    it("8.1 Supertest POST /api/v1/payments/payos-webhook: should reject payload with invalid HMAC-SHA256 signature (400 Bad Request)", async () => {
+    it("8.1 Supertest POST /payments/payos-webhook: should reject payload with invalid HMAC-SHA256 signature (400 Bad Request)", async () => {
       const response = await request(httpServer)
-        .post("/api/v1/payments/payos-webhook")
+        .post("/payments/payos-webhook")
         .send({
           code: "00",
           desc: "success",
@@ -589,36 +602,38 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
       expect(response.status).toBe(400);
     });
 
-    it("8.2 Supertest POST /api/v1/bookings/confirm: should reject unauthorized missing token (401 Unauthorized)", async () => {
+    it("8.2 Supertest POST /bookings/confirm: should reject unauthorized missing token (401 Unauthorized)", async () => {
       const response = await request(httpServer)
-        .post("/api/v1/bookings/confirm")
+        .post("/bookings/confirm")
+        .set("idempotency-key", generateUuidV7())
         .send({
           bookingId: "00000000-0000-0000-0000-000000000000",
           transactionId: "TXN-999",
           orderCode: 123456,
           amount: 150000,
-          paymentMethod: "payos",
+          paymentMethod: "PAYOS",
         });
 
       expect(response.status).toBe(401);
     });
 
-    it("8.3 Supertest POST /api/v1/bookings/confirm: should return 404 (INV-5 Anti-Enumeration) for non-existent booking", async () => {
+    it("8.3 Supertest POST /bookings/confirm: should return 404 (INV-5 Anti-Enumeration) for non-existent booking", async () => {
       const response = await request(httpServer)
-        .post("/api/v1/bookings/confirm")
+        .post("/bookings/confirm")
         .set("Authorization", `Bearer ${testUserToken}`)
+        .set("idempotency-key", generateUuidV7())
         .send({
           bookingId: generateUuidV7(),
           transactionId: "TXN-999",
           orderCode: 123456,
           amount: 150000,
-          paymentMethod: "payos",
+          paymentMethod: "PAYOS",
         });
 
       expect(response.status).toBe(404);
     });
 
-    it("8.4 Supertest POST /api/v1/bookings/confirm: should return 400 Bad Request (EDGE-1 / INV-3) on payment amount mismatch", async () => {
+    it("8.4 Supertest POST /bookings/confirm: should return 400 Bad Request (EDGE-1 / INV-3) on payment amount mismatch", async () => {
       // Seed pending_payment booking for testUser
       const [booking] = await db
         .insert(bookings)
@@ -636,20 +651,21 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
       if (!booking) throw new Error("Failed to seed booking");
 
       const response = await request(httpServer)
-        .post("/api/v1/bookings/confirm")
+        .post("/bookings/confirm")
         .set("Authorization", `Bearer ${testUserToken}`)
+        .set("idempotency-key", generateUuidV7())
         .send({
           bookingId: booking.id,
           transactionId: "TXN-MISMATCH-1",
           orderCode: 888888,
           amount: 50000, // Mismatch: 50,000 vs 200,000
-          paymentMethod: "payos",
+          paymentMethod: "PAYOS",
         });
 
       expect(response.status).toBe(400);
     });
 
-    it("8.5 Supertest POST /api/v1/bookings/confirm: should return 410 Gone (EDGE-2 / INV-1) when booking is expired", async () => {
+    it("8.5 Supertest POST /bookings/confirm: should return 410 Gone (EDGE-2 / INV-1) when booking is expired", async () => {
       // Seed expired booking for testUser
       const [booking] = await db
         .insert(bookings)
@@ -667,20 +683,21 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
       if (!booking) throw new Error("Failed to seed booking");
 
       const response = await request(httpServer)
-        .post("/api/v1/bookings/confirm")
+        .post("/bookings/confirm")
         .set("Authorization", `Bearer ${testUserToken}`)
+        .set("idempotency-key", generateUuidV7())
         .send({
           bookingId: booking.id,
           transactionId: "TXN-EXPIRED-1",
           orderCode: 777777,
           amount: 150000,
-          paymentMethod: "payos",
+          paymentMethod: "PAYOS",
         });
 
       expect(response.status).toBe(410);
     });
 
-    it("8.6 Supertest POST /api/v1/bookings/confirm: should successfully confirm booking, update seats, write outbox event and return 200 OK (INV-1, INV-2)", async () => {
+    it("8.6 Supertest POST /bookings/confirm: should successfully confirm booking, update seats, write outbox event and return 200 OK (INV-1, INV-2)", async () => {
       // 1. Seed pending_payment booking
       const [booking] = await db
         .insert(bookings)
@@ -699,14 +716,15 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
 
       // 2. Perform Confirm via Supertest HTTP
       const response = await request(httpServer)
-        .post("/api/v1/bookings/confirm")
+        .post("/bookings/confirm")
         .set("Authorization", `Bearer ${testUserToken}`)
+        .set("idempotency-key", generateUuidV7())
         .send({
           bookingId: booking.id,
           transactionId: "TXN-SUCCESS-100",
           orderCode: 666666,
           amount: 150000,
-          paymentMethod: "payos",
+          paymentMethod: "PAYOS",
         });
 
       expect(response.status).toBe(200);
@@ -715,14 +733,15 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
 
       // 3. Idempotent Retry (EDGE-3) -> should return 200 OK
       const retryResponse = await request(httpServer)
-        .post("/api/v1/bookings/confirm")
+        .post("/bookings/confirm")
         .set("Authorization", `Bearer ${testUserToken}`)
+        .set("idempotency-key", generateUuidV7())
         .send({
           bookingId: booking.id,
           transactionId: "TXN-SUCCESS-100",
           orderCode: 666666,
           amount: 150000,
-          paymentMethod: "payos",
+          paymentMethod: "PAYOS",
         });
 
       expect(retryResponse.status).toBe(200);
@@ -748,31 +767,32 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
 
       const [res1, res2] = await Promise.all([
         request(httpServer)
-          .post("/api/v1/bookings/confirm")
+          .post("/bookings/confirm")
           .set("Authorization", `Bearer ${testUserToken}`)
+          .set("idempotency-key", generateUuidV7())
           .send({
             bookingId: booking.id,
             transactionId: "TXN-CONCURRENT-1",
             orderCode: 555555,
             amount: 150000,
-            paymentMethod: "payos",
+            paymentMethod: "PAYOS",
           }),
         request(httpServer)
-          .post("/api/v1/bookings/confirm")
+          .post("/bookings/confirm")
           .set("Authorization", `Bearer ${testUserToken}`)
+          .set("idempotency-key", generateUuidV7())
           .send({
             bookingId: booking.id,
             transactionId: "TXN-CONCURRENT-1",
             orderCode: 555555,
             amount: 150000,
-            paymentMethod: "payos",
+            paymentMethod: "PAYOS",
           }),
       ]);
 
       const statuses = [res1.status, res2.status];
       expect(statuses).toContain(200);
     });
-
     it("8.8 Supertest (EDGE-5 / EDGE-6 / INV-4): should verify payment reconciliation worker identifies orphaned orderCode", async () => {
       const [booking] = await db
         .insert(bookings)
