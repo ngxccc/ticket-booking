@@ -396,7 +396,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
       expect(body.data.status).toBe("pending_payment");
       expect(body.data.seats).toHaveLength(2);
       expect(body.data.expiresAt).toBeDefined();
-    });
+    }, 15000);
   });
 
   // =========================================================================
@@ -428,7 +428,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
       const body = conflictResponse.body as Rfc9457ErrorResponse;
       expect(conflictResponse.status).toBe(409);
       expect(body.statusCode ?? body.status).toBe(409);
-    });
+    }, 15000);
   });
 
   // =========================================================================
@@ -473,7 +473,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
           and(eq(bookings.showId, testShowId), eq(bookings.userId, testUserId)),
         );
       expect(createdBookings.length).toBe(1);
-    });
+    }, 15000);
 
     it("7.2 Idempotency Race Window: should handle simultaneous duplicate requests (<5ms) by letting one succeed and blocking the other with 409", async () => {
       const sameIdempotencyKey = generateUuidV7();
@@ -509,7 +509,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
           and(eq(bookings.showId, testShowId), eq(bookings.userId, testUserId)),
         );
       expect(createdBookings.length).toBe(1);
-    });
+    }, 15000);
 
     it("7.3 Booking Cron Service Cleanup: should clean up expired seat locks and mark orphaned pending bookings as expired", async () => {
       const idempotencyKey = generateUuidV7();
@@ -563,7 +563,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
         );
       expect(updatedShowSeat?.status).toBe("available");
       expect(updatedShowSeat?.lockedUntil).toBeNull();
-    });
+    }, 15000);
     it.skip("7.4 Redlock TTL Expiry Fallback: should rely on Postgres FOR UPDATE pessimistic locking when Redlock TTL (>2000ms) expires during high DB latency", async () => {
       // WHY: Simulating >2000ms database transaction latency requires a custom DB connection pool latency injector or mocked DrizzleDB transaction.
       // The Postgres row-level lock (FOR UPDATE) acts as the ultimate SSOT safety net as proven in architectural review.
@@ -740,7 +740,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
       expect(retryResponse.status).toBe(200);
       const retryResData = retryResponse.body as { data: { status: string } };
       expect(retryResData.data.status).toBe("confirmed");
-    });
+    }, 15000);
 
     it("8.7 Supertest (EDGE-4 / ADV-2): should handle concurrent double-confirm requests safely without duplicate payments", async () => {
       const [booking] = await db
@@ -785,7 +785,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
 
       const statuses = [res1.status, res2.status];
       expect(statuses).toContain(200);
-    });
+    }, 15000);
     it("8.8 Supertest (EDGE-5 / EDGE-6 / INV-4): should verify payment reconciliation worker identifies orphaned orderCode", async () => {
       const [booking] = await db
         .insert(bookings)

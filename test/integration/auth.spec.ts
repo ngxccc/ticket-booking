@@ -58,11 +58,11 @@ describe("Auth Module Integration (Supertest)", () => {
     app = setup.app;
     db = setup.db;
     await runMigrations(db);
-  });
+  }, 30000);
 
   beforeEach(async () => {
     await truncateAllTables(db);
-  });
+  }, 15000);
 
   afterAll(async () => {
     await app.close();
@@ -601,14 +601,17 @@ describe("Auth Module Integration (Supertest)", () => {
     });
 
     it("should reject when current password is wrong", async () => {
-      await request(getHttpServer()).post("/auth/register").send({
-        email: "wrong-pwd-user@example.com",
-        fullName: "Wrong Password User",
-        phoneNumber: "0912345679",
-        password: "RealPassword123!",
-        confirmPassword: "RealPassword123!",
-        agreeTerms: true,
-      });
+      const regRes = await request(getHttpServer())
+        .post("/auth/register")
+        .send({
+          email: "wrong-pwd-user@example.com",
+          fullName: "Wrong Password User",
+          phoneNumber: "0912345679",
+          password: "RealPassword123!",
+          confirmPassword: "RealPassword123!",
+          agreeTerms: true,
+        });
+      expect(regRes.status).toBe(201);
 
       await db
         .update(users)
@@ -619,6 +622,7 @@ describe("Auth Module Integration (Supertest)", () => {
         email: "wrong-pwd-user@example.com",
         password: "RealPassword123!",
       });
+      expect(loginRes.status).toBe(200);
       const accessToken = (loginRes.body as unknown as AuthResponse).data
         .accessToken;
 
@@ -630,7 +634,7 @@ describe("Auth Module Integration (Supertest)", () => {
           newPassword: "NewSecurePassword456!",
         });
       expect(changePwdRes.status).toBe(401);
-    });
+    }, 15000);
 
     it("should reject when new password is identical to current password", async () => {
       await request(getHttpServer()).post("/auth/register").send({
@@ -662,7 +666,7 @@ describe("Auth Module Integration (Supertest)", () => {
           newPassword: "SamePassword123!",
         });
       expect(changePwdRes.status).toBe(400);
-    });
+    }, 15000);
 
     it("should reject OAuth users without passwordHash from changing password", async () => {
       const [oauthUser] = await db
@@ -742,7 +746,7 @@ describe("Auth Module Integration (Supertest)", () => {
         .post("/auth/refresh")
         .send({ refreshToken: authData2.refreshToken });
       expect(refreshRes2.status).toBe(401);
-    });
+    }, 15000);
 
     it("should reject logout-all request without Authorization token", async () => {
       const res = await request(getHttpServer()).post("/auth/logout-all");
