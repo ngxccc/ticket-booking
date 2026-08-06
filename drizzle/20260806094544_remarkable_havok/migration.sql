@@ -2,11 +2,11 @@ CREATE TYPE "booking_status" AS ENUM('pending_payment', 'confirmed', 'cancelled'
 CREATE TYPE "discount_type" AS ENUM('percentage', 'flat');--> statement-breakpoint
 CREATE TYPE "movie_rating" AS ENUM('G', 'PG', 'PG_13', 'R', 'NC_17');--> statement-breakpoint
 CREATE TYPE "outbox_event_status" AS ENUM('pending', 'processed', 'failed');--> statement-breakpoint
-CREATE TYPE "payment_method" AS ENUM('MOMO', 'VNPAY', 'Credit_Card', 'ShopeePay');--> statement-breakpoint
-CREATE TYPE "payment_status" AS ENUM('pending', 'completed', 'failed', 'refunded');--> statement-breakpoint
+CREATE TYPE "payment_method" AS ENUM('MOMO', 'VNPAY', 'Credit_Card', 'ShopeePay', 'PAYOS');--> statement-breakpoint
+CREATE TYPE "payment_status" AS ENUM('pending', 'completed', 'failed', 'refunded', 'requires_refund');--> statement-breakpoint
 CREATE TYPE "show_seat_status" AS ENUM('available', 'reserved', 'booked');--> statement-breakpoint
 CREATE TYPE "user_role" AS ENUM('user', 'admin', 'staff');--> statement-breakpoint
-CREATE TYPE "user_status" AS ENUM('active', 'inactive', 'suspended');--> statement-breakpoint
+CREATE TYPE "user_status" AS ENUM('active', 'inactive', 'suspended', 'pending_verification');--> statement-breakpoint
 CREATE TABLE "refresh_tokens" (
 	"id" uuid PRIMARY KEY,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -31,7 +31,11 @@ CREATE TABLE "users" (
 	"google_id" varchar(255),
 	"facebook_id" varchar(255),
 	"role" "user_role" DEFAULT 'user'::"user_role" NOT NULL,
-	"status" "user_status" DEFAULT 'active'::"user_status" NOT NULL
+	"status" "user_status" DEFAULT 'pending_verification'::"user_status" NOT NULL,
+	"verification_token" varchar(255),
+	"verification_expires_at" timestamp with time zone,
+	"reset_password_token" varchar(255),
+	"reset_password_expires_at" timestamp with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "genres" (
@@ -139,7 +143,8 @@ CREATE TABLE "bookings" (
 	"discount_price" integer DEFAULT 0 NOT NULL,
 	"total_price" integer NOT NULL,
 	"status" "booking_status" DEFAULT 'pending_payment'::"booking_status" NOT NULL,
-	"expires_at" timestamp with time zone NOT NULL
+	"expires_at" timestamp with time zone NOT NULL,
+	"order_code" bigint
 );
 --> statement-breakpoint
 CREATE TABLE "combos" (
@@ -177,15 +182,6 @@ CREATE TABLE "vouchers" (
 	"usage_count" integer DEFAULT 0 NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "outbox_events" (
-	"id" uuid PRIMARY KEY,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"event_type" varchar(255) NOT NULL,
-	"payload" jsonb NOT NULL,
-	"status" "outbox_event_status" DEFAULT 'pending'::"outbox_event_status" NOT NULL,
-	"processed_at" timestamp with time zone
-);
---> statement-breakpoint
 CREATE TABLE "payments" (
 	"id" uuid PRIMARY KEY,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -197,11 +193,26 @@ CREATE TABLE "payments" (
 	"status" "payment_status" NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "outbox_events" (
+	"id" uuid PRIMARY KEY,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"event_type" varchar(255) NOT NULL,
+	"payload" jsonb NOT NULL,
+	"status" "outbox_event_status" DEFAULT 'pending'::"outbox_event_status" NOT NULL,
+	"processed_at" timestamp with time zone,
+	"attempts" integer DEFAULT 0 NOT NULL,
+	"last_error" text
+);
+--> statement-breakpoint
 CREATE UNIQUE INDEX "refresh_tokens_token_hash_uidx" ON "refresh_tokens" ("token_hash");--> statement-breakpoint
 CREATE INDEX "refresh_tokens_user_id_idx" ON "refresh_tokens" ("user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "users_email_uidx" ON "users" ("email");--> statement-breakpoint
 CREATE UNIQUE INDEX "users_google_id_uidx" ON "users" ("google_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "users_facebook_id_uidx" ON "users" ("facebook_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "users_verification_token_uidx" ON "users" ("verification_token");--> statement-breakpoint
+CREATE INDEX "users_verification_expires_at_idx" ON "users" ("verification_expires_at") WHERE "status" = 'pending_verification';--> statement-breakpoint
+CREATE UNIQUE INDEX "users_reset_password_token_uidx" ON "users" ("reset_password_token");--> statement-breakpoint
+CREATE INDEX "users_reset_password_expires_at_idx" ON "users" ("reset_password_expires_at") WHERE "reset_password_token" IS NOT NULL;--> statement-breakpoint
 CREATE INDEX "users_phone_number_idx" ON "users" ("phone_number");--> statement-breakpoint
 CREATE INDEX "movie_genres_genre_id_idx" ON "movie_genres" ("genre_id");--> statement-breakpoint
 CREATE INDEX "halls_cinema_id_idx" ON "halls" ("cinema_id");--> statement-breakpoint
@@ -211,6 +222,7 @@ CREATE UNIQUE INDEX "show_seats_show_id_seat_id_uidx" ON "show_seats" ("show_id"
 CREATE INDEX "show_seats_status_locked_until_idx" ON "show_seats" ("status","locked_until");--> statement-breakpoint
 CREATE INDEX "shows_movie_id_start_time_idx" ON "shows" ("movie_id","start_time");--> statement-breakpoint
 CREATE INDEX "shows_hall_id_start_time_idx" ON "shows" ("hall_id","start_time");--> statement-breakpoint
+CREATE UNIQUE INDEX "bookings_order_code_uidx" ON "bookings" ("order_code");--> statement-breakpoint
 CREATE INDEX "bookings_user_id_created_at_idx" ON "bookings" ("user_id","created_at" DESC NULLS LAST);--> statement-breakpoint
 CREATE INDEX "bookings_show_id_idx" ON "bookings" ("show_id");--> statement-breakpoint
 CREATE INDEX "bookings_voucher_id_idx" ON "bookings" ("voucher_id");--> statement-breakpoint
@@ -218,9 +230,9 @@ CREATE INDEX "bookings_status_expires_at_idx" ON "bookings" ("status","expires_a
 CREATE UNIQUE INDEX "tickets_ticket_code_uidx" ON "tickets" ("ticket_code");--> statement-breakpoint
 CREATE UNIQUE INDEX "tickets_booking_id_show_seat_id_uidx" ON "tickets" ("booking_id","show_seat_id");--> statement-breakpoint
 CREATE INDEX "tickets_show_seat_id_idx" ON "tickets" ("show_seat_id");--> statement-breakpoint
-CREATE INDEX "outbox_events_status_created_at_idx" ON "outbox_events" ("status","created_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "payments_transaction_id_uidx" ON "payments" ("transaction_id");--> statement-breakpoint
 CREATE INDEX "payments_booking_id_idx" ON "payments" ("booking_id");--> statement-breakpoint
+CREATE INDEX "outbox_events_status_created_at_idx" ON "outbox_events" ("status","created_at");--> statement-breakpoint
 ALTER TABLE "refresh_tokens" ADD CONSTRAINT "refresh_tokens_user_id_users_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "movie_genres" ADD CONSTRAINT "movie_genres_movie_id_movies_id_fkey" FOREIGN KEY ("movie_id") REFERENCES "movies"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "movie_genres" ADD CONSTRAINT "movie_genres_genre_id_genres_id_fkey" FOREIGN KEY ("genre_id") REFERENCES "genres"("id") ON DELETE CASCADE;--> statement-breakpoint
