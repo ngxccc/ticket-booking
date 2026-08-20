@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { readdir, readFile, rm } from "fs/promises";
+import { readdir, rm } from "node:fs/promises";
 import { join } from "path";
 import { createHash } from "crypto";
 import { execSync } from "child_process";
@@ -65,8 +65,23 @@ async function forceBaseline() {
   }
 
   const sqlFilePath = join(drizzleDir, latestMigrationName, "migration.sql");
-  const sqlContent = await readFile(sqlFilePath, "utf-8");
-  const hash = createHash("sha256").update(sqlContent).digest("hex");
+  const customSql = `
+CREATE EXTENSION IF NOT EXISTS btree_gist;--> statement-breakpoint
+CREATE OR REPLACE FUNCTION show_occupied_range(start_t timestamptz, end_t timestamptz)
+RETURNS tstzrange AS $$
+  SELECT tstzrange(start_t, end_t + interval '15 minutes', '[)');
+$$ LANGUAGE sql IMMUTABLE;--> statement-breakpoint
+ALTER TABLE "shows" DROP CONSTRAINT IF EXISTS "no_hall_schedule_overlap";--> statement-breakpoint
+ALTER TABLE "shows" ADD CONSTRAINT "no_hall_schedule_overlap"
+EXCLUDE USING gist (
+  hall_id WITH =,
+  show_occupied_range(start_time, end_time) WITH &&
+);
+`;
+  const existingContent = await Bun.file(sqlFilePath).text();
+  const fullSqlContent = existingContent + customSql;
+  await Bun.write(sqlFilePath, fullSqlContent);
+  const hash = createHash("sha256").update(fullSqlContent).digest("hex");
   const createdAt = Date.now();
 
   console.log(

@@ -11,6 +11,12 @@ import { showSeatStatusEnum } from "./enums.schema";
 import { baseEntity } from "./helpers.schema";
 import { movies } from "./movies.schema";
 
+/**
+ * Shows table represents movie showtimes scheduled for specific halls.
+ * Schedule Collision Invariant:
+ * Protected at database level via PostgreSQL Exclusion Constraint (`no_hall_schedule_overlap` in drizzle migrations):
+ * EXCLUDE USING gist (hall_id WITH =, tsrange(start_time, end_time + interval '15 minutes', '[)') WITH &&)
+ */
 export const shows = snakeCase.table(
   "shows",
   {
