@@ -40,7 +40,7 @@
     "@payos/node": "^2.0.5",
     "@scalar/nestjs-api-reference": "^1.2.14",
     "@t3-oss/env-core": "^0.13.11",
-    "bullmq": "^6.1.1",
+    "bullmq": "^6.1.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "drizzle-orm": "^1.0.0-rc.5-ab785fc",
