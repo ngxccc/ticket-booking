@@ -1,5 +1,5 @@
 import { BullModule } from "@nestjs/bullmq";
-import { APP_FILTER, APP_INTERCEPTOR } from "@nestjs/core";
+import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from "@nestjs/core";
 import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 import { ThrottlerModule } from "@nestjs/throttler";
@@ -21,6 +21,7 @@ import { OutboxModule } from "./modules/outbox/outbox.module";
 import { BookingModule } from "./modules/booking/booking.module";
 import { AppController } from "./app.controller";
 import { parseRedisOptions } from "./config/redis.config";
+import { createAppValidationPipe } from "./common/pipes/validation.pipe";
 
 const getRedisOptions = () =>
   parseRedisOptions(env.REDIS_URL, env.REDIS_HOST, env.REDIS_PORT);
@@ -84,12 +85,16 @@ const getRedisOptions = () =>
   controllers: [AppController],
   providers: [
     {
-      provide: APP_FILTER,
+      provide: APP_FILTER, // Global Exception Filter
       useClass: GlobalExceptionFilter,
     },
     {
-      provide: APP_INTERCEPTOR,
+      provide: APP_INTERCEPTOR, // Global Interceptor
       useClass: LoggingInterceptor,
+    },
+    {
+      provide: APP_PIPE, // Global Validation Pipe
+      useFactory: createAppValidationPipe,
     },
   ],
 })
