@@ -19,6 +19,7 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { UsersModule } from "./modules/users/users.module";
 import { OutboxModule } from "./modules/outbox/outbox.module";
 import { BookingModule } from "./modules/booking/booking.module";
+import { ShowsModule } from "./modules/shows/shows.module";
 import { AppController } from "./app.controller";
 import { parseRedisOptions } from "./config/redis.config";
 import { createAppValidationPipe } from "./common/pipes/validation.pipe";
@@ -81,6 +82,7 @@ const getRedisOptions = () =>
     UsersModule,
     OutboxModule,
     BookingModule,
+    ShowsModule,
   ],
   controllers: [AppController],
   providers: [

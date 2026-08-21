@@ -1,0 +1,7 @@
+{
+  "MOVIE_NOT_FOUND": "Movie not found",
+  "HALL_NOT_FOUND": "Hall not found",
+  "NO_SEATS_CONFIGURED": "No seats configured in this hall",
+  "SCHEDULE_COLLISION": "Schedule collision detected: The hall is already occupied during this time or within the 15-minute cleaning buffer",
+  "CREATE_SHOW_FAILED": "Failed to create show"
+}

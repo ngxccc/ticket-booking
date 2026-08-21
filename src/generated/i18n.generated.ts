@@ -42,6 +42,13 @@ export type I18nTranslations = {
         "INTERNAL_SERVER_ERROR": string;
         "INVALID_INPUT": string;
     };
+    "shows": {
+        "MOVIE_NOT_FOUND": string;
+        "HALL_NOT_FOUND": string;
+        "NO_SEATS_CONFIGURED": string;
+        "SCHEDULE_COLLISION": string;
+        "CREATE_SHOW_FAILED": string;
+    };
     "users": {
         "USER_NOT_FOUND": string;
         "ACCOUNT_SUSPENDED_OR_INACTIVE": string;
