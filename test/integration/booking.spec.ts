@@ -40,7 +40,7 @@ type ApiSuccessResponse<T> = components["schemas"]["ApiResponseDto"] & {
   data: T;
 };
 
-describe("Booking Module Integration (POST /bookings/reserve)", () => {
+describe("Booking Module Integration", () => {
   let app: INestApplication;
   let httpServer: Server;
   let db: DrizzleDB;
@@ -91,7 +91,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
       agreeTerms: true,
     });
     const [dbUser] = await db
-      .select()
+      .select({ id: users.id })
       .from(users)
       .where(eq(users.email, userEmail))
       .limit(1);
@@ -124,7 +124,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
         releaseDate: "2026-01-01",
         posterUrl: "https://example.com/poster.jpg",
       })
-      .returning();
+      .returning({ id: movies.id });
 
     const [insertedCinema] = await db
       .insert(cinemas)
@@ -132,7 +132,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
         name: "Grand Cinema Center",
         address: "123 Main St",
       })
-      .returning();
+      .returning({ id: cinemas.id });
 
     if (!insertedMovie || !insertedCinema) {
       throw new Error("Failed to seed movie or cinema entity");
@@ -145,7 +145,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
         name: "Hall 1 IMAX",
         totalSeats: 100,
       })
-      .returning();
+      .returning({ id: halls.id });
 
     const [insertedSeatType] = await db
       .insert(seatTypes)
@@ -153,7 +153,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
         name: `Standard-${timestamp}`,
         priceMultiplier: "1.00",
       })
-      .returning();
+      .returning({ id: seatTypes.id });
 
     if (!insertedHall || !insertedSeatType) {
       throw new Error("Failed to seed hall or seat type entity");
@@ -168,7 +168,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
         endTime: new Date(Date.now() + 86400000 + 7200000),
         basePrice: 100000,
       })
-      .returning();
+      .returning({ id: shows.id });
 
     if (!insertedShow) {
       throw new Error("Failed to seed show entity");
@@ -186,7 +186,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
     const insertedSeatList = await db
       .insert(seats)
       .values(seatValues)
-      .returning();
+      .returning({ id: seats.id });
 
     const showSeatValues = insertedSeatList.map((st) => ({
       showId: testShowId,
@@ -237,7 +237,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
       .where(eq(showSeats.showId, testShowId));
   });
   // =========================================================================
-  describe("1. Authentication (JwtAuthGuard)", () => {
+  describe("POST /bookings/reserve - Authentication", () => {
     it("should return 401 Unauthorized when Authorization header is missing", async () => {
       const idempotencyKey = generateUuidV7();
 
@@ -273,7 +273,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
 
   // =========================================================================
   // 2. Idempotency-Key Header Validation
-  describe("2. Idempotency-Key Header Validation", () => {
+  describe("POST /bookings/reserve - Idempotency Header Validation", () => {
     it("should return 400 Bad Request when idempotency-key header is missing", async () => {
       const response = await request(httpServer)
         .post("/bookings/reserve")
@@ -292,7 +292,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
   // =========================================================================
   // 3. Request Body Validation (ReserveSeatsDto)
   // =========================================================================
-  describe("3. Request Body Validation (ReserveSeatsDto)", () => {
+  describe("POST /bookings/reserve - Request Body Validation", () => {
     it("should return 400 Bad Request when showId is not a valid UUIDv7 format", async () => {
       const idempotencyKey = generateUuidV7();
 
@@ -371,7 +371,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
   // =========================================================================
   // 4. Happy Path Contract Verification (201 Created Response Shape)
   // =========================================================================
-  describe("4. Happy Path Contract (201 Created)", () => {
+  describe("POST /bookings/reserve - Happy Path Contract", () => {
     it("should successfully reserve seats and return 201 Created with correct ApiResponse shape", async () => {
       const idempotencyKey = generateUuidV7();
 
@@ -400,7 +400,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
   });
 
   // =========================================================================
-  describe("5. Conflict Handling (409 Conflict)", () => {
+  describe("POST /bookings/reserve - Conflict Handling", () => {
     it("should return 409 Conflict when attempting to reserve already reserved/locked seats", async () => {
       const firstIdempotencyKey = generateUuidV7();
       const secondIdempotencyKey = generateUuidV7();
@@ -437,7 +437,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
   // =========================================================================
   // 7. High-Concurrency & Failure Modes (Deadlock, Idempotency Race, Cron)
   // =========================================================================
-  describe("7. High-Concurrency & Failure Modes", () => {
+  describe("POST /bookings/reserve - High-Concurrency & Failure Modes", () => {
     it("7.1 Deadlock Elimination: should handle concurrent requests with reversed seatId order without throwing DB deadlock (40P01)", async () => {
       const key1 = generateUuidV7();
       const key2 = generateUuidV7();
@@ -467,7 +467,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
 
       // Assert DB state: Exactly 1 booking row created for this test user (no duplicate bookings or partial state)
       const createdBookings = await db
-        .select()
+        .select({ id: bookings.id })
         .from(bookings)
         .where(
           and(eq(bookings.showId, testShowId), eq(bookings.userId, testUserId)),
@@ -503,7 +503,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
 
       // Assert DB state: Exactly 1 booking row created for this test user despite racy duplicate request
       const createdBookings = await db
-        .select()
+        .select({ id: bookings.id })
         .from(bookings)
         .where(
           and(eq(bookings.showId, testShowId), eq(bookings.userId, testUserId)),
@@ -546,14 +546,17 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
       await bookingCronService.handleCleanupExpiredSeatLocks();
 
       const [updatedBooking] = await db
-        .select()
+        .select({ status: bookings.status })
         .from(bookings)
         .where(eq(bookings.id, bookingId));
 
       expect(updatedBooking?.status).toBe("expired");
 
       const [updatedShowSeat] = await db
-        .select()
+        .select({
+          status: showSeats.status,
+          lockedUntil: showSeats.lockedUntil,
+        })
         .from(showSeats)
         .where(
           and(
@@ -570,7 +573,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
     });
   });
 
-  describe("8. Payment Confirmation & Webhook Integration (POST /bookings/confirm & POST /payments/payos-webhook)", () => {
+  describe("POST /bookings/confirm & POST /payments/payos-webhook", () => {
     it("8.1 Supertest POST /payments/payos-webhook: should reject payload with invalid HMAC-SHA256 signature (400 Bad Request)", async () => {
       const response = await request(httpServer)
         .post("/payments/payos-webhook")
@@ -639,7 +642,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
           expiresAt: new Date(Date.now() + 600000),
           orderCode: 888888,
         })
-        .returning();
+        .returning({ id: bookings.id });
 
       if (!booking) throw new Error("Failed to seed booking");
 
@@ -671,7 +674,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
           expiresAt: new Date(Date.now() - 60000),
           orderCode: 777777,
         })
-        .returning();
+        .returning({ id: bookings.id });
 
       if (!booking) throw new Error("Failed to seed booking");
 
@@ -703,7 +706,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
           expiresAt: new Date(Date.now() + 600000),
           orderCode: 666666,
         })
-        .returning();
+        .returning({ id: bookings.id });
 
       if (!booking) throw new Error("Failed to seed booking");
 
@@ -754,7 +757,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
           expiresAt: new Date(Date.now() + 600000),
           orderCode: 555555,
         })
-        .returning();
+        .returning({ id: bookings.id });
 
       if (!booking) throw new Error("Failed to seed booking");
 
@@ -798,7 +801,7 @@ describe("Booking Module Integration (POST /bookings/reserve)", () => {
           expiresAt: new Date(Date.now() - 3600000),
           orderCode: 444444,
         })
-        .returning();
+        .returning({ orderCode: bookings.orderCode });
       expect(booking?.orderCode).toBe(444444);
     });
   });
