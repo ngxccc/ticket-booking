@@ -1,6 +1,6 @@
 {
   "info": {
-    "_postman_id": "f209e80f-ad31-4b1b-a800-50bc0b8a59b2",
+    "_postman_id": "ca3ee663-b633-4deb-8506-56c3b5f77927",
     "name": "Ticket Booking System",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "43139394"
@@ -90,13 +90,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "register"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
             }
           },
           "response": [
@@ -125,13 +120,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/register",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "register"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "register"]
                 }
               },
               "status": "Created",
@@ -171,13 +161,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/register",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "register"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "register"]
                 }
               },
               "status": "Conflict",
@@ -217,13 +202,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/register",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "register"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "register"]
                 }
               },
               "status": "Bad Request",
@@ -263,13 +243,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/register",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "register"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "register"]
                 }
               },
               "status": "Bad Request",
@@ -312,13 +287,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/verify-email",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "verify-email"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-email"]
             }
           },
           "response": [
@@ -344,13 +314,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/verify-email",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "verify-email"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "verify-email"]
                 }
               },
               "status": "OK",
@@ -389,13 +354,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/verify-email",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "verify-email"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "verify-email"]
                 }
               },
               "status": "Bad Request",
@@ -434,13 +394,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/verify-email",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "verify-email"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "verify-email"]
                 }
               },
               "status": "Bad Request",
@@ -490,13 +445,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/resend-verification",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "resend-verification"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "resend-verification"]
             }
           },
           "response": [
@@ -522,13 +472,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/resend-verification",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "resend-verification"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "resend-verification"]
                 }
               },
               "status": "OK",
@@ -597,13 +542,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "login"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
             }
           },
           "response": [
@@ -629,13 +569,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/login",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "login"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "login"]
                 }
               },
               "status": "OK",
@@ -677,13 +612,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/login",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "login"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "login"]
                 }
               },
               "status": "Unauthorized",
@@ -723,13 +653,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/login",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "login"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "login"]
                 }
               },
               "status": "Bad Request",
@@ -795,13 +720,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/refresh",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "refresh"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
             }
           },
           "response": [
@@ -827,13 +747,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/refresh",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "refresh"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "refresh"]
                 }
               },
               "status": "OK",
@@ -875,13 +790,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/refresh",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "refresh"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "refresh"]
                 }
               },
               "status": "Unauthorized",
@@ -921,13 +831,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/refresh",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "refresh"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "refresh"]
                 }
               },
               "status": "Bad Request",
@@ -991,13 +896,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/logout",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "logout"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
             }
           },
           "response": [
@@ -1023,13 +923,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/logout",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "logout"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "logout"]
                 }
               },
               "status": "OK",
@@ -1069,13 +964,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/logout",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "logout"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "logout"]
                 }
               },
               "status": "Unauthorized",
@@ -1131,13 +1021,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/auth/logout-all",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "logout-all"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout-all"]
             }
           },
           "response": []
@@ -1186,13 +1071,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/forgot-password",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "forgot-password"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "forgot-password"]
             }
           },
           "response": [
@@ -1218,13 +1098,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/forgot-password",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "forgot-password"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "forgot-password"]
                 }
               },
               "status": "OK",
@@ -1264,13 +1139,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/forgot-password",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "forgot-password"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "forgot-password"]
                 }
               },
               "status": "Not Found",
@@ -1310,13 +1180,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/forgot-password",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "forgot-password"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "forgot-password"]
                 }
               },
               "status": "Bad Request",
@@ -1377,13 +1242,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/reset-password",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "reset-password"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "reset-password"]
             }
           },
           "response": [
@@ -1409,13 +1269,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/reset-password",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "reset-password"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "reset-password"]
                 }
               },
               "status": "OK",
@@ -1455,13 +1310,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/reset-password",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "reset-password"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "reset-password"]
                 }
               },
               "status": "Bad Request",
@@ -1501,13 +1351,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/reset-password",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "reset-password"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "reset-password"]
                 }
               },
               "status": "Bad Request",
@@ -1569,13 +1414,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/change-password",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "change-password"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "change-password"]
             }
           },
           "response": [
@@ -1601,13 +1441,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/change-password",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "change-password"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "change-password"]
                 }
               },
               "status": "OK",
@@ -1644,13 +1479,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/change-password",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "change-password"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "change-password"]
                 }
               },
               "status": "Unauthorized",
@@ -1687,13 +1517,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/auth/change-password",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "auth",
-                    "change-password"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "change-password"]
                 }
               },
               "status": "Bad Request",
@@ -1772,13 +1597,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users/me",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                "me"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me"]
             }
           },
           "response": [
@@ -1789,13 +1609,8 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/users/me",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "users",
-                    "me"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["users", "me"]
                 }
               },
               "status": "OK",
@@ -1817,13 +1632,8 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/users/me",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "users",
-                    "me"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["users", "me"]
                 }
               },
               "status": "Unauthorized",
@@ -1845,13 +1655,8 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/users/me",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "users",
-                    "me"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["users", "me"]
                 }
               },
               "status": "Forbidden",
@@ -1975,14 +1780,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/bookings/reserve",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "bookings",
-                "reserve"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "reserve"]
             }
           },
           "response": [
@@ -2019,14 +1818,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/bookings/reserve",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "bookings",
-                    "reserve"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "bookings", "reserve"]
                 }
               },
               "status": "Created",
@@ -2070,14 +1863,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/bookings/reserve",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "bookings",
-                    "reserve"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "bookings", "reserve"]
                 }
               },
               "status": "Unauthorized",
@@ -2121,14 +1908,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/bookings/reserve",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "bookings",
-                    "reserve"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "bookings", "reserve"]
                 }
               },
               "status": "Bad Request",
@@ -2176,14 +1957,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/bookings/reserve",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "bookings",
-                    "reserve"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "bookings", "reserve"]
                 }
               },
               "status": "Bad Request",
@@ -2231,14 +2006,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/bookings/reserve",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "bookings",
-                    "reserve"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "bookings", "reserve"]
                 }
               },
               "status": "Bad Request",
@@ -2286,14 +2055,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/bookings/reserve",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "bookings",
-                    "reserve"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "bookings", "reserve"]
                 }
               },
               "status": "Conflict",
@@ -2388,14 +2151,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/bookings/confirm",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "bookings",
-                "confirm"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "confirm"]
             }
           },
           "response": [
@@ -2428,14 +2185,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/bookings/confirm",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "bookings",
-                    "confirm"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "bookings", "confirm"]
                 }
               },
               "status": "OK",
@@ -2492,14 +2243,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/payments/payos-webhook",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "payments",
-                "payos-webhook"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "payos-webhook"]
             }
           },
           "response": [
@@ -2524,14 +2269,8 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/payments/payos-webhook",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "payments",
-                    "payos-webhook"
-                  ]
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "payments", "payos-webhook"]
                 }
               },
               "status": "OK",
@@ -2545,6 +2284,197 @@
               ],
               "cookie": [],
               "body": "{\n  \"success\": true,\n  \"message\": \"Webhook processed\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Shows",
+      "item": [
+        {
+          "name": "Create Show (Single)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "if (!pm.environment.get(\"startTime\")) {",
+                  "    const tomorrow = new Date();",
+                  "    tomorrow.setDate(tomorrow.getDate() + 1);",
+                  "    tomorrow.setUTCHours(10, 0, 0, 0);",
+                  "    pm.environment.set(\"startTime\", tomorrow.toISOString());",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var expectedStatus = pm.iterationData.get(\"expectedStatus\") || 201;",
+                  "var caseName = pm.iterationData.get(\"caseName\") || \"Create Show: Success (Happy Path)\";",
+                  "",
+                  "pm.test(caseName + \" - Status code is \" + expectedStatus, function () {",
+                  "    pm.response.to.have.status(expectedStatus);",
+                  "});",
+                  "",
+                  "if (expectedStatus === 201) {",
+                  "    pm.test(caseName + \" - Response contains show details and pre-allocated seat count\", function () {",
+                  "        var jsonData = pm.response.json();",
+                  "        pm.expect(jsonData.success).to.be.true;",
+                  "        pm.expect(jsonData.data).to.have.property('id');",
+                  "        pm.expect(jsonData.data).to.have.property('movieId');",
+                  "        pm.expect(jsonData.data).to.have.property('hallId');",
+                  "        pm.expect(jsonData.data).to.have.property('startTime');",
+                  "        pm.expect(jsonData.data).to.have.property('endTime');",
+                  "        pm.expect(jsonData.data).to.have.property('basePrice');",
+                  "        pm.expect(jsonData.data).to.have.property('totalSeats');",
+                  "        pm.environment.set('showId', jsonData.data.id);",
+                  "    });",
+                  "} else {",
+                  "    pm.test(caseName + \" - Response has error details\", function () {",
+                  "        var jsonData = pm.response.json();",
+                  "        pm.expect(jsonData).to.have.property('statusCode', expectedStatus);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {}
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "strictSSL": false,
+            "followRedirects": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "string"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "string"
+              },
+              {
+                "key": "x-lang",
+                "value": "{{lang}}",
+                "type": "string"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"movieId\": \"{{movieId}}\",\n  \"hallId\": \"{{hallId}}\",\n  \"startTime\": \"{{startTime}}\",\n  \"basePrice\": 100000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/shows",
+              "host": ["{{baseUrl}}"],
+              "path": ["shows"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success (201 Created)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "string"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "string"
+                  },
+                  {
+                    "key": "x-lang",
+                    "value": "{{lang}}",
+                    "type": "string"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"movieId\": \"019fa8bc-8f4d-7000-b366-e691f45cfb01\",\n  \"hallId\": \"019fa8bc-8f4d-7000-b366-e691f45cfb02\",\n  \"startTime\": \"2026-09-01T10:00:00.000Z\",\n  \"basePrice\": 100000\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/shows",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["shows"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Show created successfully\",\n  \"data\": {\n    \"id\": \"019fa8bc-8f4d-7000-b366-e691f45cfb99\",\n    \"movieId\": \"019fa8bc-8f4d-7000-b366-e691f45cfb01\",\n    \"hallId\": \"019fa8bc-8f4d-7000-b366-e691f45cfb02\",\n    \"startTime\": \"2026-09-01T10:00:00.000Z\",\n    \"endTime\": \"2026-09-01T12:00:00.000Z\",\n    \"basePrice\": 100000,\n    \"totalSeats\": 50,\n    \"createdAt\": \"2026-08-21T02:00:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "Schedule Collision (409 Conflict)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "string"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "string"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"movieId\": \"019fa8bc-8f4d-7000-b366-e691f45cfb01\",\n  \"hallId\": \"019fa8bc-8f4d-7000-b366-e691f45cfb02\",\n  \"startTime\": \"2026-09-01T11:00:00.000Z\",\n  \"basePrice\": 100000\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/shows",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["shows"]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"type\": \"https://datatracker.ietf.org/doc/html/rfc9457\",\n  \"title\": \"Conflict\",\n  \"status\": 409,\n  \"detail\": \"The hall already has an overlapping show scheduled during this time (including a 15-minute cleaning buffer).\",\n  \"instance\": \"/shows\"\n}"
             }
           ]
         }
@@ -2568,9 +2498,7 @@
         "type": "text/javascript",
         "packages": {},
         "requests": {},
-        "exec": [
-          ""
-        ]
+        "exec": [""]
       }
     },
     {
@@ -2579,9 +2507,7 @@
         "type": "text/javascript",
         "packages": {},
         "requests": {},
-        "exec": [
-          ""
-        ]
+        "exec": [""]
       }
     }
   ]

@@ -4,9 +4,14 @@ import { i18nMsg } from "@/common/utils/i18n-message.util";
 import { IsEmailField } from "@/common/decorators";
 
 export class LoginDto {
+  @ApiProperty({
+    example: "user@example.com",
+    description: "Registered user email address",
+  })
   @IsEmailField()
   email!: string;
 
+  @ApiProperty({ example: "Password123!", description: "Account password" })
   @IsString({ message: i18nMsg("validation.isString") })
   @IsNotEmpty({ message: i18nMsg("validation.isNotEmpty") })
   @MinLength(8, { message: i18nMsg("validation.minLength") })

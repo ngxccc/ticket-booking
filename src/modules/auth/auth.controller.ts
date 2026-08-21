@@ -1,4 +1,4 @@
-import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import {
   Body,
   Controller,
@@ -45,6 +45,11 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post(AUTH_ROUTES.REGISTER)
+  @ApiOperation({
+    summary: "Register new user account",
+    description:
+      "Creates an unverified account and enqueues an email verification link.",
+  })
   @ApiCreatedResponseGeneric()
   @ApiBadRequestResponseRfc9457()
   @ApiConflictResponseRfc9457()
@@ -55,6 +60,11 @@ export class AuthController {
 
   @HttpCode(HttpStatus.OK)
   @Post(AUTH_ROUTES.VERIFY_EMAIL)
+  @ApiOperation({
+    summary: "Verify account email",
+    description:
+      "Validates a 64-character verification token and activates the user account.",
+  })
   @ApiOkResponseGeneric()
   @ApiBadRequestResponseRfc9457()
   @ApiInternalServerErrorResponseRfc9457()
@@ -67,6 +77,11 @@ export class AuthController {
   @Throttle({
     auth: { limit: 3, ttl: 60000 },
   })
+  @ApiOperation({
+    summary: "Resend email verification link",
+    description:
+      "Generates a fresh verification token and dispatches an activation email.",
+  })
   @ApiOkResponseGeneric()
   @ApiBadRequestResponseRfc9457()
   @ApiInternalServerErrorResponseRfc9457()
@@ -78,6 +93,11 @@ export class AuthController {
 
   @HttpCode(HttpStatus.OK)
   @Post(AUTH_ROUTES.LOGIN)
+  @ApiOperation({
+    summary: "Authenticate user and issue tokens",
+    description:
+      "Verifies credentials and returns a short-lived access token and refresh token.",
+  })
   @ApiOkResponseGeneric(LoginResponseDto)
   @ApiBadRequestResponseRfc9457()
   @ApiInternalServerErrorResponseRfc9457()
@@ -94,6 +114,11 @@ export class AuthController {
   @Throttle({
     auth: { limit: 10, ttl: 60000 },
   })
+  @ApiOperation({
+    summary: "Rotate refresh token and renew access token",
+    description:
+      "Validates single-use refresh token, revokes it, and issues a new token pair.",
+  })
   @ApiOkResponseGeneric(RefreshResponseDto)
   @ApiBadRequestResponseRfc9457()
   @ApiUnauthorizedResponseRfc9457()
@@ -108,6 +133,11 @@ export class AuthController {
 
   @HttpCode(HttpStatus.OK)
   @Post(AUTH_ROUTES.LOGOUT)
+  @ApiOperation({
+    summary: "Revoke current refresh session",
+    description:
+      "Revokes the provided refresh token to end the active device session.",
+  })
   @ApiOkResponseGeneric()
   @ApiBadRequestResponseRfc9457()
   @ApiInternalServerErrorResponseRfc9457()
@@ -122,6 +152,11 @@ export class AuthController {
     auth: { limit: 2, ttl: 60000 },
   })
   @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Revoke all active user sessions",
+    description:
+      "Revokes all refresh tokens across every device for the authenticated user.",
+  })
   @ApiOkResponseGeneric()
   @ApiUnauthorizedResponseRfc9457()
   @ApiInternalServerErrorResponseRfc9457()
@@ -134,6 +169,11 @@ export class AuthController {
   @Throttle({
     auth: { limit: 3, ttl: 60000 },
   })
+  @ApiOperation({
+    summary: "Request password reset email",
+    description:
+      "Generates a time-limited password reset token and enqueues a recovery email.",
+  })
   @ApiOkResponseGeneric()
   @ApiBadRequestResponseRfc9457()
   @ApiInternalServerErrorResponseRfc9457()
@@ -145,6 +185,11 @@ export class AuthController {
   @Post(AUTH_ROUTES.RESET_PASSWORD)
   @Throttle({
     auth: { limit: 5, ttl: 60000 },
+  })
+  @ApiOperation({
+    summary: "Reset password with token",
+    description:
+      "Applies new password using valid reset token and invalidates all existing sessions.",
   })
   @ApiOkResponseGeneric()
   @ApiBadRequestResponseRfc9457()
@@ -159,6 +204,11 @@ export class AuthController {
   @ApiBearerAuth()
   @Throttle({
     auth: { limit: 5, ttl: 60000 },
+  })
+  @ApiOperation({
+    summary: "Change account password",
+    description:
+      "Updates password for authenticated user and revokes all active refresh tokens.",
   })
   @ApiOkResponseGeneric()
   @ApiBadRequestResponseRfc9457()

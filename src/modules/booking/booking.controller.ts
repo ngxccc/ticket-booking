@@ -59,9 +59,9 @@ export class BookingController {
     default: { limit: 10, ttl: 60000 },
   })
   @ApiOperation({
-    summary: "Reserve show seats (10-minute lock)",
+    summary: "Reserve show seats with temporary lock",
     description:
-      "Locks selected show seats for 10 minutes using Redlock & PostgreSQL pessimistic locking to prevent double booking.",
+      "Acquires a 10-minute temporary lock on selected seats using Redlock and pessimistic database row locking.",
   })
   @ApiBearerAuth()
   @ApiHeader({
@@ -102,9 +102,9 @@ export class BookingController {
     default: { limit: 10, ttl: 60000 },
   })
   @ApiOperation({
-    summary: "Confirm booking & record payment",
+    summary: "Confirm booking and record payment",
     description:
-      "Confirms paid booking, records payment transaction history, and transitions seat statuses from reserved to booked.",
+      "Confirms a pending reservation, records payment history, and transitions seats to booked status.",
   })
   @ApiBearerAuth()
   @ApiHeader({

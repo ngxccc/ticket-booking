@@ -21,9 +21,20 @@ async function bootstrap() {
   // WHY: Generate OpenAPI schema for automatic documentation, testing via Apidog/MCP, and SDK generation.
   const config = new DocumentBuilder()
     .setTitle("Ticket Booking API")
-    .setDescription("The API specification for the Ticket Booking System")
+    .setDescription(
+      "High-concurrency movie ticket booking platform with seat locking, conflict detection, and payment integrations.",
+    )
     .setVersion("1.0.0")
     .setOpenAPIVersion("3.1.0")
+    .addTag("auth", "Authentication, session management, and password recovery")
+    .addTag("users", "User profile retrieval and management")
+    .addTag("shows", "Movie showtime scheduling and seat pre-allocation")
+    .addTag(
+      "bookings",
+      "Seat reservation, Redlock concurrency, and booking lifecycle",
+    )
+    .addTag("payments", "Payment gateway webhook processing and verification")
+    .addTag("app", "System health and operational monitoring")
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
