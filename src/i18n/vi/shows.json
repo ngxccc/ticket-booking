@@ -1,0 +1,7 @@
+{
+  "MOVIE_NOT_FOUND": "Không tìm thấy phim",
+  "HALL_NOT_FOUND": "Không tìm thấy phòng chiếu",
+  "NO_SEATS_CONFIGURED": "Phòng chiếu chưa được cấu hình ghế",
+  "SCHEDULE_COLLISION": "Trùng lịch chiếu: Phòng chiếu đã có suất chiếu hoặc đang trong thời gian 15 phút dọn dẹp",
+  "CREATE_SHOW_FAILED": "Không thể tạo suất chiếu"
+}

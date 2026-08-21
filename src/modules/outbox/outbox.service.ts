@@ -44,6 +44,7 @@ export class OutboxService
   ) {}
 
   onApplicationBootstrap() {
+    if (process.env.NODE_ENV === "test") return;
     // WHY: Polling interval of 5 seconds to process outbox events while keeping DB CPU usage low.
     this.timer = setInterval(() => {
       void this.processOutbox();

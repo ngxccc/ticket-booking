@@ -7,6 +7,14 @@ describe("isPostgresErrorCode", () => {
     expect(isPostgresErrorCode(error, "23505")).toBe(true);
   });
 
+  it("should return true when error has a cause object with matching code string (Drizzle wrapped)", () => {
+    const error = {
+      name: "DrizzleQueryError",
+      cause: { code: "23P01", detail: "Exclusion violation" },
+    };
+    expect(isPostgresErrorCode(error, "23P01")).toBe(true);
+  });
+
   it("should return false when error code does not match target code", () => {
     const error = { code: "23503" };
     expect(isPostgresErrorCode(error, "23505")).toBe(false);
