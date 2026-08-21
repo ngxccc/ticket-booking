@@ -15,16 +15,25 @@ import { isPostgresErrorCode } from "@/common/utils/error.util";
 import { PG_ERROR_CODE } from "@/common/constants/error.constant";
 import { createTestApp } from "../helpers/app.helper";
 import { runMigrations, truncateAllTables } from "../helpers/database.helper";
-import type { DrizzleDB } from "@/database/database.module";
 import {
-  cinemas,
-  halls,
-  movies,
-  seats,
-  seatTypes,
-  shows,
-  showSeats,
-} from "@/database/schemas";
+  createAuthenticatedAdmin,
+  createAuthenticatedUser,
+} from "../helpers/auth.helper";
+import type { DrizzleDB } from "@/database/database.module";
+import { shows, showSeats } from "@/database/schemas";
+import {
+  createCinema,
+  createHall,
+  createSeatType,
+  createBatchSeats,
+} from "../factories";
+import { MovieMother } from "../mothers";
+import type { components } from "../generated/api-schema";
+import type { ShowResponseDto } from "@/modules/shows/dto/show-response.dto";
+
+type SingleShowApiResponse = components["schemas"]["ApiResponseDto"] & {
+  data: ShowResponseDto;
+};
 
 describe("Shows Module Integration", () => {
   let app: INestApplication;
@@ -49,68 +58,38 @@ describe("Shows Module Integration", () => {
 
     jwtService = app.get(JwtService);
 
-    adminToken = await jwtService.signAsync({
-      sub: "019fa8bc-8f4d-7000-b366-e691f45cfb01",
-      email: "admin@ticketbooking.com",
-      role: "admin",
+    const adminSession = await createAuthenticatedAdmin(db, jwtService);
+    adminToken = adminSession.token;
+
+    const userSession = await createAuthenticatedUser(db, jwtService);
+    userToken = userSession.token;
+
+    // Seed Movie (120 mins duration) via MovieMother
+    const movie = await MovieMother.standard(db);
+
+    // Seed Cinema & Halls via Factories
+    const cinema = await createCinema(db, {
+      name: "CGV Landmark",
+      address: "720A Dien Bien Phu",
     });
 
-    userToken = await jwtService.signAsync({
-      sub: "019fa8bc-8f4d-7000-b366-e691f45cfb02",
-      email: "user@ticketbooking.com",
-      role: "user",
+    const hall1 = await createHall(db, {
+      cinemaId: cinema.id,
+      name: "Hall Premium 1",
+      totalSeats: SEAT_COUNT,
     });
 
-    // Seed Movie (120 mins duration)
-    const [movie] = await db
-      .insert(movies)
-      .values({
-        durationMinutes: 120,
-        rating: "PG",
-      })
-      .returning({ id: movies.id });
-
-    // Seed Cinema & Halls
-    const [cinema] = await db
-      .insert(cinemas)
-      .values({
-        name: "CGV Landmark",
-        address: "720A Dien Bien Phu",
-      })
-      .returning({ id: cinemas.id });
-
-    if (!movie || !cinema) {
-      throw new Error("Failed to seed movie or cinema");
-    }
-
-    const [hall1, hall2] = await db
-      .insert(halls)
-      .values([
-        {
-          cinemaId: cinema.id,
-          name: "Hall Premium 1",
-          totalSeats: SEAT_COUNT,
-        },
-        {
-          cinemaId: cinema.id,
-          name: "Hall Premium 2",
-          totalSeats: 100,
-        },
-      ])
-      .returning({ id: halls.id });
+    const hall2 = await createHall(db, {
+      cinemaId: cinema.id,
+      name: "Hall Premium 2",
+      totalSeats: 100,
+    });
 
     // Seed Seat Type
-    const [seatType] = await db
-      .insert(seatTypes)
-      .values({
-        name: `standard-${Date.now().toString()}`,
-        priceMultiplier: "1.00",
-      })
-      .returning({ id: seatTypes.id });
-
-    if (!hall1 || !hall2 || !seatType) {
-      throw new Error("Failed to seed show test data");
-    }
+    const seatType = await createSeatType(db, {
+      name: `standard-${Date.now().toString()}`,
+      priceMultiplier: "1.00",
+    });
 
     seededMovieId = movie.id;
     seededCinemaId = cinema.id;
@@ -118,15 +97,7 @@ describe("Shows Module Integration", () => {
     seededHall2Id = hall2.id;
 
     // Seed 5 Physical Seats in Hall 1
-    await db.insert(seats).values(
-      Array.from({ length: SEAT_COUNT }, (_, index) => ({
-        hallId: hall1.id,
-        seatTypeId: seatType.id,
-        row: "A",
-        number: index + 1,
-        seatNumber: `A${(index + 1).toString()}`,
-      })),
-    );
+    await createBatchSeats(db, hall1.id, seatType.id, SEAT_COUNT);
   }, 30000);
 
   beforeEach(async () => {
@@ -241,19 +212,6 @@ describe("Shows Module Integration", () => {
           startTime,
           basePrice,
         });
-
-      interface SingleShowApiResponse {
-        success: boolean;
-        data: {
-          id: string;
-          movieId: string;
-          hallId: string;
-          startTime: string;
-          endTime: string;
-          basePrice: number;
-          totalSeats: number;
-        };
-      }
 
       expect(res.status).toBe(201);
       const body = res.body as SingleShowApiResponse;
@@ -393,16 +351,11 @@ describe("Shows Module Integration", () => {
     });
 
     it("should reject with 400 Bad Request when target hall has zero physical seats configured (INV-3)", async () => {
-      const [emptyHall] = await db
-        .insert(halls)
-        .values({
-          cinemaId: seededCinemaId,
-          name: "Empty Hall Zero Seats",
-          totalSeats: 0,
-        })
-        .returning({ id: halls.id });
-
-      if (!emptyHall) throw new Error("Failed to seed empty hall");
+      const emptyHall = await createHall(db, {
+        cinemaId: seededCinemaId,
+        name: "Empty Hall Zero Seats",
+        totalSeats: 0,
+      });
 
       const res = await request(getHttpServer())
         .post("/shows")

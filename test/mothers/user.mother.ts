@@ -3,7 +3,7 @@ import { createUser } from "../factories/user.factory";
 import type { TUser } from "@/database/schemas";
 
 export const UserMother = {
-  /** Người dùng thông thường (role: user, status: active) */
+  /** Standard active customer user (role: user, status: active) */
   customer(
     db: DrizzleDB,
     email = `customer-${crypto.randomUUID().slice(0, 6)}@ticketbooking.com`,
@@ -16,7 +16,7 @@ export const UserMother = {
     });
   },
 
-  /** Quản trị viên hệ thống (role: admin, status: active) */
+  /** System administrator user (role: admin, status: active) */
   admin(
     db: DrizzleDB,
     email = `admin-${crypto.randomUUID().slice(0, 6)}@ticketbooking.com`,
@@ -29,7 +29,7 @@ export const UserMother = {
     });
   },
 
-  /** Người dùng chưa kích hoạt (status: pending_verification) */
+  /** Unverified user pending email verification (status: pending_verification) */
   unverified(db: DrizzleDB): Promise<TUser> {
     return createUser(db, {
       role: "user",

@@ -16,38 +16,21 @@ import { runMigrations, truncateAllTables } from "../helpers/database.helper";
 import type { DrizzleDB } from "@/database/database.module";
 import { users, refreshTokens, outboxEvents } from "@/database/schemas";
 
-interface SuccessResponse {
-  success: boolean;
-}
+import type { components } from "../generated/api-schema";
+
+type ApiResponse<T = unknown> = components["schemas"]["ApiResponseDto"] & {
+  data?: T;
+};
 interface AuthTokens {
   accessToken: string;
   refreshToken: string;
 }
-
-interface AuthResponse {
-  success: boolean;
+type AuthResponse = components["schemas"]["ApiResponseDto"] & {
   data: AuthTokens;
-}
-
-interface MessageResponse {
-  message?: string;
-  detail?: string;
-}
-
-interface ValidationErrorItem {
-  property: string;
-  constraints: Record<string, string>;
-}
-
-interface InvalidParam {
-  name: string;
-  reason: string;
-}
-
-interface ValidationResponse {
-  invalidParams?: InvalidParam[];
-  message?: ValidationErrorItem[];
-}
+};
+type Rfc9457ErrorResponse = components["schemas"]["Rfc9457ErrorResponseDto"] & {
+  message?: { property: string; constraints: Record<string, string> }[];
+};
 describe("Auth Module Integration", () => {
   let app: INestApplication;
   let db: DrizzleDB;
@@ -84,7 +67,7 @@ describe("Auth Module Integration", () => {
           agreeTerms: true,
         });
       expect(registerRes.status).toBe(201);
-      const registerBody = registerRes.body as unknown as SuccessResponse;
+      const registerBody = registerRes.body as unknown as ApiResponse;
       expect(registerBody.success).toBe(true);
       const [dbUser] = await db
         .select({ status: users.status })
@@ -125,7 +108,7 @@ describe("Auth Module Integration", () => {
           refreshToken: newRefreshToken,
         });
       expect(logoutRes.status).toBe(200);
-      const logoutBody = logoutRes.body as unknown as SuccessResponse;
+      const logoutBody = logoutRes.body as unknown as ApiResponse;
       expect(logoutBody.success).toBe(true);
     });
   });
@@ -151,8 +134,8 @@ describe("Auth Module Integration", () => {
         .post("/auth/register")
         .send(payload);
       expect(secondReg.status).toBe(409);
-      const secondRegBody = secondReg.body as unknown as MessageResponse;
-      const actualMsg = secondRegBody.detail ?? secondRegBody.message ?? "";
+      const secondRegBody = secondReg.body as unknown as Rfc9457ErrorResponse;
+      const actualMsg = secondRegBody.detail;
       expect(["auth.EMAIL_ALREADY_EXISTS", "Email đã tồn tại"]).toContain(
         actualMsg,
       );
@@ -172,7 +155,7 @@ describe("Auth Module Integration", () => {
         .post("/auth/register")
         .send(payload);
       expect(res.status).toBe(400);
-      const resBody = res.body as unknown as ValidationResponse;
+      const resBody = res.body as unknown as Rfc9457ErrorResponse;
       const invalidParam = resBody.invalidParams?.[0];
       const firstError = resBody.message?.[0];
       expect(invalidParam?.name ?? firstError?.property).toBe("email");
@@ -218,7 +201,7 @@ describe("Auth Module Integration", () => {
         .post("/auth/register")
         .send(payload);
       expect(res.status).toBe(400);
-      const resBody = res.body as unknown as ValidationResponse;
+      const resBody = res.body as unknown as Rfc9457ErrorResponse;
       const invalidParam = resBody.invalidParams?.[0];
       const firstError = resBody.message?.[0];
       expect(invalidParam?.name ?? firstError?.property).toBe("fullName");
@@ -285,8 +268,9 @@ describe("Auth Module Integration", () => {
         .post("/auth/login")
         .send({ email, password });
       expect(loginFailRes.status).toBe(400);
-      const loginFailBody = loginFailRes.body as unknown as MessageResponse;
-      const errorMsg = loginFailBody.detail ?? loginFailBody.message ?? "";
+      const loginFailBody =
+        loginFailRes.body as unknown as Rfc9457ErrorResponse;
+      const errorMsg = loginFailBody.detail;
       const hasEmailNotVerified = errorMsg.includes("auth.EMAIL_NOT_VERIFIED");
       const hasNotVerifiedVietnamese = errorMsg.includes("chưa được xác thực");
       expect(hasEmailNotVerified || hasNotVerifiedVietnamese).toBe(true);
@@ -310,8 +294,7 @@ describe("Auth Module Integration", () => {
         .post("/auth/login")
         .send({ email, password });
       expect(loginSuccessRes.status).toBe(200);
-      const loginSuccessBody =
-        loginSuccessRes.body as unknown as SuccessResponse;
+      const loginSuccessBody = loginSuccessRes.body as unknown as ApiResponse;
       expect(loginSuccessBody.success).toBe(true);
     }, 15000);
   });
@@ -340,7 +323,7 @@ describe("Auth Module Integration", () => {
         .post("/auth/forgot-password")
         .send({ email });
       expect(forgotRes.status).toBe(200);
-      const forgotBody = forgotRes.body as unknown as SuccessResponse;
+      const forgotBody = forgotRes.body as unknown as ApiResponse;
       expect(forgotBody.success).toBe(true);
 
       // Verify database columns resetPasswordToken & resetPasswordExpiresAt
@@ -408,7 +391,7 @@ describe("Auth Module Integration", () => {
           confirmPassword: newPassword,
         });
       expect(resetRes.status).toBe(200);
-      const resetBody = resetRes.body as unknown as SuccessResponse;
+      const resetBody = resetRes.body as unknown as ApiResponse;
       expect(resetBody.success).toBe(true);
 
       // Verify database columns are cleared
@@ -442,7 +425,7 @@ describe("Auth Module Integration", () => {
         .post("/auth/login")
         .send({ email, password: newPassword });
       expect(newLoginRes.status).toBe(200);
-      const newLoginBody = newLoginRes.body as unknown as SuccessResponse;
+      const newLoginBody = newLoginRes.body as unknown as ApiResponse;
       expect(newLoginBody.success).toBe(true);
     }, 15000);
 
@@ -501,7 +484,7 @@ describe("Auth Module Integration", () => {
         .post("/auth/forgot-password")
         .send({ email: nonExistentEmail });
       expect(res.status).toBe(200);
-      const body = res.body as unknown as SuccessResponse;
+      const body = res.body as unknown as ApiResponse;
       expect(body.success).toBe(true);
     });
 
@@ -560,7 +543,7 @@ describe("Auth Module Integration", () => {
           newPassword: "NewSecurePassword456!",
         });
       expect(changePwdRes.status).toBe(200);
-      const changePwdBody = changePwdRes.body as unknown as SuccessResponse;
+      const changePwdBody = changePwdRes.body as unknown as ApiResponse;
       expect(changePwdBody.success).toBe(true);
 
       // 5. Assert refresh tokens were deleted from DB (Global Session Revocation)
