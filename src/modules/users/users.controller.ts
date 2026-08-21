@@ -1,5 +1,5 @@
 import { Controller, Get, UseGuards } from "@nestjs/common";
-import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
 import { CustomThrottlerGuard } from "@/common/guards/throttler.guard";
 import { JwtAuthGuard } from "@/common/guards/jwt-auth.guard";
@@ -28,6 +28,11 @@ export class UsersController {
     auth: { limit: 30, ttl: 60000 },
   })
   @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Get authenticated user profile",
+    description:
+      "Returns profile details and account status for the currently authenticated user.",
+  })
   @ApiOkResponseGeneric(UserResponseDto)
   @ApiUnauthorizedResponseRfc9457()
   @ApiForbiddenResponseRfc9457()

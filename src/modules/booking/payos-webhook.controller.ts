@@ -36,9 +36,9 @@ export class PayOSWebhookController {
   @Post(BOOKING_ROUTES.PAYOS_WEBHOOK)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: "Handle PayOS Webhook notification",
+    summary: "Process PayOS payment webhook",
     description:
-      "Verifies HMAC-SHA256 signature and checks the 5-minute anti-replay timestamp window for payment events from PayOS gateway.",
+      "Verifies HMAC-SHA256 signature and 5-minute anti-replay window to process payment notifications.",
   })
   @ApiBody({ type: PayOSWebhookDto })
   @ApiOkResponse({ type: PayOSWebhookResponseDto })
