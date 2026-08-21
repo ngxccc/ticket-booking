@@ -1,0 +1,60 @@
+# .github/labeler.yml - Automatic PR labeling based on modified file paths
+"area:auth":
+  - src/modules/auth/**/*
+  - src/database/schemas/auth.schema.ts
+  - test/integration/auth.spec.ts
+
+"area:booking":
+  - src/modules/booking/**/*
+  - src/database/schemas/bookings.schema.ts
+  - src/database/schemas/payments.schema.ts
+  - test/integration/booking.spec.ts
+
+"area:catalog":
+  - src/modules/shows/**/*
+  - src/modules/movies/**/*
+  - src/modules/cinemas/**/*
+  - src/database/schemas/shows.schema.ts
+  - src/database/schemas/movies.schema.ts
+  - src/database/schemas/cinemas.schema.ts
+  - test/integration/shows.spec.ts
+
+"area:db":
+  - src/database/**/*
+  - drizzle/**/*
+  - drizzle.config.ts
+
+"area:api":
+  - src/common/filters/**/*
+  - src/common/pipes/**/*
+  - src/common/interceptors/**/*
+  - src/common/decorators/**/*
+  - test/generated/api-schema.d.ts
+
+"area:infra":
+  - src/modules/mail/**/*
+  - src/modules/outbox/**/*
+  - src/common/services/redlock.service.ts
+  - src/config/**/*
+  - docker-compose*.yml
+  - Dockerfile*
+
+"area:ci":
+  - .github/**/*
+
+"area:harness":
+  - .claude/skills/**/*
+  - .omp/**/*
+  - AGENTS.md
+  - CLAUDE.md
+  - CONTEXT.md
+  - docs/**/*
+
+"type:test":
+  - test/**/*
+  - "**/*.spec.ts"
+  - "**/*.e2e-spec.ts"
+
+"type:docs":
+  - docs/**/*
+  - "**/*.md"
