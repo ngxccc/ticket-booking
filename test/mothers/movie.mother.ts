@@ -3,7 +3,7 @@ import { createMovie } from "../factories/movie.factory";
 import type { TMovie } from "@/database/schemas";
 
 export const MovieMother = {
-  /** Phim chuẩn chiếu rạp thông thường (120 phút, PG) */
+  /** Standard theatrical movie release (120 minutes, PG) */
   standard(db: DrizzleDB): Promise<TMovie> {
     return createMovie(db, {
       durationMinutes: 120,
@@ -12,7 +12,7 @@ export const MovieMother = {
     });
   },
 
-  /** Phim thời lượng dài / bom tấn đặc biệt (300 phút, PG) */
+  /** Extended duration blockbuster movie (300 minutes, PG) */
   blockbusterLong(db: DrizzleDB): Promise<TMovie> {
     return createMovie(db, {
       durationMinutes: 300,
@@ -21,7 +21,7 @@ export const MovieMother = {
     });
   },
 
-  /** Phim hoạt hình ngắn (30 phút, G) */
+  /** Short animated film (30 minutes, G) */
   animationShort(db: DrizzleDB): Promise<TMovie> {
     return createMovie(db, {
       durationMinutes: 30,

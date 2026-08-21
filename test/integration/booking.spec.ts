@@ -9,27 +9,31 @@ import {
 import request from "supertest";
 import { type INestApplication } from "@nestjs/common";
 import type { Server } from "node:http";
+import { JwtService } from "@nestjs/jwt";
 import { eq, and } from "drizzle-orm";
 import { createTestApp } from "../helpers/app.helper";
 import { runMigrations, truncateAllTables } from "../helpers/database.helper";
+import { createAuthenticatedUser } from "../helpers/auth.helper";
 import type { DrizzleDB } from "@/database/database.module";
 import { RedlockService } from "@/common/services/redlock.service";
 import { BookingCronService } from "@/modules/booking/booking-cron.service";
 import type { components } from "../generated/api-schema";
 import {
-  users,
-  movies,
-  cinemas,
-  halls,
-  seatTypes,
-  seats,
-  shows,
   showSeats,
   bookings,
   payments,
   tickets,
   outboxEvents,
 } from "@/database/schemas";
+import {
+  createMovie,
+  createCinema,
+  createHall,
+  createSeatType,
+  createBatchSeats,
+  createShow,
+  createBatchShowSeats,
+} from "../factories";
 
 type ReserveSeatsResponseData =
   components["schemas"]["ReserveSeatsResponseDto"];
@@ -80,121 +84,59 @@ describe("Booking Module Integration", () => {
 
     const timestamp = Date.now().toString();
     const userEmail = `booking-test-${timestamp}@example.com`;
-    const userPassword = "Password123!";
 
-    await request(httpServer).post("/auth/register").send({
+    const userSession = await createAuthenticatedUser(db, app.get(JwtService), {
       email: userEmail,
-      password: userPassword,
-      confirmPassword: userPassword,
       fullName: "Booking Test User",
-      phoneNumber: "0912345678",
-      agreeTerms: true,
     });
-    const [dbUser] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.email, userEmail))
-      .limit(1);
-    if (!dbUser) {
-      throw new Error("Failed to register test user");
-    }
-    testUserId = dbUser.id;
-
-    await db
-      .update(users)
-      .set({ status: "active" })
-      .where(eq(users.id, testUserId));
-
-    const loginRes = await request(httpServer)
-      .post("/auth/login")
-      .send({
-        email: userEmail,
-        password: userPassword,
-      })
-      .expect(200);
-
-    const loginData = (loginRes.body as { data: { accessToken: string } }).data;
-    testUserToken = loginData.accessToken;
+    testUserId = userSession.user.id;
+    testUserToken = userSession.token;
 
     // Seed Movie, Cinema, Hall, Seat Type, Seats, Show, Show Seats
-    const [insertedMovie] = await db
-      .insert(movies)
-      .values({
-        durationMinutes: 148,
-        releaseDate: "2026-01-01",
-        posterUrl: "https://example.com/poster.jpg",
-      })
-      .returning({ id: movies.id });
+    const insertedMovie = await createMovie(db, {
+      durationMinutes: 148,
+      releaseDate: "2026-01-01",
+      posterUrl: "https://example.com/poster.jpg",
+    });
 
-    const [insertedCinema] = await db
-      .insert(cinemas)
-      .values({
-        name: "Grand Cinema Center",
-        address: "123 Main St",
-      })
-      .returning({ id: cinemas.id });
+    const insertedCinema = await createCinema(db, {
+      name: "Grand Cinema Center",
+      address: "123 Main St",
+    });
 
-    if (!insertedMovie || !insertedCinema) {
-      throw new Error("Failed to seed movie or cinema entity");
-    }
+    const insertedHall = await createHall(db, {
+      cinemaId: insertedCinema.id,
+      name: "Hall 1 IMAX",
+      totalSeats: 100,
+    });
 
-    const [insertedHall] = await db
-      .insert(halls)
-      .values({
-        cinemaId: insertedCinema.id,
-        name: "Hall 1 IMAX",
-        totalSeats: 100,
-      })
-      .returning({ id: halls.id });
+    const insertedSeatType = await createSeatType(db, {
+      name: `Standard-${timestamp}`,
+      priceMultiplier: "1.00",
+    });
 
-    const [insertedSeatType] = await db
-      .insert(seatTypes)
-      .values({
-        name: `Standard-${timestamp}`,
-        priceMultiplier: "1.00",
-      })
-      .returning({ id: seatTypes.id });
-
-    if (!insertedHall || !insertedSeatType) {
-      throw new Error("Failed to seed hall or seat type entity");
-    }
-
-    const [insertedShow] = await db
-      .insert(shows)
-      .values({
-        movieId: insertedMovie.id,
-        hallId: insertedHall.id,
-        startTime: new Date(Date.now() + 86400000),
-        endTime: new Date(Date.now() + 86400000 + 7200000),
-        basePrice: 100000,
-      })
-      .returning({ id: shows.id });
-
-    if (!insertedShow) {
-      throw new Error("Failed to seed show entity");
-    }
+    const insertedShow = await createShow(db, {
+      movieId: insertedMovie.id,
+      hallId: insertedHall.id,
+      startTime: new Date(Date.now() + 86400000),
+      endTime: new Date(Date.now() + 86400000 + 7200000),
+      basePrice: 100000,
+    });
 
     testShowId = insertedShow.id;
 
-    const seatValues = Array.from({ length: 7 }, (_, idx) => ({
-      hallId: insertedHall.id,
-      seatTypeId: insertedSeatType.id,
-      row: "A",
-      number: idx + 1,
-      seatNumber: `A${String(idx + 1)}`,
-    }));
-    const insertedSeatList = await db
-      .insert(seats)
-      .values(seatValues)
-      .returning({ id: seats.id });
+    const insertedSeatList = await createBatchSeats(
+      db,
+      insertedHall.id,
+      insertedSeatType.id,
+      7,
+    );
 
-    const showSeatValues = insertedSeatList.map((st) => ({
-      showId: testShowId,
-      seatId: st.id,
-      status: "available" as const,
-    }));
-    await db.insert(showSeats).values(showSeatValues);
-
+    await createBatchShowSeats(
+      db,
+      testShowId,
+      insertedSeatList.map((s) => s.id),
+    );
     const seatRecords = insertedSeatList.map((st) => st.id);
 
     const [s1, s2, s3, s4, s5, s6, s7] = seatRecords;

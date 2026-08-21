@@ -3,7 +3,7 @@ import { createShow } from "../factories/show.factory";
 import type { TShow } from "@/database/schemas";
 
 export const ShowMother = {
-  /** Suất chiếu vào ngày mai (khởi chiếu sau 24h, kéo dài 2h) */
+  /** Show scheduled for tomorrow (+24h from now, 2h duration) */
   tomorrow(db: DrizzleDB, hallId?: string, movieId?: string): Promise<TShow> {
     const start = new Date(Date.now() + 86400000);
     const end = new Date(start.getTime() + 7200000);
@@ -17,7 +17,7 @@ export const ShowMother = {
     });
   },
 
-  /** Suất chiếu với khung giờ cụ thể và giá vé tùy chỉnh */
+  /** Show scheduled at specific start and end timestamps with custom base price */
   scheduled(
     db: DrizzleDB,
     hallId: string,
