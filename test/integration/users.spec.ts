@@ -47,7 +47,7 @@ interface Rfc9457ErrorResponse {
   instance: string;
 }
 
-describe("Users Module Integration (GET /api/users/me)", () => {
+describe("Users Module Integration", () => {
   let app: INestApplication;
   let db: DrizzleDB;
 
@@ -68,7 +68,7 @@ describe("Users Module Integration (GET /api/users/me)", () => {
     await app.close();
   });
 
-  describe("GET /api/users/me", () => {
+  describe("GET /users/me", () => {
     it("should return 200 OK with user profile payload when authenticated", async () => {
       const email = "test.user@example.com";
       const password = "Password123!";
@@ -82,6 +82,11 @@ describe("Users Module Integration (GET /api/users/me)", () => {
         confirmPassword: password,
         agreeTerms: true,
       });
+
+      await db
+        .update(users)
+        .set({ status: "active" })
+        .where(eq(users.email, email));
 
       const loginRes = await request(getHttpServer()).post("/auth/login").send({
         email,
@@ -128,6 +133,11 @@ describe("Users Module Integration (GET /api/users/me)", () => {
         confirmPassword: password,
         agreeTerms: true,
       });
+
+      await db
+        .update(users)
+        .set({ status: "active" })
+        .where(eq(users.email, email));
 
       const loginRes = await request(getHttpServer()).post("/auth/login").send({
         email,

@@ -48,7 +48,7 @@ interface ValidationResponse {
   invalidParams?: InvalidParam[];
   message?: ValidationErrorItem[];
 }
-describe("Auth Module Integration (Supertest)", () => {
+describe("Auth Module Integration", () => {
   let app: INestApplication;
   let db: DrizzleDB;
 
@@ -68,7 +68,7 @@ describe("Auth Module Integration (Supertest)", () => {
     await app.close();
   });
 
-  describe("Happy Path Flow", () => {
+  describe("POST /auth/register, POST /auth/login, POST /auth/refresh, POST /auth/logout", () => {
     it("should complete the full registration, login, refresh, and logout cycle", async () => {
       const email = "john.doe@example.com";
       const password = "Password123!";
@@ -87,7 +87,7 @@ describe("Auth Module Integration (Supertest)", () => {
       const registerBody = registerRes.body as unknown as SuccessResponse;
       expect(registerBody.success).toBe(true);
       const [dbUser] = await db
-        .select()
+        .select({ status: users.status })
         .from(users)
         .where(eq(users.email, email))
         .limit(1);
@@ -130,7 +130,7 @@ describe("Auth Module Integration (Supertest)", () => {
     });
   });
 
-  describe("Negative and Validation Flow", () => {
+  describe("Validation & Security Controls", () => {
     it("should block duplicate email registration", async () => {
       const email = "duplicate@example.com";
       const payload = {
@@ -195,7 +195,7 @@ describe("Auth Module Integration (Supertest)", () => {
       expect(res.status).toBe(201);
 
       const [dbUser] = await db
-        .select()
+        .select({ fullName: users.fullName })
         .from(users)
         .where(eq(users.email, email))
         .limit(1);
@@ -242,7 +242,7 @@ describe("Auth Module Integration (Supertest)", () => {
       expect(res.status).toBe(201);
 
       const [dbUser] = await db
-        .select()
+        .select({ fullName: users.fullName })
         .from(users)
         .where(eq(users.email, email))
         .limit(1);
@@ -269,7 +269,7 @@ describe("Auth Module Integration (Supertest)", () => {
       expect(regRes.status).toBe(201);
 
       const [userBefore] = await db
-        .select()
+        .select({ id: users.id })
         .from(users)
         .where(eq(users.email, email))
         .limit(1);
@@ -292,7 +292,7 @@ describe("Auth Module Integration (Supertest)", () => {
       expect(hasEmailNotVerified || hasNotVerifiedVietnamese).toBe(true);
 
       const [userWithToken] = await db
-        .select()
+        .select({ verificationToken: users.verificationToken })
         .from(users)
         .where(eq(users.email, email))
         .limit(1);
@@ -316,7 +316,7 @@ describe("Auth Module Integration (Supertest)", () => {
     }, 15000);
   });
 
-  describe("Forgot & Reset Password Flow", () => {
+  describe("POST /auth/forgot-password & POST /auth/reset-password", () => {
     const password = "Password123!";
 
     it("should handle forgot password and reset password happy path successfully, forcing logout of active sessions", async () => {
@@ -345,7 +345,11 @@ describe("Auth Module Integration (Supertest)", () => {
 
       // Verify database columns resetPasswordToken & resetPasswordExpiresAt
       const [userInDb] = await db
-        .select()
+        .select({
+          id: users.id,
+          resetPasswordToken: users.resetPasswordToken,
+          resetPasswordExpiresAt: users.resetPasswordExpiresAt,
+        })
         .from(users)
         .where(eq(users.email, email))
         .limit(1);
@@ -363,7 +367,7 @@ describe("Auth Module Integration (Supertest)", () => {
 
       // Verify outbox event is created
       const outboxEvent = await db
-        .select()
+        .select({ payload: outboxEvents.payload })
         .from(outboxEvents)
         .where(
           eq(outboxEvents.eventType, "auth.reset_password_email_requested"),
@@ -389,7 +393,7 @@ describe("Auth Module Integration (Supertest)", () => {
 
       // Verify refresh token exists in DB
       const tokensBefore = await db
-        .select()
+        .select({ id: refreshTokens.id })
         .from(refreshTokens)
         .where(eq(refreshTokens.userId, userInDb.id));
       expect(tokensBefore.length).toBeGreaterThanOrEqual(1);
@@ -409,7 +413,10 @@ describe("Auth Module Integration (Supertest)", () => {
 
       // Verify database columns are cleared
       const [userAfterReset] = await db
-        .select()
+        .select({
+          resetPasswordToken: users.resetPasswordToken,
+          resetPasswordExpiresAt: users.resetPasswordExpiresAt,
+        })
         .from(users)
         .where(eq(users.email, email))
         .limit(1);
@@ -419,7 +426,7 @@ describe("Auth Module Integration (Supertest)", () => {
 
       // Verify all active refresh tokens of the user are physically deleted (force logout)
       const tokensAfter = await db
-        .select()
+        .select({ id: refreshTokens.id })
         .from(refreshTokens)
         .where(eq(refreshTokens.userId, userInDb.id));
       expect(tokensAfter.length).toBe(0);
@@ -458,7 +465,7 @@ describe("Auth Module Integration (Supertest)", () => {
         .send({ email });
 
       const [user] = await db
-        .select()
+        .select({ resetPasswordToken: users.resetPasswordToken })
         .from(users)
         .where(eq(users.email, email))
         .limit(1);
@@ -506,7 +513,7 @@ describe("Auth Module Integration (Supertest)", () => {
     });
   });
 
-  describe("Change Password Flow", () => {
+  describe("POST /auth/change-password", () => {
     it("should successfully change password, revoke all refresh tokens, and allow login with new password", async () => {
       // 1. Register user
       const registerRes = await request(getHttpServer())
@@ -539,7 +546,9 @@ describe("Auth Module Integration (Supertest)", () => {
       expect(refreshToken).toBeDefined();
 
       // Verify refresh token exists in DB before change password
-      const activeTokensBefore = await db.select().from(refreshTokens);
+      const activeTokensBefore = await db
+        .select({ id: refreshTokens.id })
+        .from(refreshTokens);
       expect(activeTokensBefore.length).toBeGreaterThan(0);
 
       // 4. Change Password
@@ -555,7 +564,9 @@ describe("Auth Module Integration (Supertest)", () => {
       expect(changePwdBody.success).toBe(true);
 
       // 5. Assert refresh tokens were deleted from DB (Global Session Revocation)
-      const activeTokensAfter = await db.select().from(refreshTokens);
+      const activeTokensAfter = await db
+        .select({ id: refreshTokens.id })
+        .from(refreshTokens);
       expect(activeTokensAfter.length).toBe(0);
 
       // 6. Assert login with OLD password fails
@@ -679,7 +690,11 @@ describe("Auth Module Integration (Supertest)", () => {
           status: "active",
           role: "user",
         })
-        .returning();
+        .returning({
+          id: users.id,
+          email: users.email,
+          role: users.role,
+        });
       if (!oauthUser) throw new Error("OAuth user not created");
       // Sign JWT token directly for testing OAuth user session
       const jwtService = app.get(JwtService);
@@ -700,7 +715,7 @@ describe("Auth Module Integration (Supertest)", () => {
     });
   });
 
-  describe("Logout All Sessions Flow", () => {
+  describe("POST /auth/logout-all", () => {
     it("should successfully revoke all refresh tokens for the user", async () => {
       await request(getHttpServer()).post("/auth/register").send({
         email: "logout-all-user@example.com",
