@@ -68,6 +68,9 @@ export const env = createEnv({
     PAYOS_CLIENT_ID: z.string().default("dummy-client-id"),
     PAYOS_API_KEY: z.string().default("dummy-api-key"),
     PAYOS_CHECKSUM_KEY: z.string().default("dummy-checksum-key"),
+
+    // Shows configuration
+    SHOW_CREATION_MIN_LEAD_MINUTES: z.coerce.number().default(10),
   },
 
   runtimeEnv: {
@@ -93,6 +96,8 @@ export const env = createEnv({
     PAYOS_CLIENT_ID: process.env["PAYOS_CLIENT_ID"],
     PAYOS_API_KEY: process.env["PAYOS_API_KEY"],
     PAYOS_CHECKSUM_KEY: process.env["PAYOS_CHECKSUM_KEY"],
+    SHOW_CREATION_MIN_LEAD_MINUTES:
+      process.env["SHOW_CREATION_MIN_LEAD_MINUTES"],
   },
 
   emptyStringAsUndefined: true,

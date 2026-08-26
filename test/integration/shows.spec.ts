@@ -10,7 +10,7 @@ import request from "supertest";
 import type { INestApplication } from "@nestjs/common";
 import type { Server } from "node:http";
 import { JwtService } from "@nestjs/jwt";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { isPostgresErrorCode } from "@/common/utils/error.util";
 import { PG_ERROR_CODE } from "@/common/constants/error.constant";
 import { createTestApp } from "../helpers/app.helper";
@@ -29,10 +29,17 @@ import {
 } from "../factories";
 import { MovieMother } from "../mothers";
 import type { components } from "../generated/api-schema";
-import type { ShowResponseDto } from "@/modules/shows/dto/show-response.dto";
+import type {
+  ShowResponseDto,
+  BatchShowResponseDto,
+} from "@/modules/shows/dto";
 
 type SingleShowApiResponse = components["schemas"]["ApiResponseDto"] & {
   data: ShowResponseDto;
+};
+
+type BatchShowApiResponse = components["schemas"]["ApiResponseDto"] & {
+  data: BatchShowResponseDto;
 };
 
 describe("Shows Module Integration", () => {
@@ -53,10 +60,10 @@ describe("Shows Module Integration", () => {
     const setup = await createTestApp();
     app = setup.app;
     db = setup.db;
-    await truncateAllTables(db);
     await runMigrations(db);
-
     jwtService = app.get(JwtService);
+
+    await truncateAllTables(db);
 
     const adminSession = await createAuthenticatedAdmin(db, jwtService);
     adminToken = adminSession.token;
@@ -66,8 +73,6 @@ describe("Shows Module Integration", () => {
 
     // Seed Movie (120 mins duration) via MovieMother
     const movie = await MovieMother.standard(db);
-
-    // Seed Cinema & Halls via Factories
     const cinema = await createCinema(db, {
       name: "CGV Landmark",
       address: "720A Dien Bien Phu",
@@ -87,7 +92,7 @@ describe("Shows Module Integration", () => {
 
     // Seed Seat Type
     const seatType = await createSeatType(db, {
-      name: `standard-${Date.now().toString()}`,
+      name: `standard-${Date.now().toString()}-${Math.random().toString().slice(2, 6)}`,
       priceMultiplier: "1.00",
     });
 
@@ -96,18 +101,14 @@ describe("Shows Module Integration", () => {
     seededHallId = hall1.id;
     seededHall2Id = hall2.id;
 
-    // Seed 5 Physical Seats in Hall 1
+    // Seed Physical Seats in Hall 1 & Hall 2
     await createBatchSeats(db, hall1.id, seatType.id, SEAT_COUNT);
+    await createBatchSeats(db, hall2.id, seatType.id, SEAT_COUNT);
   }, 30000);
 
   beforeEach(async () => {
     await db.delete(showSeats);
     await db.delete(shows);
-  });
-
-  afterAll(async () => {
-    await truncateAllTables(db);
-    await app.close();
   });
 
   describe("Database Invariants: PostgreSQL Exclusion Constraint", () => {
@@ -335,6 +336,21 @@ describe("Shows Module Integration", () => {
       expect(res.status).toBe(400);
     });
 
+    it("should reject with 400 Bad Request when startTime is in the past or < 10m from now (INV-2)", async () => {
+      const pastStartTime = new Date(Date.now() - 60 * 1000).toISOString();
+      const res = await request(getHttpServer())
+        .post("/shows")
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          movieId: seededMovieId,
+          hallId: seededHallId,
+          startTime: pastStartTime,
+          basePrice: 100000,
+        });
+
+      expect(res.status).toBe(400);
+    });
+
     it("should reject with 404 Not Found when hallId does not exist", async () => {
       const nonExistentHallId = "019fa8bc-8f4d-7000-b366-e691f45cfb88";
       const res = await request(getHttpServer())
@@ -394,6 +410,181 @@ describe("Shows Module Integration", () => {
           basePrice: 100000,
         });
       expect(resExact.status).toBe(201);
+    });
+  });
+
+  describe("POST /shows/batch", () => {
+    it("should reject with 401 Unauthorized when no token is provided", async () => {
+      const res = await request(getHttpServer())
+        .post("/shows/batch")
+        .send({
+          movieId: seededMovieId,
+          hallId: seededHallId,
+          startDate: "2026-10-01",
+          endDate: "2026-10-02",
+          timeSlots: ["10:00", "14:00"],
+          basePrice: 100000,
+        });
+
+      expect(res.status).toBe(401);
+    });
+
+    it("should reject with 403 Forbidden when accessed by standard user", async () => {
+      const res = await request(getHttpServer())
+        .post("/shows/batch")
+        .set("Authorization", `Bearer ${userToken}`)
+        .send({
+          movieId: seededMovieId,
+          hallId: seededHallId,
+          startDate: "2026-10-01",
+          endDate: "2026-10-02",
+          timeSlots: ["10:00", "14:00"],
+          basePrice: 100000,
+        });
+
+      expect(res.status).toBe(403);
+    });
+
+    it("should reject with 400 Bad Request when startDate > endDate", async () => {
+      const res = await request(getHttpServer())
+        .post("/shows/batch")
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          movieId: seededMovieId,
+          hallId: seededHallId,
+          startDate: "2026-10-05",
+          endDate: "2026-10-01",
+          timeSlots: ["10:00", "14:00"],
+          basePrice: 100000,
+        });
+
+      expect(res.status).toBe(400);
+    });
+
+    it("should reject with 400 Bad Request when date range exceeds 30 days", async () => {
+      const res = await request(getHttpServer())
+        .post("/shows/batch")
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          movieId: seededMovieId,
+          hallId: seededHallId,
+          startDate: "2026-10-01",
+          endDate: "2026-11-05", // 35 days
+          timeSlots: ["10:00"],
+          basePrice: 100000,
+        });
+
+      expect(res.status).toBe(400);
+    });
+
+    it("should reject with 400 Bad Request when total shows exceed 100 limit", async () => {
+      // 25 days * 5 slots = 125 shows (> 100 limit)
+      const res = await request(getHttpServer())
+        .post("/shows/batch")
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          movieId: seededMovieId,
+          hallId: seededHallId,
+          startDate: "2026-10-01",
+          endDate: "2026-10-25",
+          timeSlots: ["08:00", "11:00", "14:00", "17:00", "20:00"],
+          basePrice: 100000,
+        });
+
+      expect(res.status).toBe(400);
+    });
+
+    it("should reject with 400 Bad Request when time slots collide internally (intra-batch collision)", async () => {
+      // Movie duration = 120m + 15m buffer = 135m -> 10:00 ends at 12:15. Slot 11:30 overlaps!
+      const res = await request(getHttpServer())
+        .post("/shows/batch")
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          movieId: seededMovieId,
+          hallId: seededHallId,
+          startDate: "2026-10-01",
+          endDate: "2026-10-01",
+          timeSlots: ["10:00", "11:30"],
+          basePrice: 100000,
+        });
+
+      expect(res.status).toBe(400);
+    });
+
+    it("should successfully create batch showtimes across date range with pre-allocated seats (201 Created)", async () => {
+      // 2 days * 2 slots = 4 shows
+      const res = await request(getHttpServer())
+        .post("/shows/batch")
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          movieId: seededMovieId,
+          hallId: seededHallId,
+          startDate: "2026-10-01",
+          endDate: "2026-10-02",
+          timeSlots: ["10:00", "15:00"],
+          basePrice: 120000,
+        });
+
+      expect(res.status).toBe(201);
+      const body = res.body as BatchShowApiResponse;
+      expect(body.success).toBe(true);
+      expect(body.data.createdCount).toBe(4);
+      expect(body.data.showIds).toHaveLength(4);
+
+      // Verify shows in DB
+      const dbShows = await db
+        .select({
+          id: shows.id,
+          hallId: shows.hallId,
+          basePrice: shows.basePrice,
+        })
+        .from(shows)
+        .where(inArray(shows.id, body.data.showIds));
+      expect(dbShows).toHaveLength(4);
+
+      // Verify show_seats pre-allocated (4 shows * 5 seats = 20 show_seats)
+      const dbShowSeats = await db
+        .select({ id: showSeats.id, status: showSeats.status })
+        .from(showSeats)
+        .where(inArray(showSeats.showId, body.data.showIds));
+      expect(dbShowSeats).toHaveLength(4 * SEAT_COUNT);
+      expect(dbShowSeats.every((s) => s.status === "available")).toBe(true);
+    });
+
+    it("should reject entire batch and rollback cleanly when one slot collides with existing DB schedule (409 Conflict)", async () => {
+      // Seed an existing show in DB on 2026-10-03 at 10:00 -> 12:00
+      await request(getHttpServer())
+        .post("/shows")
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          movieId: seededMovieId,
+          hallId: seededHall2Id,
+          startTime: "2026-10-03T10:00:00+07:00",
+          basePrice: 100000,
+        });
+
+      // Attempt to batch create across 2026-10-02 to 2026-10-04 at 10:00 and 15:00
+      // 2026-10-03 at 10:00 will collide with existing show!
+      const res = await request(getHttpServer())
+        .post("/shows/batch")
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          movieId: seededMovieId,
+          hallId: seededHall2Id,
+          startDate: "2026-10-02",
+          endDate: "2026-10-04",
+          timeSlots: ["10:00", "15:00"],
+          basePrice: 100000,
+        });
+
+      expect(res.status).toBe(409);
+
+      // Verify that ONLY the initial 1 seed show exists for Hall 2, zero batch shows were persisted
+      const hall2Shows = await db
+        .select({ id: shows.id })
+        .from(shows)
+        .where(eq(shows.hallId, seededHall2Id));
+      expect(hall2Shows).toHaveLength(1);
     });
   });
 

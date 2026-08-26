@@ -11,6 +11,7 @@ import {
 } from "@/database/database.module";
 import { refreshTokens } from "@/database/schemas";
 import { lt } from "drizzle-orm";
+import { TIME_IN_MS } from "@/common/constants/time.constant";
 
 @Injectable()
 export class TokenCleanupService
@@ -25,12 +26,9 @@ export class TokenCleanupService
   ) {}
 
   onApplicationBootstrap() {
-    this.timer = setInterval(
-      () => {
-        void this.cleanupTokens();
-      },
-      24 * 60 * 60 * 1000,
-    );
+    this.timer = setInterval(() => {
+      void this.cleanupTokens();
+    }, TIME_IN_MS.DAY);
     this.logger.log("Token Cleanup Service started.");
 
     void this.cleanupTokens();

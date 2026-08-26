@@ -48,6 +48,11 @@ export type I18nTranslations = {
         "NO_SEATS_CONFIGURED": string;
         "SCHEDULE_COLLISION": string;
         "CREATE_SHOW_FAILED": string;
+        "INVALID_DATE_RANGE": string;
+        "MAX_DAYS_EXCEEDED": string;
+        "MAX_SHOWS_EXCEEDED": string;
+        "PAST_SHOW_SLOT": string;
+        "INTRA_BATCH_COLLISION": string;
     };
     "users": {
         "USER_NOT_FOUND": string;
