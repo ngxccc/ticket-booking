@@ -23,6 +23,7 @@ import { refreshTokens, users, outboxEvents } from "@/database/schemas";
 import { OUTBOX_EVENT_TYPE } from "@/common/constants/event.constant";
 import { PG_ERROR_CODE } from "@/common/constants/error.constant";
 import { isPostgresErrorCode } from "@/common/utils/error.util";
+import { TIME_IN_MS } from "@/common/constants/time.constant";
 import { apiSuccess, type ApiResponse } from "@/common/utils/api-response.util";
 import type { ClientMetadata } from "@/common/utils/client-info.util";
 import {
@@ -174,8 +175,8 @@ export class AuthService {
   async resendVerificationEmail(
     dto: ResendVerificationDto,
   ): Promise<ApiResponse<null>> {
-    const TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-    const RESEND_COOLDOWN_MS = 60 * 1000; // 1 minute
+    const TOKEN_TTL_MS = TIME_IN_MS.DAY; // 24 hours
+    const RESEND_COOLDOWN_MS = TIME_IN_MS.MINUTE; // 1 minute
 
     await this.db.transaction(async (tx) => {
       const [user] = await tx

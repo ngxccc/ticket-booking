@@ -23,8 +23,12 @@ import {
 import { apiSuccess, type ApiResponse } from "@/common/utils/api-response.util";
 import { SHOWS_ROUTES } from "./shows.routes";
 import { ShowsService } from "./shows.service";
-import { CreateShowDto } from "./dto/create-show.dto";
-import { ShowResponseDto } from "./dto/show-response.dto";
+import {
+  CreateShowDto,
+  ShowResponseDto,
+  CreateShowBatchDto,
+  BatchShowResponseDto,
+} from "./dto";
 
 @ApiTags(SHOWS_ROUTES.BASE)
 @Controller(SHOWS_ROUTES.BASE)
@@ -54,5 +58,29 @@ export class ShowsController {
   ): Promise<ApiResponse<ShowResponseDto>> {
     const show = await this.showsService.createShow(dto);
     return apiSuccess(show);
+  }
+
+  @Post(SHOWS_ROUTES.BATCH)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @HttpCode(HttpStatus.CREATED)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Create recurring batch showtimes across date range",
+    description:
+      "Admin endpoint to schedule recurring showtimes across a date range with seat pre-allocation, intra-batch timeline validation, and all-or-nothing rollback.",
+  })
+  @ApiCreatedResponseGeneric(BatchShowResponseDto)
+  @ApiBadRequestResponseRfc9457()
+  @ApiUnauthorizedResponseRfc9457()
+  @ApiForbiddenResponseRfc9457()
+  @ApiNotFoundResponseRfc9457()
+  @ApiConflictResponseRfc9457()
+  @ApiTooManyRequestsResponseRfc9457()
+  async createShowBatch(
+    @Body() dto: CreateShowBatchDto,
+  ): Promise<ApiResponse<BatchShowResponseDto>> {
+    const batchSummary = await this.showsService.createShowBatch(dto);
+    return apiSuccess(batchSummary);
   }
 }
