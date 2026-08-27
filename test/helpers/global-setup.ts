@@ -1,6 +1,8 @@
 import type { Pool } from "pg";
 import { env } from "@/env";
 import { TIME_IN_MS } from "@/common/constants/time.constant";
+import { createTestPool, dropTestSchema } from "./database.helper";
+
 export const ORPHAN_SCHEMA_MAX_AGE_MS = TIME_IN_MS.HOUR;
 
 /**
@@ -19,13 +21,12 @@ export async function cleanupOrphanTestSchemas(pool: Pool): Promise<void> {
     if (parts.length >= 3) {
       const createdTimestamp = Number.parseInt(parts[1] ?? "0", 10);
 
-      // Regex validation prevents SQL injection; age threshold protects active peer workers.
+      // Age threshold protects active peer workers while allowing cleanup of stale schemas.
       if (
         !Number.isNaN(createdTimestamp) &&
-        now - createdTimestamp > ORPHAN_SCHEMA_MAX_AGE_MS &&
-        /^test_\d+_[a-f0-9_]+$/.test(row.schema_name)
+        now - createdTimestamp > ORPHAN_SCHEMA_MAX_AGE_MS
       ) {
-        await pool.query(`DROP SCHEMA IF EXISTS "${row.schema_name}" CASCADE;`);
+        await dropTestSchema(pool, row.schema_name);
       }
     }
   }
@@ -38,23 +39,10 @@ export async function cleanupOrphanTestSchemas(pool: Pool): Promise<void> {
 export async function setupGlobalTestEnvironment(): Promise<void> {
   if (env.NODE_ENV !== "test") return;
 
-  const { Pool } = await import("pg");
   let pool: Pool | undefined;
 
   try {
-    pool = env.DB_URL
-      ? new Pool({
-          connectionString: env.DB_URL,
-          connectionTimeoutMillis: 3000,
-        })
-      : new Pool({
-          host: env.DB_HOST,
-          port: env.DB_PORT,
-          user: env.DB_USERNAME,
-          password: env.DB_PASSWORD,
-          database: env.DB_DATABASE,
-          connectionTimeoutMillis: 3000,
-        });
+    pool = createTestPool();
 
     // Pre-installing btree_gist globally in public schema avoids per-worker catalog lock contention on pg_extension.
     await pool.query(
