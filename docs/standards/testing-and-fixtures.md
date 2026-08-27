@@ -61,10 +61,14 @@ type Rfc9457ErrorResponse = components["schemas"]["Rfc9457ErrorResponseDto"];
 
 ---
 
-## 5. Database Isolation per Test Run
+## 5. Database & State Isolation (Schema-per-Worker Architecture)
 
-- **`beforeEach`**: Run `truncateAllTables(db)` to clear transactional tables and reset state.
-- **Deterministic Cleanup**: Ensure all background cron timers and Redis connections are closed in `afterAll()`.
+- **Dynamic Schema Provisioning**: Every integration test suite binds to a unique PostgreSQL schema (`test_${randomUUID().replace(/-/g, '_')}`) via `options: "-c search_path=<worker_schema>,public"` in the PostgreSQL `Pool` (ADR 0010).
+- **Extension Resolution**: Retain `public` in `search_path` to resolve global database extensions (e.g. `btree_gist`).
+- **`beforeEach` Truncation**: Run `truncateAllTables(db)` which queries `WHERE schemaname = current_schema()` with `sql.identifier()` to clear transactional tables strictly within the worker's isolated schema without cross-worker deadlocks.
+- **Redis Namespace Isolation**: In integration tests, configure IoRedis with `keyPrefix: "test:${workerSchemaId}:"` and BullMQ with `prefix: "bull:${workerSchemaId}"` to prevent cross-worker lock and job interference.
+- **Background Scheduler Guardrails**: Disable `@Cron` tasks (`BookingCronService`) in `createTestApp()` during integration test runs.
+- **Lifecycle Teardown**: Clean up the provisioned schema in `afterAll()` via `DROP SCHEMA IF EXISTS <worker_schema> CASCADE;`, and close all background Redis connections and timers.
 
 ---
 
