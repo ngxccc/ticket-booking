@@ -31,10 +31,22 @@ export function generateWorkerSchemaName(): string {
  *
  * @param overrides - Optional connection pool configuration overrides
  */
+/**
+ * Normalizes the test database URL by unpooling cloud endpoints and mapping SSL modes.
+ */
+export function getNormalizedTestDbUrl(): string | undefined {
+  if (!env.DB_URL) return undefined;
+  return env.DB_URL.replace("-pooler.", ".").replace(
+    /sslmode=(require|prefer|verify-ca)/gi,
+    "sslmode=verify-full",
+  );
+}
+
 export function createTestPool(overrides?: PoolConfig): Pool {
-  return env.DB_URL
+  const dbUrl = getNormalizedTestDbUrl();
+  return dbUrl
     ? new Pool({
-        connectionString: env.DB_URL,
+        connectionString: dbUrl,
         connectionTimeoutMillis: 3000,
         ...overrides,
       })
@@ -67,9 +79,9 @@ export async function createWorkerTestDatabase(
   try {
     await adminPool.query(`CREATE SCHEMA IF NOT EXISTS "${schemaName}";`);
 
-    const pool = createTestPool({ max: 10 });
-    pool.on("connect", (client) => {
-      void client.query(`SET search_path = "${schemaName}", public;`);
+    const pool = createTestPool({
+      options: `-c search_path="${schemaName}",public`,
+      max: 10,
     });
 
     const db = drizzle({
