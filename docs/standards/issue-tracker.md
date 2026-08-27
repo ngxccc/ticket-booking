@@ -89,3 +89,27 @@ flowchart LR
 - **Map Ticket**: Single GitHub issue labeled `wayfinder:map` holding decisions, notes, and fog tracker.
 - **Child Tickets**: Linked sub-issues labeled `wayfinder:<type>` (`research`/`prototype`/`grilling`/`task`).
 - **Dependency Blocking**: Uses GitHub native issue dependencies (`repos/<owner>/<repo>/issues/<child>/dependencies/blocked_by`). A ticket is unblocked when all blocker issues are closed.
+
+---
+
+## 6. GitHub Native Sub-Issues Protocol
+
+When splitting an Epic or Parent feature issue into sub-tasks, link them natively using GitHub Issues REST API:
+
+1. **Create Child Ticket:**
+
+   ```bash
+   gh issue create --title "<type>(<area>): <title>" --body "..." --label "<labels>"
+   ```
+
+2. **Get Child Database ID & Link to Parent:**
+
+   ```bash
+   CHILD_ID=$(gh api repos/{owner}/{repo}/issues/<child_number> --jq .id)
+   gh api --method POST repos/{owner}/{repo}/issues/<parent_number>/sub_issues -F sub_issue_id=$CHILD_ID
+   ```
+
+3. **Query Native Sub-Issues:**
+   ```bash
+   gh api repos/{owner}/{repo}/issues/<parent_number>/sub_issues --jq '.[] | "#\(.number): \(.title)"'
+   ```
