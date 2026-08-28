@@ -5,7 +5,9 @@ on:
     branches: ["main"]
     paths-ignore:
       - "**/*.md"
+      - "docs/**"
       - ".gitignore"
+      - "LICENSE"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

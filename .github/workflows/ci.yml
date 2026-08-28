@@ -6,9 +6,10 @@ on:
     types: [opened, synchronize, reopened]
     paths-ignore:
       - "**/*.md"
+      - "docs/**"
       - ".gitignore"
       - "LICENSE"
-
+      - ".vscode/**"
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
