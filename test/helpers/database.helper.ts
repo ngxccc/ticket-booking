@@ -7,6 +7,7 @@ import { sql } from "drizzle-orm";
 import { env } from "@/env";
 import * as schema from "@/database/schemas";
 import type { DrizzleDB } from "@/database/database.module";
+export type { DrizzleDB };
 
 /**
  * Encapsulates the isolated database resources provisioned for a test worker suite.
@@ -124,14 +125,13 @@ export async function truncateAllTables(
     );
   }
 
-  const result = await db.execute<{ tablename: string }>(
+  const result = await db.execute(
     sql`SELECT tablename FROM pg_tables WHERE schemaname = ${schemaName};`,
   );
 
-  const tables = result.rows
-    .map((r) => r.tablename)
-    .filter((t) => t !== "__drizzle_migrations");
-
+  const tables = (result.rows as { tablename: string }[])
+    .map((r: { tablename: string }) => r.tablename)
+    .filter((t: string) => t !== "__drizzle_migrations");
   if (tables.length === 0) return;
 
   // Safe truncation with CASCADE within the isolated worker schema
