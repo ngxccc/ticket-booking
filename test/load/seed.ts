@@ -1,8 +1,7 @@
 import { Logger } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import * as path from "node:path";
-import * as fs from "node:fs/promises";
-import * as schema from "@/database/schemas";
+import { resolve } from "node:path";
+import { users, type TNewUser, type TUser } from "@/database/schemas";
 import { env } from "@/env";
 import { TIME_IN_MS } from "@/common/constants/time.constant";
 import {
@@ -69,6 +68,7 @@ export async function seedLoadTestData(): Promise<BookingLoadFixture> {
       throw new Error("Failed to provision seats for load testing");
     }
     const otherSeatIds = seatIds.slice(1);
+
     const show = await createShow(db, {
       movieId: movie.id,
       hallId: hall.id,
@@ -83,8 +83,8 @@ export async function seedLoadTestData(): Promise<BookingLoadFixture> {
       `Created Show ID: ${show.id}, Target Hot Seat ID: ${targetSeatId}`,
     );
 
-    const users: TestUserFixture[] = [];
-    const userInsertValues: schema.TNewUser[] = [];
+    const userFixtures: TestUserFixture[] = [];
+    const userInsertValues: TNewUser[] = [];
 
     for (let i = 0; i < totalVus; i++) {
       const userEmail = `loadtest-${timestamp}-${String(i)}@example.com`;
@@ -96,19 +96,19 @@ export async function seedLoadTestData(): Promise<BookingLoadFixture> {
       });
     }
 
-    // Chunk user records into batches of 500 to stay well within PostgreSQL statement parameter limits ($65,535).
+    // Batch insert users in chunks of 500 to stay within PostgreSQL parameter limits ($65,535)
     const chunkSize = 500;
-    const insertedUsers: schema.TUser[] = [];
+    const insertedUsers: Pick<TUser, "id" | "email" | "role">[] = [];
 
     for (let i = 0; i < userInsertValues.length; i += chunkSize) {
       const chunk = userInsertValues.slice(i, i + chunkSize);
-      const insertedChunk = await db
-        .insert(schema.users)
-        .values(chunk)
-        .returning();
+      const insertedChunk = await db.insert(users).values(chunk).returning({
+        id: users.id,
+        email: users.email,
+        role: users.role,
+      });
       insertedUsers.push(...insertedChunk);
     }
-
     // Pre-sign JWT tokens offline using JWT_SECRET to eliminate Auth service CPU bottlenecks during k6 load runs.
     for (let i = 0; i < insertedUsers.length; i++) {
       const user = insertedUsers[i];
@@ -120,7 +120,7 @@ export async function seedLoadTestData(): Promise<BookingLoadFixture> {
         role: user.role,
       });
 
-      users.push({
+      userFixtures.push({
         id: user.id,
         email: user.email,
         token,
@@ -129,7 +129,7 @@ export async function seedLoadTestData(): Promise<BookingLoadFixture> {
     }
 
     logger.log(
-      `Generated and signed ${String(users.length)} JWT tokens successfully.`,
+      `Generated and signed ${String(userFixtures.length)} JWT tokens successfully.`,
     );
 
     const fixturePayload: BookingLoadFixture = {
@@ -138,18 +138,14 @@ export async function seedLoadTestData(): Promise<BookingLoadFixture> {
       targetSeatId,
       otherSeatIds,
       totalVus,
-      users,
+      users: userFixtures,
     };
 
-    const fixturesDir = path.resolve(process.cwd(), "dist");
-    await fs.mkdir(fixturesDir, { recursive: true });
-
-    const fixtureFilePath = path.join(fixturesDir, "booking-fixtures.json");
-    await fs.writeFile(
-      fixtureFilePath,
-      JSON.stringify(fixturePayload, null, 2),
-      "utf-8",
+    const fixtureFilePath = resolve(
+      process.cwd(),
+      "dist/booking-fixtures.json",
     );
+    await Bun.write(fixtureFilePath, JSON.stringify(fixturePayload, null, 2));
 
     logger.log(`Fixtures written to ${fixtureFilePath}`);
 

@@ -1,15 +1,25 @@
 import { Logger } from "@nestjs/common";
-import * as path from "node:path";
-import * as fs from "node:fs/promises";
+import { resolve } from "node:path";
+import { unlink } from "node:fs/promises";
 import { and, eq, inArray, like } from "drizzle-orm";
 import type { Redis } from "ioredis";
-import * as schema from "@/database/schemas";
+import {
+  showSeats,
+  tickets,
+  bookings,
+  shows,
+  halls,
+  seats,
+  cinemas,
+  movies,
+  users,
+} from "@/database/schemas";
 import { createRedisClient } from "@/config/redis.config";
 import {
   createTestPool,
   createDrizzleClient,
-  type DrizzleDB,
 } from "../helpers/database.helper";
+import type { DrizzleDB } from "@/database/database.module";
 import type { BookingLoadFixture } from "./fixtures/types";
 import { REDIS_KEYS } from "@/modules/booking/booking.constants";
 
@@ -29,14 +39,17 @@ export async function verifyDatabaseInvariants(
 ): Promise<{ winnerBookingId: string; winnerUserId: string }> {
   logger.log("Asserting post-test database & cache invariants...");
 
-  // Invariant 1: Hot seat status transitioned to reserved in PostgreSQL
+  // Assert hot seat status transitioned to reserved
   const showSeatList = await db
-    .select()
-    .from(schema.showSeats)
+    .select({
+      id: showSeats.id,
+      status: showSeats.status,
+    })
+    .from(showSeats)
     .where(
       and(
-        eq(schema.showSeats.showId, fixture.showId),
-        eq(schema.showSeats.seatId, fixture.targetSeatId),
+        eq(showSeats.showId, fixture.showId),
+        eq(showSeats.seatId, fixture.targetSeatId),
       ),
     );
 
@@ -47,11 +60,14 @@ export async function verifyDatabaseInvariants(
     );
   }
 
-  // Invariant 2: Exactly 1 ticket issued for the contested hot seat
+  // Assert exactly 1 ticket was issued for contested hot seat
   const issuedTickets = await db
-    .select()
-    .from(schema.tickets)
-    .where(eq(schema.tickets.showSeatId, hotSeat.id));
+    .select({
+      id: tickets.id,
+      bookingId: tickets.bookingId,
+    })
+    .from(tickets)
+    .where(eq(tickets.showSeatId, hotSeat.id));
 
   if (issuedTickets.length !== 1) {
     throw new Error(
@@ -64,19 +80,22 @@ export async function verifyDatabaseInvariants(
     throw new Error("Invariant violation: Missing winning ticket record");
   }
 
-  // Invariant 3: Single winner booking created in pending_payment status
+  // Assert single winner booking created in pending_payment status
   const [winner] = await db
-    .select()
-    .from(schema.bookings)
-    .where(eq(schema.bookings.id, winningTicket.bookingId));
-
+    .select({
+      id: bookings.id,
+      userId: bookings.userId,
+      status: bookings.status,
+    })
+    .from(bookings)
+    .where(eq(bookings.id, winningTicket.bookingId));
   if (winner?.status !== "pending_payment") {
     throw new Error(
       `Invariant violation: Winner booking status must be 'pending_payment', received '${String(winner?.status)}'`,
     );
   }
 
-  // Invariant 4: Redlock mutex released without leaking in Redis
+  // Assert Redlock mutex released without leaking in Redis
   const lockKey = REDIS_KEYS.showSeatLock(fixture.targetSeatId);
   const activeLock = await redis.get(lockKey);
   if (activeLock !== null) {
@@ -109,73 +128,57 @@ export async function teardownTestData(
 ): Promise<void> {
   logger.log("Cleaning up load test artifacts and database records...");
 
-  // 1. Delete tickets and bookings
   const showBookings = await db
-    .select({ id: schema.bookings.id })
-    .from(schema.bookings)
-    .where(eq(schema.bookings.showId, fixture.showId));
+    .select({ id: bookings.id })
+    .from(bookings)
+    .where(eq(bookings.showId, fixture.showId));
 
   const bookingIds = showBookings.map((b: { id: string }) => b.id);
   if (bookingIds.length > 0) {
-    await db
-      .delete(schema.tickets)
-      .where(inArray(schema.tickets.bookingId, bookingIds));
-    await db
-      .delete(schema.bookings)
-      .where(inArray(schema.bookings.id, bookingIds));
+    await db.delete(tickets).where(inArray(tickets.bookingId, bookingIds));
+    await db.delete(bookings).where(inArray(bookings.id, bookingIds));
   }
 
-  // 2. Delete show seats and show
-  await db
-    .delete(schema.showSeats)
-    .where(eq(schema.showSeats.showId, fixture.showId));
+  await db.delete(showSeats).where(eq(showSeats.showId, fixture.showId));
 
   const showList = await db
     .select({
-      id: schema.shows.id,
-      hallId: schema.shows.hallId,
-      movieId: schema.shows.movieId,
+      hallId: shows.hallId,
+      movieId: shows.movieId,
     })
-    .from(schema.shows)
-    .where(eq(schema.shows.id, fixture.showId));
+    .from(shows)
+    .where(eq(shows.id, fixture.showId));
+  await db.delete(shows).where(eq(shows.id, fixture.showId));
 
-  await db.delete(schema.shows).where(eq(schema.shows.id, fixture.showId));
-
-  // 3. Delete seats, hall, cinema, movie
   if (showList.length > 0 && showList[0]) {
     const { hallId, movieId } = showList[0];
 
     const hallList = await db
-      .select({ id: schema.halls.id, cinemaId: schema.halls.cinemaId })
-      .from(schema.halls)
-      .where(eq(schema.halls.id, hallId));
-
-    await db.delete(schema.seats).where(eq(schema.seats.hallId, hallId));
-    await db.delete(schema.halls).where(eq(schema.halls.id, hallId));
+      .select({ cinemaId: halls.cinemaId })
+      .from(halls)
+      .where(eq(halls.id, hallId));
+    await db.delete(seats).where(eq(seats.hallId, hallId));
+    await db.delete(halls).where(eq(halls.id, hallId));
 
     if (hallList.length > 0 && hallList[0]) {
-      await db
-        .delete(schema.cinemas)
-        .where(eq(schema.cinemas.id, hallList[0].cinemaId));
+      await db.delete(cinemas).where(eq(cinemas.id, hallList[0].cinemaId));
     }
 
-    await db.delete(schema.movies).where(eq(schema.movies.id, movieId));
+    await db.delete(movies).where(eq(movies.id, movieId));
   }
 
-  // 4. Delete load test users
   const userIds = fixture.users.map((u) => u.id);
   if (userIds.length > 0) {
     const chunkSize = 500;
     for (let i = 0; i < userIds.length; i += chunkSize) {
       const chunk = userIds.slice(i, i + chunkSize);
-      await db.delete(schema.users).where(inArray(schema.users.id, chunk));
+      await db.delete(users).where(inArray(users.id, chunk));
     }
   }
 
   // Fallback cleanup of any orphaned load test users
-  await db.delete(schema.users).where(like(schema.users.email, "loadtest-%"));
+  await db.delete(users).where(like(users.email, "loadtest-%"));
 
-  // 5. Clean up Redis keys
   const lockKey = REDIS_KEYS.showSeatLock(fixture.targetSeatId);
   await redis.del(lockKey);
 
@@ -186,19 +189,17 @@ export async function teardownTestData(
  * Main verification and teardown runner.
  */
 export async function runVerifyAndTeardown(): Promise<void> {
-  const fixturePath = path.resolve(process.cwd(), "dist/booking-fixtures.json");
+  const fixturePath = resolve(process.cwd(), "dist/booking-fixtures.json");
+  const fixtureFile = Bun.file(fixturePath);
 
-  let rawFixture: string;
-  try {
-    rawFixture = await fs.readFile(fixturePath, "utf-8");
-  } catch {
+  if (!(await fixtureFile.exists())) {
     logger.warn(
       `No fixtures file found at ${fixturePath}. Skipping verification.`,
     );
     return;
   }
 
-  const fixture = JSON.parse(rawFixture) as BookingLoadFixture;
+  const fixture = (await fixtureFile.json()) as BookingLoadFixture;
   const pool = createTestPool();
   const db = createDrizzleClient(pool);
   const redis = createRedisClient();
@@ -208,7 +209,11 @@ export async function runVerifyAndTeardown(): Promise<void> {
     logger.log("Verification and state teardown finished.");
   } finally {
     await teardownTestData(db, redis, fixture);
-    await fs.rm(fixturePath, { force: true });
+    try {
+      await unlink(fixturePath);
+    } catch {
+      // File already unlinked or absent
+    }
     await redis.quit();
     await pool.end();
   }

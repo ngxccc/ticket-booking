@@ -7,7 +7,6 @@ import { sql } from "drizzle-orm";
 import { env } from "@/env";
 import * as schema from "@/database/schemas";
 import type { DrizzleDB } from "@/database/database.module";
-export type { DrizzleDB };
 
 /**
  * Encapsulates the isolated database resources provisioned for a test worker suite.
