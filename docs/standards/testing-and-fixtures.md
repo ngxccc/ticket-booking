@@ -1,17 +1,32 @@
 # Testing & Fixture Standards
 
-## 1. 3-Tier Integration Test Hierarchy
+## 1. Integration Test Hierarchy & Naming Conventions
 
-All test suites under `test/` MUST adhere to the standardized 3-tier structure:
+All test suites under `test/` MUST adhere to the standardized BDD hierarchical structure:
 
-- **Level 1 (File Root)**: `describe("<Domain> Module Integration", () => { ... })`
-- **Level 2 (Endpoint / Scope)**: `describe("<HTTP_METHOD> <route> [(<Context/Focus>)]", () => { ... })` (or `describe("Database Invariants: <Topic>", () => { ... })`)
+- **Level 1 (File Root / Domain Boundary)**: `describe("<Domain> Module Integration", () => { ... })`
+- **Level 2 (Endpoint / Scope)**: Pure HTTP method and route only — `describe("<HTTP_METHOD> <route>", () => { ... })` (or `describe("Database Invariants: <Topic>", () => { ... })`). Never append custom parenthetical qualifiers or dashes to Level 2.
+- **Level 2.5 (Context / Scenarios — Optional)**: When an endpoint encompasses multiple distinct sub-scenarios (authentication, validation, concurrency), group them using nested `describe("when <context/scenario>", () => { ... })`.
 - **Level 3 (Test Case)**: `it("should <action and expected outcome> when <condition>", async () => { ... })`
 
 ```ts
-describe("Shows Module Integration", () => {
-  describe("POST /shows", () => {
-    it("should create a show and bulk pre-allocate available seats (201 Created) when input is valid", async () => {
+describe("Booking Module Integration", () => {
+  describe("POST /bookings/reserve", () => {
+    describe("when validating request payload", () => {
+      it("should return 400 Bad Request when showId is not a valid UUIDv7", async () => {
+        // Arrange, Act, Assert
+      });
+    });
+
+    describe("when handling concurrency and race conditions", () => {
+      it("should eliminate deadlocks and process exactly one reservation when concurrent requests submit reversed seat orders", async () => {
+        // Arrange, Act, Assert
+      });
+    });
+  });
+
+  describe("POST /bookings/confirm", () => {
+    it("should successfully confirm booking and return 200 OK when payment is valid", async () => {
       // Arrange, Act, Assert
     });
   });
