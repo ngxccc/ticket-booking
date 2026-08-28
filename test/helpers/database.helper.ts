@@ -62,6 +62,19 @@ export function createTestPool(overrides?: PoolConfig): Pool {
 }
 
 /**
+ * Creates a configured Drizzle ORM client with schema relations and JIT enabled.
+ *
+ * @param pool - PostgreSQL connection pool
+ */
+export function createDrizzleClient(pool: Pool): DrizzleDB {
+  return drizzle({
+    client: pool,
+    relations: schema.schemaRelations,
+    jit: true,
+  }) as unknown as DrizzleDB;
+}
+
+/**
  * Provisions a completely isolated PostgreSQL schema for a test worker, runs Drizzle
  * migrations into that schema, and returns a dedicated Drizzle client and Pool.
  *
@@ -84,11 +97,7 @@ export async function createWorkerTestDatabase(
       max: 10,
     });
 
-    const db = drizzle({
-      client: pool,
-      relations: schema.schemaRelations,
-      jit: true,
-    }) as unknown as DrizzleDB;
+    const db = createDrizzleClient(pool);
     const migrationsFolder = join(import.meta.dir, "../../drizzle");
     await migrate(db, { migrationsFolder, migrationsSchema: schemaName });
     return { pool, db, schemaName };
