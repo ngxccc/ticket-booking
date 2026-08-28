@@ -23,7 +23,8 @@ const defaultFixture: BookingLoadFixture = {
 };
 const fixture: BookingLoadFixture = fixtureData[0] ?? defaultFixture;
 const totalVus = fixture.totalVus;
-
+const p95Threshold = __ENV["P95_THRESHOLD"] ?? "1500";
+const p99Threshold = __ENV["P99_THRESHOLD"] ?? "2000";
 export const reserveSuccess201 = new Counter("reserve_success_201");
 export const reserveConflict409 = new Counter("reserve_conflict_409");
 export const reserveThrottled429 = new Counter("reserve_throttled_429");
@@ -73,10 +74,10 @@ export const options = {
     reserve_unexpected_errors: [
       { threshold: "count==0", abortOnFail: true, delayAbortEval: "1s" },
     ],
-    // Threshold reflects ADR 0006 Redlock retry delay (~600ms for colliding micro-requests).
+    // Configurable latency thresholds defaulting to standard SLOs (ADR 0006)
     "http_req_duration{scenario:hot_seat_burst}": [
-      "p(95)<=1500",
-      "p(99)<=2000",
+      `p(95)<=${p95Threshold}`,
+      `p(99)<=${p99Threshold}`,
     ],
   },
 };
