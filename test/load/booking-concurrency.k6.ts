@@ -176,6 +176,6 @@ export function rateLimitScenario(): void {
  */
 export function handleSummary(data: unknown) {
   return {
-    "./load-test-summary.json": JSON.stringify(data, null, 2),
+    "dist/load-test-summary.json": JSON.stringify(data, null, 2),
   };
 }
