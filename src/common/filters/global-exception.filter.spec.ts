@@ -42,176 +42,224 @@ describe("GlobalExceptionFilter", () => {
       }),
     } as unknown as ArgumentsHost;
   });
+  describe("when handling standard HttpExceptions", () => {
+    it("should format UnauthorizedException correctly according to RFC 9457", () => {
+      const exception = new UnauthorizedException(
+        "Mật khẩu hiện tại không chính xác",
+      );
 
-  it("should format UnauthorizedException correctly according to RFC 9457", () => {
-    const exception = new UnauthorizedException(
-      "Mật khẩu hiện tại không chính xác",
-    );
+      filter.catch(exception, mockArgumentsHost);
 
-    filter.catch(exception, mockArgumentsHost);
-
-    expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.UNAUTHORIZED);
-    expect(mockResponse.setHeader).toHaveBeenCalledWith(
-      "Content-Type",
-      "application/problem+json",
-    );
-    expect(mockResponse.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "http://localhost:3000/errors/unauthorized",
-        title: "Unauthorized",
-        status: 401,
-        detail: "Mật khẩu hiện tại không chính xác",
-        instance: "/api/test",
-        invalidParams: [],
-      }),
-    );
-  });
-
-  it("should format DTO BadRequestException with invalidParams correctly", () => {
-    const exception = new BadRequestException({
-      detail: "Dữ liệu gửi lên không đúng định dạng",
-      invalidParams: [
-        {
-          name: "confirmPassword",
-          reason: "Mật khẩu xác nhận không trùng khớp",
-        },
-      ],
+      expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.UNAUTHORIZED);
+      expect(mockResponse.setHeader).toHaveBeenCalledWith(
+        "Content-Type",
+        "application/problem+json",
+      );
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "http://localhost:3000/errors/unauthorized",
+          title: "Unauthorized",
+          status: 401,
+          detail: "Mật khẩu hiện tại không chính xác",
+          instance: "/api/test",
+          invalidParams: [],
+        }),
+      );
     });
 
-    filter.catch(exception, mockArgumentsHost);
-
-    expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
-    expect(mockResponse.setHeader).toHaveBeenCalledWith(
-      "Content-Type",
-      "application/problem+json",
-    );
-    expect(mockResponse.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "http://localhost:3000/errors/bad-request",
-        title: "Bad Request",
-        status: 400,
+    it("should format DTO BadRequestException with invalidParams correctly", () => {
+      const exception = new BadRequestException({
         detail: "Dữ liệu gửi lên không đúng định dạng",
-        instance: "/api/test",
         invalidParams: [
           {
             name: "confirmPassword",
             reason: "Mật khẩu xác nhận không trùng khớp",
           },
         ],
-      }),
-    );
-  });
+      });
 
-  it("should handle legacy array ValidationError payload safely", () => {
-    const exception = new BadRequestException({
-      message: [
-        {
-          property: "email",
-          constraints: { isEmail: "Email không hợp lệ" },
-        },
-      ],
+      filter.catch(exception, mockArgumentsHost);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
+      expect(mockResponse.setHeader).toHaveBeenCalledWith(
+        "Content-Type",
+        "application/problem+json",
+      );
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "http://localhost:3000/errors/bad-request",
+          title: "Bad Request",
+          status: 400,
+          detail: "Dữ liệu gửi lên không đúng định dạng",
+          instance: "/api/test",
+          invalidParams: [
+            {
+              name: "confirmPassword",
+              reason: "Mật khẩu xác nhận không trùng khớp",
+            },
+          ],
+        }),
+      );
     });
 
-    filter.catch(exception, mockArgumentsHost);
+    it("should handle legacy array ValidationError payload safely", () => {
+      const exception = new BadRequestException({
+        message: [
+          {
+            property: "email",
+            constraints: { isEmail: "Email không hợp lệ" },
+          },
+        ],
+      });
 
-    expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
-    expect(mockResponse.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: "Bad Request",
-        status: 400,
-        invalidParams: [{ name: "email", reason: "Email không hợp lệ" }],
-      }),
-    );
-  });
-  it("should sanitize unhandled Error to HTTP 500 without leaking stack traces", () => {
-    const exception = new Error("Database query failed: SELECT * FROM secret");
+      filter.catch(exception, mockArgumentsHost);
 
-    filter.catch(exception, mockArgumentsHost);
-
-    expect(mockResponse.status).toHaveBeenCalledWith(
-      HttpStatus.INTERNAL_SERVER_ERROR,
-    );
-    expect(mockResponse.setHeader).toHaveBeenCalledWith(
-      "Content-Type",
-      "application/problem+json",
-    );
-    expect(mockResponse.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "http://localhost:3000/errors/internal-server-error",
-        title: "Internal Server Error",
-        status: 500,
-        detail: "An internal server error occurred. Please try again later.",
-        instance: "/api/test",
-        invalidParams: [],
-      }),
-    );
+      expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "Bad Request",
+          status: 400,
+          invalidParams: [{ name: "email", reason: "Email không hợp lệ" }],
+        }),
+      );
+    });
   });
 
-  it("should use I18nService to translate fallback messages when provided", () => {
-    const mockI18n = {
-      translate: mock().mockReturnValue(
-        "An internal server error occurred. Please try again later.",
-      ),
-    };
-    const i18nFilter = new GlobalExceptionFilter(
-      mockI18n as unknown as I18nService,
-    );
-    i18nFilter.catch(new Error("Database boom"), mockArgumentsHost);
+  describe("when handling unhandled database and system errors", () => {
+    it("should sanitize unhandled Error to HTTP 500 without leaking stack traces", () => {
+      const exception = new Error(
+        "Database query failed: SELECT * FROM secret",
+      );
 
-    expect(mockI18n.translate).toHaveBeenCalledWith(
-      "common.INTERNAL_SERVER_ERROR",
-      { lang: undefined },
-    );
-    expect(mockResponse.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        detail: "An internal server error occurred. Please try again later.",
-      }),
-    );
-  });
+      filter.catch(exception, mockArgumentsHost);
 
-  it("should decode raw nestjs-i18n pipe strings in invalidParams reason field", () => {
-    const mockI18n = {
-      translate: mock().mockImplementation(
-        (key: string, options?: { args?: Record<string, unknown> }) => {
-          if (key === "validation.minLength") {
-            const prop =
-              typeof options?.args?.["property"] === "string"
-                ? options.args["property"]
-                : "";
-            const constraints = Array.isArray(options?.args?.["constraints"])
-              ? options.args["constraints"]
-              : [];
-            const firstVal = String(constraints[0] ?? "");
-            return `${prop} must be at least ${firstVal} characters`.trim();
-          }
-          return key;
-        },
-      ),
-    };
-    const i18nFilter = new GlobalExceptionFilter(
-      mockI18n as unknown as I18nService,
-    );
-    const exception = new BadRequestException({
-      detail: "Submitted data format is invalid",
-      invalidParams: [
-        {
-          name: "password",
-          reason: 'validation.minLength|{"constraints":[8]}',
-        },
-      ],
+      expect(mockResponse.status).toHaveBeenCalledWith(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+      expect(mockResponse.setHeader).toHaveBeenCalledWith(
+        "Content-Type",
+        "application/problem+json",
+      );
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "http://localhost:3000/errors/internal-server-error",
+          title: "Internal Server Error",
+          status: 500,
+          detail: "An internal server error occurred. Please try again later.",
+          instance: "/api/test",
+          invalidParams: [],
+        }),
+      );
     });
 
-    i18nFilter.catch(exception, mockArgumentsHost);
+    it("should use I18nService to translate fallback messages when provided", () => {
+      const mockI18n = {
+        translate: mock().mockReturnValue(
+          "An internal server error occurred. Please try again later.",
+        ),
+      };
+      const i18nFilter = new GlobalExceptionFilter(
+        mockI18n as unknown as I18nService,
+      );
+      i18nFilter.catch(new Error("Database boom"), mockArgumentsHost);
 
-    expect(mockResponse.json).toHaveBeenCalledWith(
-      expect.objectContaining({
+      expect(mockI18n.translate).toHaveBeenCalledWith(
+        "common.INTERNAL_SERVER_ERROR",
+        { lang: undefined },
+      );
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          detail: "An internal server error occurred. Please try again later.",
+        }),
+      );
+    });
+
+    it("should decode raw nestjs-i18n pipe strings in invalidParams reason field", () => {
+      const mockI18n = {
+        translate: mock().mockImplementation(
+          (key: string, options?: { args?: Record<string, unknown> }) => {
+            if (key === "validation.minLength") {
+              const prop =
+                typeof options?.args?.["property"] === "string"
+                  ? options.args["property"]
+                  : "";
+              const constraints = Array.isArray(options?.args?.["constraints"])
+                ? options.args["constraints"]
+                : [];
+              const firstVal = String(constraints[0] ?? "");
+              return `${prop} must be at least ${firstVal} characters`.trim();
+            }
+            return key;
+          },
+        ),
+      };
+      const i18nFilter = new GlobalExceptionFilter(
+        mockI18n as unknown as I18nService,
+      );
+      const exception = new BadRequestException({
+        detail: "Submitted data format is invalid",
         invalidParams: [
           {
             name: "password",
-            reason: "password must be at least 8 characters",
+            reason: 'validation.minLength|{"constraints":[8]}',
           },
         ],
-      }),
-    );
+      });
+
+      i18nFilter.catch(exception, mockArgumentsHost);
+
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          invalidParams: [
+            {
+              name: "password",
+              reason: "password must be at least 8 characters",
+            },
+          ],
+        }),
+      );
+    });
+
+    it("should map Postgres unique violation (23505) and deadlock (40P01) to HTTP 409 Conflict", () => {
+      const uniqueError = {
+        message: "duplicate key value violates unique constraint",
+        code: "23505",
+        table: "bookings",
+        constraint: "bookings_order_code_uidx",
+      };
+
+      filter.catch(uniqueError, mockArgumentsHost);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.CONFLICT);
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "Conflict",
+          status: 409,
+          detail: "A resource conflict occurred. Please retry your request.",
+        }),
+      );
+    });
+
+    it("should map Postgres query canceled (57014) to HTTP 504 Gateway Timeout", () => {
+      const timeoutError = {
+        message: "canceling statement due to statement timeout",
+        cause: {
+          code: "57014",
+        },
+      };
+
+      filter.catch(timeoutError, mockArgumentsHost);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(
+        HttpStatus.GATEWAY_TIMEOUT,
+      );
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "Gateway Timeout",
+          status: 504,
+          detail: "The database or downstream service timed out. Please retry.",
+        }),
+      );
+    });
   });
 });

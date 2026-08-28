@@ -10,6 +10,8 @@ import {
 } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { I18nContext, I18nService } from "nestjs-i18n";
+import { extractDatabaseErrorDetails } from "@/common/utils/error.util";
+import { PG_ERROR_CODE } from "@/common/constants/error.constant";
 
 export interface InvalidParam {
   name: string;
@@ -30,7 +32,7 @@ function isRecordObject(res: unknown): res is Record<string, unknown> {
   return typeof res === "object" && res !== null;
 }
 
-// WHY: Standardize error responses across DTO Validation, Auth/Domain Exceptions, and Unhandled Errors per RFC 9457 with I18n support.
+// Formats API error payloads strictly following RFC 9457 Problem Details specification with I18n translation.
 @Injectable()
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -63,15 +65,59 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       const errStack =
         exception instanceof Error
           ? (exception.stack ?? exception.message)
-          : String(exception);
-      this.logger.error(`Unhandled Exception: ${errStack}`);
+          : typeof exception === "object" && exception !== null
+            ? JSON.stringify(exception)
+            : String(exception);
 
-      // WHY: Production sanitization safeguard to prevent information disclosure (stack traces, raw SQL queries).
-      detail = this.translate(
-        "common.INTERNAL_SERVER_ERROR",
-        lang,
-        "An internal server error occurred. Please try again later.",
-      );
+      const dbErr = extractDatabaseErrorDetails(exception);
+
+      // Extract PostgreSQL & Drizzle metadata for actionable observability while shielding internal SQL details from clients.
+      if (dbErr.isDatabaseError) {
+        this.logger.error(
+          `Database Exception [${dbErr.code ?? "UNKNOWN"}]: ${dbErr.message ?? "Database operation failed"} | Table: ${dbErr.table ?? "N/A"} | Column: ${dbErr.column ?? "N/A"} | Constraint: ${dbErr.constraint ?? "N/A"} | Detail: ${dbErr.detail ?? "N/A"}\nQuery: ${dbErr.query ?? "N/A"}\n${errStack}`,
+        );
+
+        // Map database-level concurrency collisions (unique index violations, exclusion constraints, deadlocks) to HTTP 409 Conflict.
+        if (
+          dbErr.code === PG_ERROR_CODE.UNIQUE_VIOLATION ||
+          dbErr.code === PG_ERROR_CODE.EXCLUSION_VIOLATION ||
+          dbErr.code === PG_ERROR_CODE.DEADLOCK_DETECTED
+        ) {
+          status = HttpStatus.CONFLICT;
+          title = "Conflict";
+          detail = this.translate(
+            "common.RESOURCE_CONFLICT",
+            lang,
+            "A resource conflict occurred. Please retry your request.",
+          );
+          // Map database statement timeout (57014) to HTTP 504 Gateway Timeout.
+        } else if (dbErr.code === PG_ERROR_CODE.QUERY_CANCELED) {
+          status = HttpStatus.GATEWAY_TIMEOUT;
+          title = "Gateway Timeout";
+          detail = this.translate(
+            "common.GATEWAY_TIMEOUT",
+            lang,
+            "The database or downstream service timed out. Please retry.",
+          );
+          // Sanitize unknown database exceptions to HTTP 500 without disclosing query parameters or database schema.
+        } else {
+          status = HttpStatus.INTERNAL_SERVER_ERROR;
+          title = "Internal Server Error";
+          detail = this.translate(
+            "common.INTERNAL_SERVER_ERROR",
+            lang,
+            "An internal server error occurred. Please try again later.",
+          );
+        }
+      } else {
+        this.logger.error(`Unhandled Exception: ${errStack}`);
+        // Sanitize generic unhandled application exceptions to prevent internal stack trace leakage.
+        detail = this.translate(
+          "common.INTERNAL_SERVER_ERROR",
+          lang,
+          "An internal server error occurred. Please try again later.",
+        );
+      }
     }
 
     const hostHeader = request.get("host") ?? "localhost";
@@ -89,8 +135,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         timestamp: new Date().toISOString(),
       });
   }
-
-  // WHY: Parse different payload shapes from NestJS HttpException without deeply nested conditionals.
+  // Extracts user-friendly error detail and field validation constraints from diverse NestJS exception formats.
   private parseHttpExceptionResponse(
     res: unknown,
     lang?: string,

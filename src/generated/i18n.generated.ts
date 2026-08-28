@@ -41,6 +41,8 @@ export type I18nTranslations = {
     "common": {
         "INTERNAL_SERVER_ERROR": string;
         "INVALID_INPUT": string;
+        "RESOURCE_CONFLICT": string;
+        "GATEWAY_TIMEOUT": string;
     };
     "shows": {
         "MOVIE_NOT_FOUND": string;
