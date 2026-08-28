@@ -24,6 +24,7 @@
 - **Chunked Seat Pre-Allocation**: Bulk pre-allocates physical seats in 1,000-row chunks as static snapshots (`available`), avoiding PostgreSQL parameter limits and runtime allocation overhead.
 - **Transactional Outbox Event Relay**: Decouples database transactions from async tasks (BullMQ + Resend emails) with 5-second polling workers and 10-minute automated seat cleanup.
 - **PayOS Webhook & Idempotency**: HMAC-SHA256 signature verification with 5-minute anti-replay windows and Redis-backed `Idempotency-Key` guards.
+- **Automated K6 Concurrency Suite**: Multi-scenario stress testing (`hot_seat_burst`, `rate_limit_abuse`) simulating 500-2,000 concurrent VUs with offline JWT signing (`SharedArray`) and post-test DB invariant verification.
 
 ---
 
@@ -31,18 +32,18 @@
 
 ```text
 ticket-booking/
-├── src/                          # NestJS Application Source
-│   ├── modules/                  # Feature Modules (auth, booking, shows, users, outbox, mail)
-│   ├── database/                 # Drizzle ORM schemas & connection pool
-│   ├── common/                   # Global filters, guards, interceptors, constants, Redlock
-│   ├── env.ts                    # Zod type-safe environment configuration
-│   └── main.ts                   # Application bootstrap & Scalar UI integration
-├── test/                         # Test Suites & Benchmarks
-│   ├── integration/              # E2E Integration tests against real PostgreSQL/Redis
-│   ├── factories/                # Test data factories & Object Mothers
-│   └── benchmarks/               # Automated micro-benchmarking engine
-├── drizzle/                      # Drizzle SQL Migrations & schema snapshots
-└── docs/                         # ADRs, Design Specs & Engineering Standards
+├── src/                  # NestJS Application Source
+│   ├── modules/          # Feature Modules (auth, booking, shows, users, outbox, mail)
+│   ├── database/         # Drizzle ORM schemas & connection pool
+│   ├── common/           # Global filters, guards, interceptors, constants, Redlock
+│   ├── env.ts            # Zod type-safe environment configuration
+│   └── main.ts           # Application bootstrap & Scalar UI integration
+├── test/                 # Test Suites & Benchmarks
+│   ├── integration/      # E2E Integration tests against real PostgreSQL/Redis
+│   ├── factories/        # Test data factories & Object Mothers
+│   └── benchmarks/       # Automated micro-benchmarking engine
+├── drizzle/              # Drizzle SQL Migrations & schema snapshots
+└── docs/                 # ADRs, Design Specs & Engineering Standards
 ```
 
 ---
@@ -99,6 +100,24 @@ Visit `http://localhost:3000/reference` to test API endpoints.
 
 ## Performance Benchmarks
 
+### 1. High-Concurrency Seat Contention & Stress Testing (`POST /bookings/reserve`)
+
+End-to-end stress testing executed via **Grafana k6** simulating 500 concurrent Virtual Users (VUs) simultaneously competing for the exact same VIP seat at millisecond $t=0$ (`bun run test:load`):
+
+| Test Metric / Invariant              |     Target Threshold      |         Actual Result          |      Verification Status      |
+| :----------------------------------- | :-----------------------: | :----------------------------: | :---------------------------: |
+| **Hot Seat Contention (VUs)**        |    500 Concurrent VUs     |          **500 VUs**           |       Passed ($100\%$)        |
+| **Single Winner**                    |       `count == 1`        |    **1 (HTTP 201 Created)**    |       Exactly 1 Booking       |
+| **Conflict Integrity**               |      `count == 499`       |  **499 (HTTP 409 Conflict)**   |       Zero Overselling        |
+| **Fatal Server Errors**              |       `count == 0`        |      **0 (0% HTTP 500)**       |   Zero Crashes / Deadlocks    |
+| **IP Rate Limiting Abuse**           | Trigger 429 after 10 reqs | **HTTP 429 Too Many Requests** |    DoS Protection Verified    |
+| **Latency p50 (Median)**             |    $< 1,200\text{ ms}$    |         `1,151.88 ms`          |       Stable across WAN       |
+| **Latency p95**                      |   $\le 1,500\text{ ms}$   |         `1,227.45 ms`          | Aligned with ADR 0006 Backoff |
+| **Latency p99**                      |   $\le 2,000\text{ ms}$   |         `1,255.84 ms`          | Aligned with ADR 0006 Backoff |
+| **Post-Test Invariant Verification** |   Zero DB/Redis Residue   |    **1,024 / 1,024 checks**    |    All Invariants Verified    |
+
+### 2. Micro-Benchmarks
+
 Micro-benchmarks executed on the Bun runtime measuring latency distribution percentiles and throughput (`bun run test:bench`):
 
 | Benchmark Task                                                                                   | Iterations | Mean Latency |    p50     |    p95     |    p99     |     Throughput     |
@@ -106,23 +125,23 @@ Micro-benchmarks executed on the Bun runtime measuring latency distribution perc
 | **ShowsBatch: 90 Slots Expansion &amp; Sort**<br>_(1D Flat Timeline + $O(N)$ sweep-line check)_  |   10,000   |  `0.038 ms`  | `0.035 ms` | `0.046 ms` | `0.059 ms` | **26,476 ops/sec** |
 | **ShowsBatch: DB Bulk 100 Shows + 20k Seats**<br>_(All-or-nothing Tx + 1k chunk pre-allocation)_ |     1      |  `2.100 s`   | `2.100 s`  | `2.100 s`  | `2.100 s`  | **9,571 rec/sec**  |
 
----
-
 ## Environment Configuration
 
 Strictly validated on boot via Zod schema (`src/env.ts`):
 
-| Variable                                       | Required | Default          | Purpose                                |
-| :--------------------------------------------- | :------- | :--------------- | :------------------------------------- |
-| `PORT`                                         | No       | `3000`           | HTTP port                              |
-| `DB_URL`                                       | No       | _Local DSN_      | PostgreSQL connection string           |
-| `REDIS_URL`                                    | No       | `localhost:6379` | Redis connection string                |
-| `JWT_SECRET`                                   | **Yes**  | _None_           | JWT signing key (min 32 chars)         |
-| `JWT_ACCESS_EXPIRES_IN`                        | No       | `15m`            | Access token TTL                       |
-| `JWT_REFRESH_EXPIRES_IN`                       | No       | `7d`             | Refresh token TTL                      |
-| `PAYOS_CLIENT_ID` / `API_KEY` / `CHECKSUM_KEY` | **Yes**  | _None_           | PayOS merchant credentials             |
-| `RESEND_API_KEY`                               | **Yes**  | _None_           | Transactional email API key            |
-| `SHOW_CREATION_MIN_LEAD_MINUTES`               | No       | `10`             | Minimum lead time for scheduling shows |
+| Variable                                       | Required | Default                 | Purpose                                |
+| :--------------------------------------------- | :------- | :---------------------- | :------------------------------------- |
+| `PORT`                                         | No       | `3000`                  | HTTP port                              |
+| `DB_URL`                                       | No       | _Local DSN_             | PostgreSQL connection string           |
+| `REDIS_URL`                                    | No       | `localhost:6379`        | Redis connection string                |
+| `JWT_SECRET`                                   | **Yes**  | _None_                  | JWT signing key (min 32 chars)         |
+| `JWT_ACCESS_EXPIRES_IN`                        | No       | `15m`                   | Access token TTL                       |
+| `JWT_REFRESH_EXPIRES_IN`                       | No       | `7d`                    | Refresh token TTL                      |
+| `PAYOS_CLIENT_ID` / `API_KEY` / `CHECKSUM_KEY` | **Yes**  | _None_                  | PayOS merchant credentials             |
+| `RESEND_API_KEY`                               | **Yes**  | _None_                  | Transactional email API key            |
+| `SHOW_CREATION_MIN_LEAD_MINUTES`               | No       | `10`                    | Minimum lead time for scheduling shows |
+| `VUS`                                          | No       | `500`                   | Virtual Users for load testing         |
+| `TARGET_URL`                                   | No       | `http://127.0.0.1:3000` | Target URL for load test suite         |
 
 ---
 
@@ -130,35 +149,42 @@ Strictly validated on boot via Zod schema (`src/env.ts`):
 
 ```bash
 # Development & Build
-bun run dev             # Start dev server with watch mode
-bun run build           # Compile TypeScript to dist/
-bun run start           # Run production build
-bun run start:debug     # Start with debug inspector
+bun run dev              # Start dev server with watch mode (Development)
+bun run dev:stg          # Start dev server with watch mode (Staging)
+bun run build            # Compile TypeScript to dist/
+bun run start            # Run production build
+bun run start:stg        # Run production build with Staging secrets
+bun run start:debug      # Start with debug inspector
 
 # Quality & Verification
-bun run check           # Full verification gate (check-types + lint)
-bun run check-types     # TypeScript typecheck (tsc --noEmit)
-bun run lint            # ESLint static analysis with cache
-bun run format          # Prettier code formatting
+bun run check            # Full verification gate (check-types + lint)
+bun run check-types      # TypeScript typecheck (tsc --noEmit)
+bun run lint             # ESLint static analysis with cache
+bun run format           # Prettier code formatting
 
 # Database & Migrations
-bun run db:generate     # Generate SQL migrations from Drizzle schemas
-bun run db:migrate      # Apply pending migrations
-bun run db:push         # Push schema directly to database (dev mode)
-bun run db:studio       # Launch Drizzle Studio web GUI
-bun run db:baseline     # Verify database baseline across environments
+bun run db:generate      # Generate SQL migrations from Drizzle schemas
+bun run db:migrate       # Apply pending migrations
+bun run db:push          # Push schema directly to database (dev mode)
+bun run db:studio        # Launch Drizzle Studio web GUI
+bun run db:baseline      # Verify database baseline across environments
 
 # Testing & Benchmarking
-bun test                # Run unit tests
-bun run test:watch      # Run unit tests in watch mode
-bun run test:cov        # Run unit tests with code coverage
-bun run test:e2e        # Run integration tests against PostgreSQL & Redis
-bun run test:bench      # Run micro-benchmark performance runner
+bun test                 # Run unit tests
+bun run test:watch       # Run unit tests in watch mode
+bun run test:cov         # Run unit tests with code coverage
+bun run test:e2e         # Run integration tests against PostgreSQL & Redis
+bun run test:bench       # Run micro-benchmark performance runner
+bun run test:load        # Run end-to-end k6 concurrency & stress testing suite
+bun run test:load:build  # Compile k6 TypeScript test script to dist/
+bun run test:load:seed   # Provision load test fixtures and offline JWT tokens
+bun run test:load:run    # Execute k6 concurrency stress test scenarios
+bun run test:load:verify # Assert post-test database invariants and teardown
 
 # Code Generation
-bun run i18n:generate   # Generate TypeScript definitions for translation keys
-bun run openapi:generate# Generate TypeScript types from OpenAPI schema
-bun run prepare         # Setup Husky Git hooks
+bun run i18n:generate    # Generate TypeScript definitions for translation keys
+bun run openapi:generate # Generate TypeScript types from OpenAPI schema
+bun run prepare          # Setup Husky Git hooks
 ```
 
 ---
