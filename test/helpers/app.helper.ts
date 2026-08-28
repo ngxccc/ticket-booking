@@ -152,7 +152,8 @@ export async function createTestApp(
  *
  * @param setup - The test application context to tear down
  */
-export async function teardownTestApp(setup: TestAppSetup): Promise<void> {
+export async function teardownTestApp(setup?: TestAppSetup): Promise<void> {
+  if (!setup) return;
   await cleanScopedRedisKeys(setup.redisClient);
   await setup.redisClient.quit().catch(() => {
     setup.redisClient.disconnect();

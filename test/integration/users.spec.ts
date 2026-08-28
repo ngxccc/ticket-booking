@@ -10,8 +10,12 @@ import request from "supertest";
 import { type INestApplication } from "@nestjs/common";
 import type { Server } from "node:http";
 import { JwtService } from "@nestjs/jwt";
-import { createTestApp } from "../helpers/app.helper";
-import { runMigrations, truncateAllTables } from "../helpers/database.helper";
+import {
+  createTestApp,
+  teardownTestApp,
+  type TestAppSetup,
+} from "../helpers/app.helper";
+import { truncateAllTables } from "../helpers/database.helper";
 import { createAuthenticatedUser } from "../helpers/auth.helper";
 import type { DrizzleDB } from "@/database/database.module";
 import type { components } from "../generated/api-schema";
@@ -23,6 +27,7 @@ type GetProfileResponse = components["schemas"]["ApiResponseDto"] & {
 type Rfc9457ErrorResponse = components["schemas"]["Rfc9457ErrorResponseDto"];
 
 describe("Users Module Integration", () => {
+  let setup: TestAppSetup;
   let app: INestApplication;
   let db: DrizzleDB;
   let jwtService: JwtService;
@@ -30,19 +35,18 @@ describe("Users Module Integration", () => {
   const getHttpServer = (): Server => app.getHttpServer() as Server;
 
   beforeAll(async () => {
-    const setup = await createTestApp();
+    setup = await createTestApp();
     app = setup.app;
     db = setup.db;
     jwtService = app.get(JwtService);
-    await runMigrations(db);
-  });
+  }, 30000);
 
   beforeEach(async () => {
-    await truncateAllTables(db);
-  });
+    await truncateAllTables(db, setup.workerSchema);
+  }, 15000);
 
   afterAll(async () => {
-    await app.close();
+    await teardownTestApp(setup);
   });
 
   describe("GET /users/me", () => {

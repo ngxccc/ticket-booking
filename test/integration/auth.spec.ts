@@ -11,8 +11,12 @@ import { type INestApplication } from "@nestjs/common";
 import type { Server } from "node:http";
 import { JwtService } from "@nestjs/jwt";
 import { eq } from "drizzle-orm";
-import { createTestApp } from "../helpers/app.helper";
-import { runMigrations, truncateAllTables } from "../helpers/database.helper";
+import {
+  createTestApp,
+  teardownTestApp,
+  type TestAppSetup,
+} from "../helpers/app.helper";
+import { truncateAllTables } from "../helpers/database.helper";
 import type { DrizzleDB } from "@/database/database.module";
 import { users, refreshTokens, outboxEvents } from "@/database/schemas";
 
@@ -32,23 +36,23 @@ type Rfc9457ErrorResponse = components["schemas"]["Rfc9457ErrorResponseDto"] & {
   message?: { property: string; constraints: Record<string, string> }[];
 };
 describe("Auth Module Integration", () => {
+  let setup: TestAppSetup;
   let app: INestApplication;
   let db: DrizzleDB;
 
   const getHttpServer = (): Server => app.getHttpServer() as Server;
   beforeAll(async () => {
-    const setup = await createTestApp();
+    setup = await createTestApp();
     app = setup.app;
     db = setup.db;
-    await runMigrations(db);
   }, 30000);
 
   beforeEach(async () => {
-    await truncateAllTables(db);
+    await truncateAllTables(db, setup.workerSchema);
   }, 15000);
 
   afterAll(async () => {
-    await app.close();
+    await teardownTestApp(setup);
   });
 
   describe("POST /auth/register, POST /auth/login, POST /auth/refresh, POST /auth/logout", () => {

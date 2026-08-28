@@ -13,8 +13,12 @@ import { JwtService } from "@nestjs/jwt";
 import { eq, inArray } from "drizzle-orm";
 import { isPostgresErrorCode } from "@/common/utils/error.util";
 import { PG_ERROR_CODE } from "@/common/constants/error.constant";
-import { createTestApp } from "../helpers/app.helper";
-import { runMigrations, truncateAllTables } from "../helpers/database.helper";
+import {
+  createTestApp,
+  teardownTestApp,
+  type TestAppSetup,
+} from "../helpers/app.helper";
+import { truncateAllTables } from "../helpers/database.helper";
 import {
   createAuthenticatedAdmin,
   createAuthenticatedUser,
@@ -43,6 +47,7 @@ type BatchShowApiResponse = components["schemas"]["ApiResponseDto"] & {
 };
 
 describe("Shows Module Integration", () => {
+  let setup: TestAppSetup;
   let app: INestApplication;
   let db: DrizzleDB;
   const getHttpServer = (): Server => app.getHttpServer() as Server;
@@ -57,14 +62,12 @@ describe("Shows Module Integration", () => {
   const SEAT_COUNT = 5;
 
   beforeAll(async () => {
-    const setup = await createTestApp();
+    setup = await createTestApp();
     app = setup.app;
     db = setup.db;
-    await runMigrations(db);
     jwtService = app.get(JwtService);
 
-    await truncateAllTables(db);
-
+    await truncateAllTables(db, setup.workerSchema);
     const adminSession = await createAuthenticatedAdmin(db, jwtService);
     adminToken = adminSession.token;
 
@@ -589,7 +592,6 @@ describe("Shows Module Integration", () => {
   });
 
   afterAll(async () => {
-    await truncateAllTables(db);
-    await app.close();
+    await teardownTestApp(setup);
   });
 });
