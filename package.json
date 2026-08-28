@@ -15,7 +15,7 @@
     "start:debug": "doppler run -- nest start --debug --watch --exec bun",
     "test": "bun test src/",
     "test:cov": "bun test src/ --coverage",
-    "test:e2e": "doppler run -c stg -- bun test test/ --max-concurrency=1",
+    "test:e2e": "doppler run -c stg -- bun test test/",
     "test:bench": "doppler run -c stg -- bun test/benchmarks/runner.ts",
     "test:watch": "bun test src/ --watch",
     "db:baseline": "doppler run -c dev -- bun scripts/baseline.ts && doppler run -c prd -- bun scripts/baseline.ts --inject-only && doppler run -c stg -- bun scripts/baseline.ts --inject-only",
