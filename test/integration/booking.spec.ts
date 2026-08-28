@@ -11,8 +11,12 @@ import { type INestApplication } from "@nestjs/common";
 import type { Server } from "node:http";
 import { JwtService } from "@nestjs/jwt";
 import { eq, and } from "drizzle-orm";
-import { createTestApp } from "../helpers/app.helper";
-import { runMigrations, truncateAllTables } from "../helpers/database.helper";
+import {
+  createTestApp,
+  teardownTestApp,
+  type TestAppSetup,
+} from "../helpers/app.helper";
+import { truncateAllTables } from "../helpers/database.helper";
 import { createAuthenticatedUser } from "../helpers/auth.helper";
 import type { DrizzleDB } from "@/database/database.module";
 import { RedlockService } from "@/common/services/redlock.service";
@@ -45,6 +49,7 @@ type ApiSuccessResponse<T> = components["schemas"]["ApiResponseDto"] & {
 };
 
 describe("Booking Module Integration", () => {
+  let setup: TestAppSetup;
   let app: INestApplication;
   let httpServer: Server;
   let db: DrizzleDB;
@@ -74,13 +79,12 @@ describe("Booking Module Integration", () => {
     return `${timestamp.slice(0, 8)}-${timestamp.slice(8, 12)}-7${rand1}-${rand2}-${rand3}`;
   };
   beforeAll(async () => {
-    const setup = await createTestApp();
+    setup = await createTestApp();
     app = setup.app;
     db = setup.db;
     httpServer = app.getHttpServer() as Server;
 
-    await runMigrations(db);
-    await truncateAllTables(db);
+    await truncateAllTables(db, setup.workerSchema);
 
     const timestamp = Date.now().toString();
     const userEmail = `booking-test-${timestamp}@example.com`;
@@ -746,5 +750,9 @@ describe("Booking Module Integration", () => {
         .returning({ orderCode: bookings.orderCode });
       expect(booking?.orderCode).toBe(444444);
     });
+  });
+
+  afterAll(async () => {
+    await teardownTestApp(setup);
   });
 });

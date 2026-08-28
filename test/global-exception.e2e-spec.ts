@@ -9,35 +9,38 @@ import {
 import request from "supertest";
 import { type INestApplication } from "@nestjs/common";
 import type { Server } from "node:http";
-import { createTestApp } from "./helpers/app.helper";
-import { runMigrations, truncateAllTables } from "./helpers/database.helper";
+import {
+  createTestApp,
+  teardownTestApp,
+  type TestAppSetup,
+} from "./helpers/app.helper";
+import { truncateAllTables } from "./helpers/database.helper";
 import type { DrizzleDB } from "@/database/database.module";
 import type { Rfc9457ErrorResponse } from "@/common/filters/global-exception.filter";
 
 describe("GlobalExceptionFilter Pipeline (E2E)", () => {
+  let setup: TestAppSetup;
   let app: INestApplication;
   let db: DrizzleDB;
-
   const getHttpServer = (): Server => app.getHttpServer() as Server;
 
   beforeAll(async () => {
-    const setup = await createTestApp();
+    setup = await createTestApp();
     app = setup.app;
     db = setup.db;
-    await runMigrations(db);
-  });
+  }, 30000);
 
   beforeEach(async () => {
-    await truncateAllTables(db);
-  });
+    await truncateAllTables(db, setup.workerSchema);
+  }, 15000);
 
   afterAll(async () => {
-    await app.close();
+    await teardownTestApp(setup);
   });
 
   it("should return RFC 9457 formatted 400 Bad Request with application/problem+json on DTO validation failure", async () => {
     const res = await request(getHttpServer())
-      .post("/api/auth/register")
+      .post("/auth/register")
       .send({
         email: "invalid-email-format",
         fullName: "Test User",
@@ -53,7 +56,7 @@ describe("GlobalExceptionFilter Pipeline (E2E)", () => {
     const body = res.body as Rfc9457ErrorResponse;
     expect(body.title).toBe("Bad Request");
     expect(body.status).toBe(400);
-    expect(body.instance).toBe("/api/auth/register");
+    expect(body.instance).toBe("/auth/register");
     expect(body.type).toContain("/errors/bad-request");
     expect(Array.isArray(body.invalidParams)).toBe(true);
     expect(body.invalidParams.length).toBeGreaterThan(0);
@@ -63,7 +66,7 @@ describe("GlobalExceptionFilter Pipeline (E2E)", () => {
 
   it("should return RFC 9457 formatted 401 Unauthorized with application/problem+json on auth failure", async () => {
     const res = await request(getHttpServer())
-      .post("/api/auth/login")
+      .post("/auth/login")
       .send({
         email: "nonexistent@example.com",
         password: "WrongPassword123!",
@@ -75,7 +78,7 @@ describe("GlobalExceptionFilter Pipeline (E2E)", () => {
     const body = res.body as Rfc9457ErrorResponse;
     expect(body.title).toBe("Unauthorized");
     expect(body.status).toBe(401);
-    expect(body.instance).toBe("/api/auth/login");
+    expect(body.instance).toBe("/auth/login");
     expect(body.type).toContain("/errors/unauthorized");
     expect(body.invalidParams).toEqual([]);
   });
