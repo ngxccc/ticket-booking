@@ -66,14 +66,23 @@ export function extractDatabaseErrorDetails(
     typeof errObj["message"] === "string" ? errObj["message"] : undefined;
   const message = causeMessage ?? directMessage;
 
+  const isDrizzleError =
+    errObj["name"] === "DrizzleQueryError" ||
+    (typeof errObj.constructor === "function" &&
+      errObj.constructor.name === "DrizzleQueryError");
+
+  const isPgDriverError =
+    cause["name"] === "DatabaseError" ||
+    (typeof cause.constructor === "function" &&
+      cause.constructor.name === "DatabaseError");
+
   const isDatabaseError =
     code !== undefined ||
     table !== undefined ||
     constraint !== undefined ||
     query !== undefined ||
-    errObj.constructor.name === "DrizzleQueryError" ||
-    cause.constructor.name === "DatabaseError";
-
+    isDrizzleError ||
+    isPgDriverError;
   return {
     isDatabaseError,
     code,

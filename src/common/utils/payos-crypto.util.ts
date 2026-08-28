@@ -83,8 +83,8 @@ export function isPayOSTimestampValid(
 }
 
 /**
- * Generates a unique numeric PayOS orderCode (13 digits: Date.now() * 1000 + random 0..999)
- * Guarantees time-based uniqueness and stays well within JS Number.MAX_SAFE_INTEGER
+ * Generates a unique numeric PayOS orderCode within JS Number.MAX_SAFE_INTEGER (<= 9007199254740991).
+ * Requires PostgreSQL bigint (INT8) column in database storage.
  */
 export function generatePayOSOrderCode(): number {
   return Date.now() * 1000 + Math.floor(Math.random() * 1000);
