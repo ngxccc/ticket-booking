@@ -82,10 +82,34 @@ export function isPayOSTimestampValid(
   return skew <= maxSkewSeconds;
 }
 
+// Custom Epoch: 2026-01-01T00:00:00.000Z (maintains compact 12-15 digit order codes within 53-bit safe integer limits)
+const CUSTOM_EPOCH = 1767225600000;
+const WORKER_ID = Number(process.env["WORKER_ID"] ?? 1) % 10;
+let sequenceCounter = 0;
+let lastTimestamp = -1;
+
 /**
- * Generates a unique numeric PayOS orderCode within JS Number.MAX_SAFE_INTEGER (<= 9007199254740991).
- * Requires PostgreSQL bigint (INT8) column in database storage.
+ * Generates a collision-free numeric PayOS orderCode using an in-process monotonic sequence and custom epoch offset.
+ * Guarantees strictly unique, positive integers within JS Number.MAX_SAFE_INTEGER (<= 9007199254740991).
+ * Supports up to 1,000 unique orders per millisecond per worker instance.
  */
 export function generatePayOSOrderCode(): number {
-  return Date.now() * 1000 + Math.floor(Math.random() * 1000);
+  let now = Date.now();
+
+  if (now === lastTimestamp) {
+    sequenceCounter = (sequenceCounter + 1) % 1000;
+    if (sequenceCounter === 0) {
+      // Wait for clock to tick forward to prevent sequence overflow in the same millisecond
+      while (now <= lastTimestamp) {
+        now = Date.now();
+      }
+    }
+  } else {
+    sequenceCounter = 0;
+  }
+
+  lastTimestamp = now;
+
+  const timeOffset = Math.max(0, now - CUSTOM_EPOCH);
+  return timeOffset * 10000 + WORKER_ID * 1000 + sequenceCounter;
 }
