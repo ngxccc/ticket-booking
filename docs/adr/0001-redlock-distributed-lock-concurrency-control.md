@@ -1,7 +1,7 @@
 # 1. Distributed Lock Mechanism for Show Seat Reservation
 
 Date: 2026-07-04  
-Deciders: Team / Core Architecture  
+Deciders: Team / Core Architecture
 
 ### Metadata
 
@@ -11,7 +11,7 @@ Deciders: Team / Core Architecture
 - **Feature**: `booking`
 - **Topic**: `Distributed Lock Mechanism for Show Seat Reservation`
 - **Target Module**: `src/modules/booking/` & `src/common/redis/`
-- **Spec Reference**: `process/features/booking/active/Booking_Core_Concurrency_Formal_Spec.md`
+- **Spec Reference**: `docs/design/booking-core-concurrency-workflow.md`
 
 ---
 
@@ -36,9 +36,9 @@ The system requires a double-locking mechanism that combines high-speed RAM laye
 
 ## Considered Options
 
-- **Option A (Chosen)**: Redis Redlock (RAM) + PostgreSQL Pessimistic Lock (`SELECT ... FOR UPDATE`) — *Chosen for fast RAM rejection (<5ms) and 100% ACID persistence safety*
-- **Option B**: PostgreSQL Pessimistic Locking Only — *Rejected because it overloads DB connection pool during high traffic spikes*
-- **Option C**: Application Optimistic Locking (Version Column) — *Rejected because high micro-collisions cause excessive application retries*
+- **Option A (Chosen)**: Redis Redlock (RAM) + PostgreSQL Pessimistic Lock (`SELECT ... FOR UPDATE`) — _Chosen for fast RAM rejection (<5ms) and 100% ACID persistence safety_
+- **Option B**: PostgreSQL Pessimistic Locking Only — _Rejected because it overloads DB connection pool during high traffic spikes_
+- **Option C**: Application Optimistic Locking (Version Column) — _Rejected because high micro-collisions cause excessive application retries_
 
 ---
 
@@ -83,12 +83,12 @@ Uses the `redlock` (v5) package wrapped inside `RedlockService` with a local typ
 
 ## Decision Comparison Matrix
 
-| Evaluation Criteria | Option A: Redlock + DB Pessimistic (CHOSEN) | Option B: PostgreSQL Locking Only | Option C: Optimistic Locking Only |
-| :--- | :--- | :--- | :--- |
-| **Rejection Speed (<5ms)** | ⚡⚡⚡ Fast (Blocked at Redis) | ⚡ Slow (Waits for DB Connection Lock) | ⚡ Moderate |
-| **Anti Double-Booking (100% ACID)** | 🔒 Absolute (Two-Layer Defense) | 🔒 Absolute | ⚠️ High retry overhead under traffic |
-| **Database Load** | 🟢 Minimal (Only acquired locks reach DB) | 🔴 High (All requests hit DB) | 🟡 Moderate |
-| **Code Complexity** | 🟡 Moderate (`RedlockService` wrapper) | 🟢 Simple | 🟢 Simple |
+| Evaluation Criteria                 | Option A: Redlock + DB Pessimistic (CHOSEN) | Option B: PostgreSQL Locking Only      | Option C: Optimistic Locking Only    |
+| :---------------------------------- | :------------------------------------------ | :------------------------------------- | :----------------------------------- |
+| **Rejection Speed (<5ms)**          | ⚡⚡⚡ Fast (Blocked at Redis)              | ⚡ Slow (Waits for DB Connection Lock) | ⚡ Moderate                          |
+| **Anti Double-Booking (100% ACID)** | 🔒 Absolute (Two-Layer Defense)             | 🔒 Absolute                            | ⚠️ High retry overhead under traffic |
+| **Database Load**                   | 🟢 Minimal (Only acquired locks reach DB)   | 🔴 High (All requests hit DB)          | 🟡 Moderate                          |
+| **Code Complexity**                 | 🟡 Moderate (`RedlockService` wrapper)      | 🟢 Simple                              | 🟢 Simple                            |
 
 ---
 

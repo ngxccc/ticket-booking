@@ -1,7 +1,7 @@
 # 4. Payment Confirmation & Ticket Issuance Architecture
 
 Date: 2026-07-31  
-Deciders: Team / Core Architecture  
+Deciders: Team / Core Architecture
 
 ### Metadata
 
@@ -11,7 +11,7 @@ Deciders: Team / Core Architecture
 - **Feature**: `booking`
 - **Topic**: `Payment Confirmation & Ticket Issuance Architecture`
 - **Target Module**: `src/modules/booking/` & `src/modules/outbox/`
-- **Spec Reference**: `process/features/booking/completed/Payment_Confirmation_Formal_Spec.md`
+- **Spec Reference**: `docs/design/booking-payment-confirmation-workflow.md`
 
 ---
 
@@ -35,8 +35,8 @@ In high-concurrency environments with gateway webhook retries and duplicate netw
 
 ## Considered Options
 
-- **Option A (Chosen)**: PostgreSQL Transaction + Pessimistic Locking (`SELECT ... FOR UPDATE`) + 60s Redis Idempotency Key + Transactional Dual-Write Outbox — *Chosen for 100% ACID atomicity and zero event loss*
-- **Option B**: Application-level Redlock only — *Rejected because Redis master failovers can drop locks and non-transactional DB writes cause event loss on crash*
+- **Option A (Chosen)**: PostgreSQL Transaction + Pessimistic Locking (`SELECT ... FOR UPDATE`) + 60s Redis Idempotency Key + Transactional Dual-Write Outbox — _Chosen for 100% ACID atomicity and zero event loss_
+- **Option B**: Application-level Redlock only — _Rejected because Redis master failovers can drop locks and non-transactional DB writes cause event loss on crash_
 
 ---
 
@@ -98,7 +98,7 @@ We adopted **Option A (PostgreSQL Transaction + Pessimistic Locking + Transactio
 
 ## System Invariants Binding
 
-Implementation MUST adhere to system invariants specified in `process/features/booking/completed/Payment_Confirmation_Formal_Spec.md`:
+Implementation MUST adhere to system invariants specified in `docs/design/booking-payment-confirmation-workflow.md`:
 
 - `INV-1`: Atomicity & Anti-Double-Processing via DB Pessimistic Locking (`SELECT ... FOR UPDATE`).
 - `INV-2`: Transactional Dual-Write Outbox (Zero Event Loss).
