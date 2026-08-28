@@ -170,10 +170,9 @@ if (import.meta.main) {
       process.exit(0);
     })
     .catch((err: unknown) => {
-      logger.error(
-        "Error during seeding:",
-        err instanceof Error ? err.stack : String(err),
-      );
+      const message = err instanceof Error ? err.message : String(err);
+      const stack = err instanceof Error ? err.stack : undefined;
+      logger.error(`Error during seeding: ${message}`, stack);
       process.exit(1);
     });
 }
