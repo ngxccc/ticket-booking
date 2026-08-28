@@ -39,10 +39,8 @@ export function createSeedDatabaseConnection() {
 export async function seedLoadTestData(): Promise<BookingLoadFixture> {
   const { pool, db } = createSeedDatabaseConnection();
   const jwtService = new JwtService({ secret: env.JWT_SECRET });
-
-  const totalVus = Number(process.env["VUS"]) || 500;
+  const totalVus = env.VUS;
   const timestamp = String(Date.now());
-
   try {
     logger.log(
       `Initializing test data for ${String(totalVus)} Virtual Users...`,
@@ -135,8 +133,7 @@ export async function seedLoadTestData(): Promise<BookingLoadFixture> {
     );
 
     const fixturePayload: BookingLoadFixture = {
-      targetUrl:
-        process.env["TARGET_URL"] ?? `http://127.0.0.1:${String(env.PORT)}`,
+      targetUrl: env.TARGET_URL,
       showId: show.id,
       targetSeatId,
       otherSeatIds,
@@ -144,7 +141,7 @@ export async function seedLoadTestData(): Promise<BookingLoadFixture> {
       users,
     };
 
-    const fixturesDir = path.resolve(import.meta.dir, "fixtures");
+    const fixturesDir = path.resolve(process.cwd(), "dist");
     await fs.mkdir(fixturesDir, { recursive: true });
 
     const fixtureFilePath = path.join(fixturesDir, "booking-fixtures.json");

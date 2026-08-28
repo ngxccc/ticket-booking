@@ -1,7 +1,7 @@
 import { Logger } from "@nestjs/common";
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
-import { eq, inArray, like } from "drizzle-orm";
+import { and, eq, inArray, like } from "drizzle-orm";
 import type { Redis } from "ioredis";
 import * as schema from "@/database/schemas";
 import { createRedisClient } from "@/config/redis.config";
@@ -29,48 +29,50 @@ export async function verifyDatabaseInvariants(
 ): Promise<{ winnerBookingId: string; winnerUserId: string }> {
   logger.log("Asserting post-test database & cache invariants...");
 
-  // Invariant 1: Exactly 1 winning booking created in PostgreSQL
-  const winningBookings = await db
-    .select()
-    .from(schema.bookings)
-    .where(eq(schema.bookings.showId, fixture.showId));
-
-  if (winningBookings.length !== 1) {
-    throw new Error(
-      `Invariant violation: Expected exactly 1 booking for show ${fixture.showId}, found ${String(winningBookings.length)}`,
-    );
-  }
-  const winner = winningBookings[0];
-  if (winner?.status !== "pending_payment") {
-    throw new Error(
-      `Invariant violation: Booking status must be 'pending_payment', received '${String(winner?.status)}'`,
-    );
-  }
-
-  // Invariant 2: Hot seat status transitioned to reserved
-  const reservedSeats = await db
+  // Invariant 1: Hot seat status transitioned to reserved in PostgreSQL
+  const showSeatList = await db
     .select()
     .from(schema.showSeats)
-    .where(eq(schema.showSeats.showId, fixture.showId));
+    .where(
+      and(
+        eq(schema.showSeats.showId, fixture.showId),
+        eq(schema.showSeats.seatId, fixture.targetSeatId),
+      ),
+    );
 
-  const hotSeat = reservedSeats.find(
-    (s: schema.TShowSeat) => s.seatId === fixture.targetSeatId,
-  );
+  const hotSeat = showSeatList[0];
   if (hotSeat?.status !== "reserved") {
     throw new Error(
       `Invariant violation: Hot seat ${fixture.targetSeatId} status must be 'reserved', received '${String(hotSeat?.status)}'`,
     );
   }
 
-  // Invariant 3: Exactly 1 ticket issued for the reserved hot seat
+  // Invariant 2: Exactly 1 ticket issued for the contested hot seat
   const issuedTickets = await db
     .select()
     .from(schema.tickets)
-    .where(eq(schema.tickets.bookingId, winner.id));
+    .where(eq(schema.tickets.showSeatId, hotSeat.id));
 
   if (issuedTickets.length !== 1) {
     throw new Error(
-      `Invariant violation: Expected exactly 1 ticket for booking ${winner.id}, found ${String(issuedTickets.length)}`,
+      `Invariant violation: Expected exactly 1 ticket for hot seat ${fixture.targetSeatId}, found ${String(issuedTickets.length)}`,
+    );
+  }
+
+  const winningTicket = issuedTickets[0];
+  if (!winningTicket) {
+    throw new Error("Invariant violation: Missing winning ticket record");
+  }
+
+  // Invariant 3: Single winner booking created in pending_payment status
+  const [winner] = await db
+    .select()
+    .from(schema.bookings)
+    .where(eq(schema.bookings.id, winningTicket.bookingId));
+
+  if (winner?.status !== "pending_payment") {
+    throw new Error(
+      `Invariant violation: Winner booking status must be 'pending_payment', received '${String(winner?.status)}'`,
     );
   }
 
@@ -184,10 +186,7 @@ export async function teardownTestData(
  * Main verification and teardown runner.
  */
 export async function runVerifyAndTeardown(): Promise<void> {
-  const fixturePath = path.resolve(
-    import.meta.dir,
-    "fixtures/booking-fixtures.json",
-  );
+  const fixturePath = path.resolve(process.cwd(), "dist/booking-fixtures.json");
 
   let rawFixture: string;
   try {

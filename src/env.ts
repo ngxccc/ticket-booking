@@ -71,8 +71,11 @@ export const env = createEnv({
 
     // Shows configuration
     SHOW_CREATION_MIN_LEAD_MINUTES: z.coerce.number().default(10),
-  },
 
+    // Load Testing configuration
+    VUS: z.coerce.number().default(500),
+    TARGET_URL: robustUrlSchema.catch("http://127.0.0.1:3000"),
+  },
   runtimeEnv: {
     PORT: process.env["PORT"],
     DOMAIN_NAME: process.env["DOMAIN_NAME"],
@@ -98,8 +101,9 @@ export const env = createEnv({
     PAYOS_CHECKSUM_KEY: process.env["PAYOS_CHECKSUM_KEY"],
     SHOW_CREATION_MIN_LEAD_MINUTES:
       process.env["SHOW_CREATION_MIN_LEAD_MINUTES"],
+    VUS: process.env["VUS"],
+    TARGET_URL: process.env["TARGET_URL"],
   },
-
   emptyStringAsUndefined: true,
   skipValidation:
     !!process.env["SKIP_ENV_VALIDATION"] || process.env.NODE_ENV === "test",
