@@ -55,7 +55,7 @@ jobs:
         run: bun run check-types
 
       - name: Run Unit Tests
-        run: bun run test
+        run: bun run test:cov
 
       - name: Install Doppler CLI
         uses: dopplerhq/cli-action@v4
