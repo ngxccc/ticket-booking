@@ -21,6 +21,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
+          --mount type=tmpfs,destination=/var/lib/postgresql/data,tmpfs-size=1073741824
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
@@ -31,6 +32,7 @@ jobs:
         ports:
           - 6379:6379
         options: >-
+          --mount type=tmpfs,destination=/data,tmpfs-size=536870912
           --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s
@@ -70,5 +72,5 @@ jobs:
           if [ -n "${DOPPLER_TOKEN:-}" ]; then
             bun run test:e2e
           else
-            env NODE_ENV=test bun test test/ --max-concurrency=1
+            env NODE_ENV=test bun test test/
           fi
