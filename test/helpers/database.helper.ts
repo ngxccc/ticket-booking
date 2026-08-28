@@ -27,11 +27,6 @@ export function generateWorkerSchemaName(): string {
 }
 
 /**
- * Creates a PostgreSQL connection pool configured for the test environment.
- *
- * @param overrides - Optional connection pool configuration overrides
- */
-/**
  * Normalizes the test database URL by unpooling cloud endpoints and mapping SSL modes.
  */
 export function getNormalizedTestDbUrl(): string | undefined {
@@ -42,6 +37,11 @@ export function getNormalizedTestDbUrl(): string | undefined {
   );
 }
 
+/**
+ * Creates a PostgreSQL connection pool configured for the test environment.
+ *
+ * @param overrides - Optional connection pool configuration overrides
+ */
 export function createTestPool(overrides?: PoolConfig): Pool {
   const dbUrl = getNormalizedTestDbUrl();
   return dbUrl
@@ -140,10 +140,10 @@ export async function teardownWorkerTestDatabase(
   ctx: TestDatabaseContext,
   existingAdminPool?: Pool,
 ): Promise<void> {
-  // 1. Close worker connection pool gracefully to release all open client sockets
+  // Close worker connection pool gracefully to release all open client sockets
   await ctx.pool.end().catch(() => undefined);
 
-  // 2. Drop the isolated schema using an admin pool connection
+  // Drop the isolated schema using an admin pool connection
   const adminPool = existingAdminPool ?? createTestPool();
   const shouldCloseAdminPool = !existingAdminPool;
 
