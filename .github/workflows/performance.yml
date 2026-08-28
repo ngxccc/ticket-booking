@@ -27,7 +27,7 @@ jobs:
       REDIS_URL: redis://localhost:6379
       PORT: "3000"
       TARGET_URL: "http://127.0.0.1:3000"
-
+      VUS: ${{ github.event.inputs.vus || '2000' }}
     services:
       postgres:
         image: postgres:18-alpine
@@ -86,15 +86,20 @@ jobs:
           doppler run --preserve-env="true" -c stg -- bun dist/main.js &
           APP_PID=$!
           echo "APP_PID=$APP_PID" >> $GITHUB_ENV
+          ready=false
           for i in {1..30}; do
-            if curl -s "$TARGET_URL" > /dev/null 2>&1 || curl -s "$TARGET_URL/" > /dev/null 2>&1; then
+            if curl -s -f "$TARGET_URL" > /dev/null 2>&1; then
               echo "NestJS application is healthy and ready on $TARGET_URL!"
+              ready=true
               break
             fi
             echo "Waiting for app readiness... ($i/30)"
             sleep 1
           done
-
+          if [ "$ready" = false ]; then
+            echo "Error: NestJS application failed to become ready within 30 seconds."
+            exit 1
+          fi
       - name: Execute k6 Concurrency Stress Test
         run: bun run test:load:run
 
