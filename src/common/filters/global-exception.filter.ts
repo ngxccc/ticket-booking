@@ -1,3 +1,4 @@
+import { SentryService } from "@/common/services/sentry.service";
 import {
   type ArgumentsHost,
   Catch,
@@ -24,6 +25,7 @@ export interface Rfc9457ErrorResponse {
   status: number;
   detail: string;
   instance: string;
+  eventId?: string;
   invalidParams: InvalidParam[];
   timestamp: string;
 }
@@ -38,7 +40,10 @@ function isRecordObject(res: unknown): res is Record<string, unknown> {
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(GlobalExceptionFilter.name);
 
-  constructor(@Optional() private readonly i18n?: I18nService) {}
+  constructor(
+    @Optional() private readonly i18n?: I18nService,
+    @Optional() private readonly sentryService?: SentryService,
+  ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -120,6 +125,45 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       }
     }
 
+    let eventId: string | undefined;
+
+    // Zero-noise telemetry: Capture 5xx server errors and unhandled exceptions in Sentry while filtering standard 4xx client errors.
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      const user = (
+        request as unknown as {
+          user?: { id?: string; email?: string; role?: string };
+        }
+      ).user;
+
+      eventId = this.sentryService?.captureException(exception, {
+        tags: {
+          statusCode: String(status),
+          method: request.method,
+          path: request.url,
+          title,
+        },
+        extra: {
+          url: request.url,
+          ip: request.ip,
+          headers: {
+            host: request.get("host"),
+            userAgent: request.get("user-agent"),
+          },
+        },
+        user: user
+          ? { id: user.id, email: user.email, role: user.role }
+          : undefined,
+      });
+    } else {
+      // Record breadcrumb for 4xx errors without triggering Sentry alerts or consuming error quota.
+      this.sentryService?.addBreadcrumb({
+        category: "http.client_error",
+        message: `${request.method} ${request.url} [${String(status)}] ${title}`,
+        level: "warning",
+        data: { status, title, detail },
+      });
+    }
+
     const hostHeader = request.get("host") ?? "localhost";
     const typeUri = `${request.protocol}://${hostHeader}/errors/${title.toLowerCase().replace(/\s+/g, "-")}`;
     response
@@ -131,6 +175,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         status,
         detail,
         instance: request.url,
+        ...(eventId ? { eventId } : {}),
         invalidParams,
         timestamp: new Date().toISOString(),
       });

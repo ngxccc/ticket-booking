@@ -1,4 +1,5 @@
-import { describe, expect, it, mock, beforeEach } from "bun:test";
+import type { SentryService } from "../services/sentry.service";
+import { describe, expect, it, mock, beforeEach, spyOn } from "bun:test";
 import {
   BadRequestException,
   UnauthorizedException,
@@ -23,6 +24,10 @@ describe("GlobalExceptionFilter", () => {
 
   beforeEach(() => {
     filter = new GlobalExceptionFilter();
+    spyOn(
+      (filter as unknown as { logger: { error: () => void } }).logger,
+      "error",
+    ).mockImplementation(() => undefined);
     mockResponse = {} as unknown as typeof mockResponse;
     mockResponse.status = mock().mockReturnValue(mockResponse);
     mockResponse.setHeader = mock().mockReturnValue(mockResponse);
@@ -161,8 +166,11 @@ describe("GlobalExceptionFilter", () => {
       const i18nFilter = new GlobalExceptionFilter(
         mockI18n as unknown as I18nService,
       );
+      spyOn(
+        (i18nFilter as unknown as { logger: { error: () => void } }).logger,
+        "error",
+      ).mockImplementation(() => undefined);
       i18nFilter.catch(new Error("Database boom"), mockArgumentsHost);
-
       expect(mockI18n.translate).toHaveBeenCalledWith(
         "common.INTERNAL_SERVER_ERROR",
         { lang: undefined },
@@ -258,6 +266,78 @@ describe("GlobalExceptionFilter", () => {
           title: "Gateway Timeout",
           status: 504,
           detail: "The database or downstream service timed out. Please retry.",
+        }),
+      );
+    });
+  });
+
+  describe("when integrating with Sentry observability", () => {
+    it("should capture 5xx server exceptions in Sentry and bind eventId to RFC 9457 response", () => {
+      const captureExceptionMock = mock(
+        (): string | undefined => "mock-sentry-event-id",
+      );
+      const addBreadcrumbMock = mock(() => undefined);
+      const mockSentryService = {
+        captureException: captureExceptionMock,
+        addBreadcrumb: addBreadcrumbMock,
+      } as unknown as SentryService;
+
+      const filterWithSentry = new GlobalExceptionFilter(
+        undefined,
+        mockSentryService,
+      );
+      spyOn(
+        (filterWithSentry as unknown as { logger: { error: () => void } })
+          .logger,
+        "error",
+      ).mockImplementation(() => undefined);
+      const fatalError = new Error("Database connection dropped");
+      filterWithSentry.catch(fatalError, mockArgumentsHost);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+      expect(captureExceptionMock).toHaveBeenCalledTimes(1);
+      const captureCalls = captureExceptionMock.mock.calls as unknown as [
+        unknown,
+        {
+          tags?: Record<string, string | undefined>;
+          extra?: Record<string, unknown>;
+        },
+      ][];
+      expect(captureCalls[0]?.[0]).toBe(fatalError);
+      expect(captureCalls[0]?.[1]?.tags?.["statusCode"]).toBe("500");
+
+      const jsonCalls = mockResponse.json.mock.calls as unknown as [
+        Record<string, unknown>,
+      ][];
+      expect(jsonCalls[0]?.[0]?.["status"]).toBe(500);
+      expect(jsonCalls[0]?.[0]?.["eventId"]).toBe("mock-sentry-event-id");
+    });
+
+    it("should strictly filter 4xx client errors from Sentry alerts to prevent noise while recording breadcrumbs", () => {
+      const captureExceptionMock = mock((): string | undefined => undefined);
+      const addBreadcrumbMock = mock(() => undefined);
+      const mockSentryService = {
+        captureException: captureExceptionMock,
+        addBreadcrumb: addBreadcrumbMock,
+      } as unknown as SentryService;
+
+      const filterWithSentry = new GlobalExceptionFilter(
+        undefined,
+        mockSentryService,
+      );
+      const clientError = new BadRequestException("Invalid input");
+
+      filterWithSentry.catch(clientError, mockArgumentsHost);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
+      expect(captureExceptionMock).not.toHaveBeenCalled();
+      expect(addBreadcrumbMock).toHaveBeenCalledTimes(1);
+      expect(addBreadcrumbMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          category: "http.client_error",
+          level: "warning",
         }),
       );
     });
