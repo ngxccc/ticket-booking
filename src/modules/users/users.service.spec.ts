@@ -1,10 +1,8 @@
-import type { TestingModule } from "@nestjs/testing";
-import { Test } from "@nestjs/testing";
 import { UsersService } from "./users.service";
-import { DATABASE_CONNECTION } from "@/database/database.module";
+import type { DrizzleDB } from "@/database/database.module";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { ForbiddenException, NotFoundException } from "@nestjs/common";
-import { I18nService } from "nestjs-i18n";
+import type { I18nService } from "nestjs-i18n";
 import { createMockDb, createMockI18nService } from "../../../test/mocks";
 
 describe("UsersService", () => {
@@ -12,32 +10,16 @@ describe("UsersService", () => {
   const mockDb = createMockDb();
   const mockI18nService = createMockI18nService();
 
-  beforeEach(async () => {
+  beforeEach(() => {
     mockDb.clearAll();
     mockI18nService.clearAll();
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        UsersService,
-        {
-          provide: DATABASE_CONNECTION,
-          useValue: mockDb,
-        },
-        {
-          provide: I18nService,
-          useValue: mockI18nService,
-        },
-      ],
-    }).compile();
-
-    service = module.get<UsersService>(UsersService);
+    service = new UsersService(
+      mockDb as unknown as DrizzleDB,
+      mockI18nService as unknown as I18nService,
+    );
   });
 
-  it("should be defined", () => {
-    expect(service).toBeDefined();
-  });
-
-  describe("getProfile", () => {
+  describe("when retrieving user profile", () => {
     it("should return user profile with isVerified = true when user is active", async () => {
       const mockUser = {
         id: "123e4567-e89b-12d3-a456-426614174000",

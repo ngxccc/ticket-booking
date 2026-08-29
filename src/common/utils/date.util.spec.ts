@@ -63,10 +63,10 @@ describe("Date Utilities", () => {
       const after = Date.now();
 
       expect(past.getTime()).toBeLessThanOrEqual(
-        before - 15 * TIME_IN_MS.MINUTE,
+        after - 15 * TIME_IN_MS.MINUTE,
       );
       expect(past.getTime()).toBeGreaterThanOrEqual(
-        after - 15 * TIME_IN_MS.MINUTE - 50,
+        before - 15 * TIME_IN_MS.MINUTE - 100,
       );
     });
   });

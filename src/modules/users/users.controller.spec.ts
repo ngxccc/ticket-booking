@@ -1,9 +1,5 @@
-import type { TestingModule } from "@nestjs/testing";
-import { Test } from "@nestjs/testing";
 import { UsersController } from "./users.controller";
-import { UsersService } from "./users.service";
-import { CustomThrottlerGuard } from "@/common/guards/throttler.guard";
-import { JwtAuthGuard } from "@/common/guards/jwt-auth.guard";
+import type { UsersService } from "./users.service";
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { UserResponseDto } from "./dto/user-response.dto";
 
@@ -26,31 +22,20 @@ describe("UsersController", () => {
     },
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     mockUsersService.clearAll();
-
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [UsersController],
-      providers: [
-        {
-          provide: UsersService,
-          useValue: mockUsersService,
-        },
-      ],
-    })
-      .overrideGuard(CustomThrottlerGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
-    controller = module.get<UsersController>(UsersController);
+    controller = new UsersController(
+      mockUsersService as unknown as UsersService,
+    );
   });
 
-  it("should be defined", () => {
-    expect(controller).toBeDefined();
+  describe("when initializing users controller", () => {
+    it("should instantiate UsersController correctly", () => {
+      expect(controller).toBeDefined();
+    });
   });
 
-  describe("getMe", () => {
+  describe("when retrieving current user profile with getMe", () => {
     it("should return apiSuccess wrapped user profile", async () => {
       const userId = "123e4567-e89b-12d3-a456-426614174000";
       const result = await controller.getMe(userId);

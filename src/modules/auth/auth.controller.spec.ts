@@ -1,10 +1,6 @@
-import type { TestingModule } from "@nestjs/testing";
-import { Test } from "@nestjs/testing";
 import type { Request } from "express";
 import { AuthController } from "./auth.controller";
-import { AuthService } from "./auth.service";
-import { CustomThrottlerGuard } from "@/common/guards/throttler.guard";
-import { JwtAuthGuard } from "@/common/guards/jwt-auth.guard";
+import type { AuthService } from "./auth.service";
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type {
   RegisterDto,
@@ -52,7 +48,7 @@ describe("AuthController", () => {
     ),
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     mockAuthService.register.mockClear();
     mockAuthService.login.mockClear();
     mockAuthService.refreshToken.mockClear();
@@ -63,23 +59,9 @@ describe("AuthController", () => {
     mockAuthService.resendVerificationEmail.mockClear();
     mockAuthService.changePassword.mockClear();
     mockAuthService.logoutAll.mockClear();
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [AuthController],
-      providers: [
-        {
-          provide: AuthService,
-          useValue: mockAuthService,
-        },
-      ],
-    })
-      .overrideGuard(CustomThrottlerGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
 
-    controller = module.get<AuthController>(AuthController);
-    authService = module.get<AuthService>(AuthService);
+    controller = new AuthController(mockAuthService as unknown as AuthService);
+    authService = mockAuthService as unknown as AuthService;
   });
 
   it("should be defined", () => {
