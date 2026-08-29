@@ -82,7 +82,7 @@ We decided to establish a 4-tier Load & Stress Testing Architecture:
 
 ---
 
-## Explicit Tradeoffs
+### Explicit Tradeoffs
 
 - **Offline Token Signing vs HTTP Login**: Offline signing eliminates Auth CPU exhaustion during load tests, sacrificing realistic Auth endpoint traffic in exchange for pure focus on Booking concurrency.
 - **`per-vu-iterations` vs `ramping-vus`**: Choosing `per-vu-iterations` forces instantaneous microsecond lock collisions at $t=0$, which is essential for testing race conditions, rather than gradual traffic modeling.
