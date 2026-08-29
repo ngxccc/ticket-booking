@@ -16,6 +16,9 @@ runs:
         restore-keys: |
           ${{ runner.os }}-bun-
 
+    - name: Install Doppler CLI
+      uses: dopplerhq/cli-action@v4
+
     - name: Install Dependencies
       run: bun install --frozen-lockfile
       shell: bash
