@@ -10,6 +10,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-316192?logo=postgresql&logoColor=white)](https://www.postgresql.org)
 [![Redis](https://img.shields.io/badge/Redis-8.0-DC382D?logo=redis&logoColor=white)](https://redis.io)
 [![Scalar API Docs](https://img.shields.io/badge/Scalar_UI-OpenAPI_3.1-00B4D8)](https://scalar.com)
+[![Sentry](https://img.shields.io/badge/Sentry-Observability-362D59?logo=sentry&logoColor=white)](https://sentry.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </div>
@@ -25,6 +26,7 @@
 - **Transactional Outbox Event Relay**: Decouples database transactions from async tasks (BullMQ + Resend emails) with 5-second polling workers and 10-minute automated seat cleanup.
 - **PayOS Webhook & Idempotency**: HMAC-SHA256 signature verification with 5-minute anti-replay windows and Redis-backed `Idempotency-Key` guards.
 - **Automated K6 Concurrency Suite**: Multi-scenario stress testing (`hot_seat_burst`, `rate_limit_abuse`) simulating 500-2,000 concurrent VUs with offline JWT signing (`SharedArray`) and post-test DB invariant verification.
+- **Enterprise Observability & Zero-Noise Filtering**: Integrated Sentry APM with automated PII masking, 4xx/5xx noise separation, closed-loop RFC 9457 `eventId` propagation, and Outbox dead-letter queue alerting.
 
 ---
 
@@ -129,19 +131,22 @@ Micro-benchmarks executed on the Bun runtime measuring latency distribution perc
 
 Strictly validated on boot via Zod schema (`src/env.ts`):
 
-| Variable                                       | Required | Default                 | Purpose                                |
-| :--------------------------------------------- | :------- | :---------------------- | :------------------------------------- |
-| `PORT`                                         | No       | `3000`                  | HTTP port                              |
-| `DB_URL`                                       | No       | _Local DSN_             | PostgreSQL connection string           |
-| `REDIS_URL`                                    | No       | `localhost:6379`        | Redis connection string                |
-| `JWT_SECRET`                                   | **Yes**  | _None_                  | JWT signing key (min 32 chars)         |
-| `JWT_ACCESS_EXPIRES_IN`                        | No       | `15m`                   | Access token TTL                       |
-| `JWT_REFRESH_EXPIRES_IN`                       | No       | `7d`                    | Refresh token TTL                      |
-| `PAYOS_CLIENT_ID` / `API_KEY` / `CHECKSUM_KEY` | **Yes**  | _None_                  | PayOS merchant credentials             |
-| `RESEND_API_KEY`                               | **Yes**  | _None_                  | Transactional email API key            |
-| `SHOW_CREATION_MIN_LEAD_MINUTES`               | No       | `10`                    | Minimum lead time for scheduling shows |
-| `VUS`                                          | No       | `500`                   | Virtual Users for load testing         |
-| `TARGET_URL`                                   | No       | `http://127.0.0.1:3000` | Target URL for load test suite         |
+| Variable                                       | Required | Default                 | Purpose                                     |
+| :--------------------------------------------- | :------- | :---------------------- | :------------------------------------------ |
+| `PORT`                                         | No       | `3000`                  | HTTP port                                   |
+| `DB_URL`                                       | No       | _Local DSN_             | PostgreSQL connection string                |
+| `REDIS_URL`                                    | No       | `localhost:6379`        | Redis connection string                     |
+| `JWT_SECRET`                                   | **Yes**  | _None_                  | JWT signing key (min 32 chars)              |
+| `JWT_ACCESS_EXPIRES_IN`                        | No       | `15m`                   | Access token TTL                            |
+| `JWT_REFRESH_EXPIRES_IN`                       | No       | `7d`                    | Refresh token TTL                           |
+| `PAYOS_CLIENT_ID` / `API_KEY` / `CHECKSUM_KEY` | **Yes**  | _None_                  | PayOS merchant credentials                  |
+| `RESEND_API_KEY`                               | **Yes**  | _None_                  | Transactional email API key                 |
+| `SHOW_CREATION_MIN_LEAD_MINUTES`               | No       | `10`                    | Minimum lead time for scheduling shows      |
+| `VUS`                                          | No       | `500`                   | Virtual Users for load testing              |
+| `TARGET_URL`                                   | No       | `http://127.0.0.1:3000` | Target URL for load test suite              |
+| `SENTRY_DSN`                                   | No       | _None_                  | Sentry Data Source Name for error reporting |
+| `SENTRY_ENVIRONMENT`                           | No       | `development`           | Deployment environment tag for Sentry       |
+| `SENTRY_TRACES_SAMPLE_RATE`                    | No       | `1.0`                   | Dynamic performance tracing sample rate     |
 
 ---
 
@@ -173,6 +178,7 @@ bun run db:baseline      # Verify database baseline across environments
 bun test                 # Run unit tests
 bun run test:watch       # Run unit tests in watch mode
 bun run test:cov         # Run unit tests with code coverage
+bun run test:ci          # Run unit tests with coverage & JUnit report output
 bun run test:e2e         # Run integration tests against PostgreSQL & Redis
 bun run test:bench       # Run micro-benchmark performance runner
 bun run test:load        # Run end-to-end k6 concurrency & stress testing suite
