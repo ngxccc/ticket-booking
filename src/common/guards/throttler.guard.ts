@@ -6,30 +6,51 @@ import { ERROR_MESSAGES } from "@/common/constants/error.constant";
 import type { I18nTranslations } from "@/generated/i18n.generated";
 import { env } from "@/env";
 
+/**
+ * Custom rate limiting guard with fail-open resilience and localized 429 error payloads.
+ */
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
+  /**
+   * Evaluates request rate limits in production with a bounded 2-second safety timeout.
+   *
+   * @param context Execution context of the incoming HTTP request
+   * @returns true if allowed or failed open; throws HttpException on rate limit exceed
+   */
   override async canActivate(context: ExecutionContext): Promise<boolean> {
-    // WHY: Disable rate limiting in development/test modes to allow E2E and Postman testing without triggering 429 errors.
+    // Disable rate limiting in non-production environments to avoid blocking automated tests and developer tooling.
     if (env.NODE_ENV !== "production") {
       return true;
     }
 
-    // WHY: Safety timeout (2s) to prevent Redis connection stalls or offline command queues from hanging HTTP requests (Cloudflare 524).
+    // Bounded 2-second timeout protects incoming HTTP requests from hanging indefinitely if Redis stalls or goes offline.
     try {
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => {
-          reject(new Error("Rate limiting check timed out"));
-        }, 2000),
-      );
-      return await Promise.race([super.canActivate(context), timeoutPromise]);
+      const { promise: timeoutPromise, reject } =
+        Promise.withResolvers<never>();
+      const timer = setTimeout(() => {
+        reject(new Error("Rate limiting check timed out"));
+      }, 2000);
+      return await Promise.race([
+        super.canActivate(context).finally(() => {
+          clearTimeout(timer);
+        }),
+        timeoutPromise,
+      ]);
     } catch (err) {
       if (err instanceof HttpException) {
         throw err;
       }
-      // WHY: Fail-open strategy if Redis rate-limiter is offline or timing out, prioritizing API availability over rate limiting.
+      // Fail-open resilience: prioritize API availability over strict rate limiting when Redis storage encounters network or timeout faults.
       return true;
     }
   }
+
+  /**
+   * Formats localized HTTP 429 Too Many Requests exception payload.
+   *
+   * @param _context Execution context
+   * @param _throttlerLimitDetail Throttler limit details
+   */
   protected override throwThrottlingException(
     _context: ExecutionContext,
     _throttlerLimitDetail: ThrottlerLimitDetail,

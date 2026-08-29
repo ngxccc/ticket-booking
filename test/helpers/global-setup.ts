@@ -1,3 +1,5 @@
+import "@nestjs/core";
+import "@nestjs/testing";
 import type { Pool } from "pg";
 import { env } from "@/env";
 import { TIME_IN_MS } from "@/common/constants/time.constant";
@@ -5,11 +7,12 @@ import { createTestPool, dropTestSchema } from "./database.helper";
 import { Logger } from "@nestjs/common";
 import { spyOn } from "bun:test";
 
-// Suppress intentional NestJS error/warning log noise during negative unit test suites.
+// Suppress intentional NestJS log noise during unit test suites to keep terminal output clean.
 spyOn(Logger.prototype, "error").mockImplementation(() => undefined);
 spyOn(Logger.prototype, "warn").mockImplementation(() => undefined);
 spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
-
+spyOn(Logger.prototype, "debug").mockImplementation(() => undefined);
+spyOn(Logger.prototype, "verbose").mockImplementation(() => undefined);
 export const ORPHAN_SCHEMA_MAX_AGE_MS = TIME_IN_MS.HOUR;
 
 /**
@@ -44,7 +47,7 @@ export async function cleanupOrphanTestSchemas(pool: Pool): Promise<void> {
  * Fails open gracefully if the database is unreachable (e.g. during unit test runs).
  */
 export async function setupGlobalTestEnvironment(): Promise<void> {
-  if (env.NODE_ENV !== "test") return;
+  if (env.NODE_ENV !== "test" || !env.DB_URL) return;
 
   let pool: Pool | undefined;
 

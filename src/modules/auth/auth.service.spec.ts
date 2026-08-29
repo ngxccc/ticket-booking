@@ -1,16 +1,14 @@
-import type { TestingModule } from "@nestjs/testing";
-import { Test } from "@nestjs/testing";
 import { AuthService } from "./auth.service";
-import { DATABASE_CONNECTION } from "@/database/database.module";
+import type { DrizzleDB } from "@/database/database.module";
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import {
   BadRequestException,
   ConflictException,
   UnauthorizedException,
 } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
+import type { JwtService } from "@nestjs/jwt";
 import type { RegisterDto } from "./dto";
-import { I18nService } from "nestjs-i18n";
+import type { I18nService } from "nestjs-i18n";
 import { createMockDb, createMockI18nService } from "../../../test/mocks";
 import { hashPassword } from "@/common/utils/crypto.util";
 import { OUTBOX_EVENT_TYPE } from "@/common/constants/event.constant";
@@ -31,30 +29,16 @@ describe("AuthService", () => {
     },
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     mockDb.clearAll();
     mockI18nService.clearAll();
     mockJwtService.clearAll();
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        AuthService,
-        {
-          provide: DATABASE_CONNECTION,
-          useValue: mockDb,
-        },
-        {
-          provide: I18nService,
-          useValue: mockI18nService,
-        },
-        {
-          provide: JwtService,
-          useValue: mockJwtService,
-        },
-      ],
-    }).compile();
-
-    service = module.get<AuthService>(AuthService);
+    service = new AuthService(
+      mockDb as unknown as DrizzleDB,
+      mockI18nService as unknown as I18nService,
+      mockJwtService as unknown as JwtService,
+    );
   });
 
   it("should be defined", () => {
