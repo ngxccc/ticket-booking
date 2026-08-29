@@ -48,23 +48,20 @@ jobs:
       - name: Setup Environment
         uses: ./.github/setup-environment
 
-      - name: Run Linting
-        run: bun run lint
+      - name: Database Migrations
+        run: bun run db:migrate stg
 
-      - name: Run Type-Checking
-        run: bun run check-types
-
-      - name: Run Unit Tests
+      - name: Unit Tests
         run: bun run test:cov
 
-      - name: Install Doppler CLI
-        uses: dopplerhq/cli-action@v4
+      - name: E2E Tests
+        run: bun run test:e2e
 
-      - name: Run Database Migrations
-        run: doppler run --preserve-env="true" -c stg -- bun drizzle-kit migrate --config drizzle.config.ts
+      - name: Linting
+        run: bun run lint
+
+      - name: Type-Checking
+        run: bun run check-types
 
       - name: Build Application
         run: bun run build
-
-      - name: Run E2E Tests
-        run: doppler run --preserve-env="true" -c stg -- bun test test/
