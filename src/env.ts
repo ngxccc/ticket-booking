@@ -75,6 +75,11 @@ export const env = createEnv({
     // Load Testing configuration
     VUS: z.coerce.number().default(500),
     TARGET_URL: robustUrlSchema.catch("http://127.0.0.1:3000"),
+
+    // Sentry configuration
+    SENTRY_DSN: z.string().optional().catch(undefined),
+    SENTRY_ENVIRONMENT: z.string().optional().catch(undefined),
+    SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(1.0),
   },
   runtimeEnv: {
     PORT: process.env["PORT"],
@@ -103,6 +108,9 @@ export const env = createEnv({
       process.env["SHOW_CREATION_MIN_LEAD_MINUTES"],
     VUS: process.env["VUS"],
     TARGET_URL: process.env["TARGET_URL"],
+    SENTRY_DSN: process.env["SENTRY_DSN"],
+    SENTRY_ENVIRONMENT: process.env["SENTRY_ENVIRONMENT"],
+    SENTRY_TRACES_SAMPLE_RATE: process.env["SENTRY_TRACES_SAMPLE_RATE"],
   },
   emptyStringAsUndefined: true,
   skipValidation:
