@@ -36,12 +36,17 @@ jobs:
     env:
       DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Environment
+        uses: ./.github/setup-environment
+
       - name: Migrate Production Database
         run: bun run db:migrate prd
 
       - name: Call Render Deploy Hook
         run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
-
   #   env:
   #     TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.CF_CLIENT_ID }}
   #     TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.CF_CLIENT_SECRET }}
