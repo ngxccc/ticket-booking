@@ -6,6 +6,7 @@ import {
   sampleTraceTransaction,
   isSensitiveKey,
   sanitizeSensitiveData,
+  shouldDropBreadcrumb,
 } from "./sentry.service";
 import * as Sentry from "@sentry/nestjs";
 import type { Scope } from "@sentry/nestjs";
@@ -128,6 +129,90 @@ describe("SentryService", () => {
     });
   });
 
+  describe("shouldDropBreadcrumb", () => {
+    it("should return true when category is db.query and message is begin or commit", () => {
+      expect(
+        shouldDropBreadcrumb({
+          category: SENTRY_BREADCRUMB_CATEGORY.DB_QUERY,
+          message: "begin",
+        }),
+      ).toBe(true);
+      expect(
+        shouldDropBreadcrumb({
+          category: SENTRY_BREADCRUMB_CATEGORY.DB_QUERY,
+          message: "commit",
+        }),
+      ).toBe(true);
+    });
+
+    it("should return true when category is db.query and message is outbox background polling", () => {
+      expect(
+        shouldDropBreadcrumb({
+          category: SENTRY_BREADCRUMB_CATEGORY.DB_QUERY,
+          message:
+            'select "id", "event_type", "payload", "attempts" from "outbox_events" where "outbox_events"."status" = $1 limit $2 for update skip locked',
+        }),
+      ).toBe(true);
+    });
+
+    it("should return true when category is db.query and message is token cleanup cron query", () => {
+      expect(
+        shouldDropBreadcrumb({
+          category: SENTRY_BREADCRUMB_CATEGORY.DB_QUERY,
+          message:
+            'delete from "refresh_tokens" where "refresh_tokens"."expires_at" < $1',
+        }),
+      ).toBe(true);
+    });
+
+    it("should return false when category is db.query and message is an authentication refresh_tokens query", () => {
+      expect(
+        shouldDropBreadcrumb({
+          category: SENTRY_BREADCRUMB_CATEGORY.DB_QUERY,
+          message:
+            'delete from "refresh_tokens" where "refresh_tokens"."token_hash" = $1 returning "id"',
+        }),
+      ).toBe(false);
+      expect(
+        shouldDropBreadcrumb({
+          category: SENTRY_BREADCRUMB_CATEGORY.DB_QUERY,
+          message:
+            'delete from "refresh_tokens" where "refresh_tokens"."user_id" = $1',
+        }),
+      ).toBe(false);
+      expect(
+        shouldDropBreadcrumb({
+          category: SENTRY_BREADCRUMB_CATEGORY.DB_QUERY,
+          message:
+            'insert into "refresh_tokens" ("user_id", "token_hash") values ($1, $2)',
+        }),
+      ).toBe(false);
+    });
+
+    it("should return false when category is db.query and message is a business domain query", () => {
+      expect(
+        shouldDropBreadcrumb({
+          category: SENTRY_BREADCRUMB_CATEGORY.DB_QUERY,
+          message: 'select "id", "email" from "users" where "id" = $1',
+        }),
+      ).toBe(false);
+    });
+    it("should return false when category is not db.query", () => {
+      expect(
+        shouldDropBreadcrumb({
+          category: SENTRY_BREADCRUMB_CATEGORY.HTTP,
+          message: "GET /api/shows 200",
+        }),
+      ).toBe(false);
+      expect(
+        shouldDropBreadcrumb({
+          category: SENTRY_BREADCRUMB_CATEGORY.REDLOCK,
+          message: "Acquired lock on shows:123",
+        }),
+      ).toBe(false);
+    });
+  });
+
   describe("initSentry", () => {
     it("should safely no-op when SENTRY_DSN is absent", () => {
       const originalDsn = env.SENTRY_DSN;
@@ -201,6 +286,15 @@ describe("SentryService", () => {
         );
         expect(processedBreadcrumb?.data?.["token"]).toBe("[REDACTED]");
         expect(processedBreadcrumb?.data?.["safe"]).toBe("value");
+
+        const droppedBreadcrumb = capturedOptions.beforeBreadcrumb(
+          {
+            category: SENTRY_BREADCRUMB_CATEGORY.DB_QUERY,
+            message: "begin",
+          },
+          {},
+        );
+        expect(droppedBreadcrumb).toBeNull();
       }
 
       (env as { SENTRY_DSN?: string }).SENTRY_DSN = originalDsn;
