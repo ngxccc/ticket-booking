@@ -1,4 +1,4 @@
-import { describe, beforeEach, it, expect } from "bun:test";
+import { describe, beforeEach, it, expect, spyOn } from "bun:test";
 import { CustomThrottlerGuard } from "./throttler.guard";
 import type { ExecutionContext } from "@nestjs/common";
 import { HttpException, HttpStatus } from "@nestjs/common";
@@ -7,8 +7,10 @@ import type {
   ThrottlerStorage,
   ThrottlerLimitDetail,
 } from "@nestjs/throttler";
+import { ThrottlerGuard } from "@nestjs/throttler";
 import { Reflector } from "@nestjs/core";
 import { ERROR_MESSAGES } from "@/common/constants/error.constant";
+import { env } from "@/env";
 
 class TestCustomThrottlerGuard extends CustomThrottlerGuard {
   public override throwThrottlingException(
@@ -28,6 +30,75 @@ describe("CustomThrottlerGuard", () => {
       {} as ThrottlerStorage,
       new Reflector(),
     );
+  });
+
+  describe("canActivate", () => {
+    it("should allow request immediately in non-production environments", async () => {
+      const originalEnv = env.NODE_ENV;
+      (env as { NODE_ENV: string }).NODE_ENV = "development";
+
+      const mockContext = {} as ExecutionContext;
+      const canActivate = await guard.canActivate(mockContext);
+
+      expect(canActivate).toBe(true);
+
+      (env as { NODE_ENV: string }).NODE_ENV = originalEnv;
+    });
+
+    it("should execute rate limit check and return true in production environment when allowed", async () => {
+      const originalEnv = env.NODE_ENV;
+      (env as { NODE_ENV: string }).NODE_ENV = "production";
+
+      const superCanActivateSpy = spyOn(
+        ThrottlerGuard.prototype,
+        "canActivate",
+      ).mockResolvedValue(true);
+
+      const mockContext = {} as ExecutionContext;
+      const canActivate = await guard.canActivate(mockContext);
+
+      expect(canActivate).toBe(true);
+      superCanActivateSpy.mockRestore();
+
+      (env as { NODE_ENV: string }).NODE_ENV = originalEnv;
+    });
+
+    it("should re-throw HttpException when rate limit is exceeded in production", () => {
+      const originalEnv = env.NODE_ENV;
+      (env as { NODE_ENV: string }).NODE_ENV = "production";
+
+      const superCanActivateSpy = spyOn(
+        ThrottlerGuard.prototype,
+        "canActivate",
+      ).mockRejectedValue(
+        new HttpException("Too Many Requests", HttpStatus.TOO_MANY_REQUESTS),
+      );
+
+      const mockContext = {} as ExecutionContext;
+
+      expect(guard.canActivate(mockContext)).rejects.toThrow(HttpException);
+      superCanActivateSpy.mockRestore();
+
+      (env as { NODE_ENV: string }).NODE_ENV = originalEnv;
+    });
+
+    it("should fail-open and return true when Redis storage throws unexpected error in production", async () => {
+      const originalEnv = env.NODE_ENV;
+      (env as { NODE_ENV: string }).NODE_ENV = "production";
+
+      const superCanActivateSpy = spyOn(
+        ThrottlerGuard.prototype,
+        "canActivate",
+      ).mockRejectedValue(new Error("Redis connection dropped"));
+
+      const mockContext = {} as ExecutionContext;
+      const canActivate = await guard.canActivate(mockContext);
+
+      expect(canActivate).toBe(true);
+      superCanActivateSpy.mockRestore();
+
+      (env as { NODE_ENV: string }).NODE_ENV = originalEnv;
+    });
   });
 
   describe("throwThrottlingException", () => {

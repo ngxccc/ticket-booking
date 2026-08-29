@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 import { createHmac } from "node:crypto";
 import {
   generatePayOSOrderCode,
@@ -9,7 +9,7 @@ import {
 
 describe("PayOS Crypto & OrderCode Utilities", () => {
   describe("generatePayOSOrderCode", () => {
-    it("should generate numeric orderCodes strictly within JS Number.MAX_SAFE_INTEGER", () => {
+    it("should generate numeric orderCode within safe integer range when called", () => {
       const orderCode = generatePayOSOrderCode();
 
       expect(typeof orderCode).toBe("number");
@@ -18,7 +18,7 @@ describe("PayOS Crypto & OrderCode Utilities", () => {
       expect(orderCode).toBeLessThanOrEqual(Number.MAX_SAFE_INTEGER);
     });
 
-    it("should produce 100% collision-free unique orderCodes across rapid sequential calls", () => {
+    it("should produce collision-free unique orderCodes when called rapidly in sequence", () => {
       const TOTAL_CODES = 10000;
       const codeSet = new Set<number>();
 
@@ -27,13 +27,28 @@ describe("PayOS Crypto & OrderCode Utilities", () => {
         expect(code).toBeLessThanOrEqual(Number.MAX_SAFE_INTEGER);
         codeSet.add(code);
       }
-
       expect(codeSet.size).toBe(TOTAL_CODES);
+    });
+
+    it("should advance clock when more than 1000 orderCodes are requested in the same millisecond", () => {
+      let fakeTime = 1767225610000;
+      const dateSpy = spyOn(Date, "now").mockImplementation(() => {
+        return fakeTime;
+      });
+
+      for (let i = 0; i < 1000; i++) {
+        generatePayOSOrderCode();
+      }
+      fakeTime += 1;
+      const overflowCode = generatePayOSOrderCode();
+      expect(overflowCode).toBeGreaterThan(0);
+
+      dateSpy.mockRestore();
     });
   });
 
   describe("sortAndFormatPayloadData", () => {
-    it("should sort payload keys alphabetically and format as query string", () => {
+    it("should sort payload keys alphabetically and format as query string when data is provided", () => {
       const payload = {
         orderCode: 123456,
         amount: 200000,
@@ -43,6 +58,21 @@ describe("PayOS Crypto & OrderCode Utilities", () => {
       const formatted = sortAndFormatPayloadData(payload);
       expect(formatted).toBe(
         "amount=200000&description=Cinema ticket booking&orderCode=123456",
+      );
+    });
+
+    it("should format diverse types correctly when payload contains null, boolean, nested object, or bigint", () => {
+      const payload = {
+        emptyVal: null,
+        unsetVal: undefined,
+        isActive: true,
+        nested: { item: "ticket" },
+        bigNumber: BigInt(9007199254740991),
+      };
+
+      const formatted = sortAndFormatPayloadData(payload);
+      expect(formatted).toBe(
+        'bigNumber=9007199254740991&emptyVal=&isActive=true&nested={"item":"ticket"}&unsetVal=',
       );
     });
   });
@@ -72,7 +102,8 @@ describe("PayOS Crypto & OrderCode Utilities", () => {
         orderCode: 123456,
       };
       const checksumKey = "secret-checksum-key-12345";
-      const invalidSignature = "invalid_tampered_signature_hex_code_123456";
+      const invalidSignature =
+        "invalid_tampered_signature_hex_code_1234567890123456789012345678901234567890123456789012345678901234";
 
       const isValid = verifyPayOSSignature(
         payload,
@@ -80,6 +111,16 @@ describe("PayOS Crypto & OrderCode Utilities", () => {
         checksumKey,
       );
       expect(isValid).toBe(false);
+    });
+
+    it("should return false when signature or checksumKey is empty", () => {
+      expect(verifyPayOSSignature({ amount: 100 }, "", "key")).toBe(false);
+      expect(verifyPayOSSignature({ amount: 100 }, "sig", "")).toBe(false);
+    });
+
+    it("should return false when signature buffer length does not match calculated length", () => {
+      const payload = { amount: 100 };
+      expect(verifyPayOSSignature(payload, "short-sig", "key-123")).toBe(false);
     });
   });
 
@@ -92,6 +133,11 @@ describe("PayOS Crypto & OrderCode Utilities", () => {
     it("should return false when timestamp is older than 5 minutes", () => {
       const staleTimestamp = new Date(Date.now() - 600000).toISOString();
       expect(isPayOSTimestampValid(staleTimestamp, 300)).toBe(false);
+    });
+
+    it("should return false when transactionDateTime is empty or invalid", () => {
+      expect(isPayOSTimestampValid("")).toBe(false);
+      expect(isPayOSTimestampValid("not-a-valid-date")).toBe(false);
     });
   });
 });
