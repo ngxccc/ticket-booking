@@ -113,6 +113,15 @@ sequenceDiagram
 
 ---
 
+## Security & Test Tenant Isolation
+
+1. **Per-Worker Schema Isolation**:
+   - Parallel test workers operate within dedicated PostgreSQL schemas (`test_<uuid>`), completely isolating database state and preventing cross-worker data leakage.
+2. **Redis Key Prefix Scoping**:
+   - Redis clients in test suites are scoped with `test:${workerSchemaId}:` prefix, preventing distributed lock collisions or rate-limit contamination across parallel runners.
+
+---
+
 ## Edge Case & Anomaly Discovery Matrix
 
 | Anomaly ID | Anomaly Class           | Failure Mode                                                       | Mitigation Rule                                                                     |

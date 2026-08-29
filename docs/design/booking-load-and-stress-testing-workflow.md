@@ -168,6 +168,17 @@ export const options = {
 
 ---
 
+## Security & Test Data Isolation
+
+1. **Offline Token Signing Isolation**:
+   - Test JWT tokens are signed locally using ephemeral test users created during the seeding phase, preventing password brute-force or real user credential exposure.
+2. **Rate Limiter Bypass Protection**:
+   - Production environments strictly enforce `CustomThrottlerGuard` with Redis storage, while load testing scripts use controlled `X-Forwarded-For` injection solely to verify rate limiting thresholds under `trust proxy` configuration.
+3. **Deterministic Teardown**:
+   - Post-test verification automatically cleans up temporary shows, halls, and bookings to prevent stale test data pollution.
+
+---
+
 ## Domain Invariants & Verification Checklist
 
 - [x] **INV-1 (Single Winner)**: Under 500–2,000 concurrent reservation attempts for the exact same seat, strictly 1 request succeeds (HTTP 201).
