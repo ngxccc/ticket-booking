@@ -1,4 +1,4 @@
-name: CI (Pull Request Verification)
+name: CI
 
 on:
   pull_request:
@@ -10,10 +10,20 @@ on:
       - ".gitignore"
       - "LICENSE"
       - ".vscode/**"
+
+permissions:
+  contents: read
+  checks: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
   integration:
+    name: "Quality Gate"
+    permissions:
+      contents: read
+      checks: write
     uses: ./.github/workflows/integration.yml
     secrets: inherit

@@ -1,4 +1,4 @@
-name: CD (Deploy to Production)
+name: CD
 
 on:
   push:
@@ -13,11 +13,19 @@ on:
       - ".github/workflows/deploy.yml"
       - ".github/workflows/integration.yml"
       - ".github/setup-environment/**"
+permissions:
+  contents: read
+  checks: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   integration:
+    name: "Pre-Deploy Verification"
+    permissions:
+      contents: read
+      checks: write
     uses: ./.github/workflows/integration.yml
     secrets: inherit
   deploy:
