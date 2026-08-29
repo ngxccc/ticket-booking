@@ -24,29 +24,29 @@ In a high-throughput cinema ticket booking system, unhandled crashes, database c
 2. **PII Sanitization & Compliance**: Automatically mask credentials, tokens, cookies, and sensitive payload keys via `beforeSend` and `beforeBreadcrumb` hooks.
 3. **Closed-Loop Traceability**: Return the Sentry `eventId` inside the client RFC 9457 JSON response for 500 errors, linked directly to Pino NDJSON `requestId` and `traceId`.
 4. **Non-HTTP Background Worker Monitoring**: Capture Outbox relay worker and BullMQ queue dead-letter failures when retry attempts are exhausted.
-5. **Slow Query Profiling**: Profile SQL queries exceeding 500ms in Drizzle ORM and mark them with warning breadcrumbs.
+5. **Database Query Observability**: Capture SQL query breadcrumbs via DrizzleLogger and track end-to-end query execution latency natively via Sentry OpenTelemetry APM Spans.
 6. **Graceful Degradation**: Zero test disruption and zero local friction when `SENTRY_DSN` is empty.
 
 ---
 
 ## 2. Architecture & Work Breakdown Structure (WBS)
 
-| WBS ID  | Component / Task                           | Level             | Detailed Description                                                                       | Output / Artifact                                            |
-| :------ | :----------------------------------------- | :---------------- | :----------------------------------------------------------------------------------------- | :----------------------------------------------------------- |
-| **1.0** | **Sentry Core Infrastructure**             | **L1: Module**    | Core Sentry SDK setup, configuration & graceful fallback                                   | `src/common/services/` & `src/common/modules/`               |
-| **1.1** | **Environment & Config**                   | **L2: Component** | Define `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `SENTRY_TRACES_SAMPLE_RATE`                     | `src/env.ts`, `.env.example`                                 |
-| **1.2** | **SentryService & Module**                 | **L2: Component** | Sentry initialization, PII sanitization, breadcrumb API, release tracking & graceful flush | `sentry.service.ts`, `sentry.module.ts`                      |
-| 1.2.1   | Sentry Unit Tests                          | L3: Execution     | Unit tests for SentryService enable/disable, withScope, and PII masking                    | `src/common/services/sentry.service.spec.ts`                 |
-| **2.0** | **HTTP Lifecycle & Filter Integration**    | **L1: Module**    | Exception filtering, RFC 9457 eventId correlation & HTTP breadcrumbs                       | `src/common/filters/`, `src/common/interceptors/`            |
-| **2.1** | **Zero-Noise Filter Hook**                 | **L2: Component** | Capture 5xx in Sentry; route 4xx to warning breadcrumbs; inject `eventId` into JSON        | `global-exception.filter.ts`                                 |
-| 2.1.1   | Filter Sentry Unit Tests                   | L3: Execution     | Test 500 Sentry dispatch, 400/409 breadcrumb routing, and eventId output                   | `global-exception.filter.spec.ts`                            |
-| **2.2** | **Logging & Trace Interceptor**            | **L2: Component** | Attach `requestId` tag, `user` identity, and HTTP latency breadcrumb                       | `logging.interceptor.ts`                                     |
-| 2.2.1   | Interceptor Unit Tests                     | L3: Execution     | Test tag and breadcrumb recording on request completion                                    | `logging.interceptor.spec.ts`                                |
-| **3.0** | **Distributed State & Background Workers** | **L1: Module**    | Concurrency breadcrumbs, slow query profiling & worker dead-letter alerts                  | `src/database/`, `src/modules/outbox/`, `redlock.service.ts` |
-| **3.1** | **Redlock Breadcrumbs**                    | **L2: Component** | Record lock attempt, acquisition, and release breadcrumbs                                  | `src/common/services/redlock.service.ts`                     |
-| **3.2** | **Drizzle Slow Query Profiling**           | **L2: Component** | Profile SQL execution latency and attach warning breadcrumbs for queries > 500ms           | `src/database/database.module.ts`                            |
-| **3.3** | **Outbox Dead-Letter Alerting**            | **L2: Component** | Capture Sentry exception when Outbox relay event exhausts max retries (3/3)                | `src/modules/outbox/outbox.service.ts`                       |
-| 3.3.1   | Outbox Sentry Unit Tests                   | L3: Execution     | Verify Outbox dead-letter exception dispatch on 3rd failure attempt                        | `src/modules/outbox/outbox.service.spec.ts`                  |
+| WBS ID  | Component / Task                           | Level             | Detailed Description                                                                                     | Output / Artifact                                            |
+| :------ | :----------------------------------------- | :---------------- | :------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------- |
+| **1.0** | **Sentry Core Infrastructure**             | **L1: Module**    | Core Sentry SDK setup, configuration & graceful fallback                                                 | `src/common/services/` & `src/common/modules/`               |
+| **1.1** | **Environment & Config**                   | **L2: Component** | Define `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `SENTRY_TRACES_SAMPLE_RATE`                                   | `src/env.ts`, `.env.example`                                 |
+| **1.2** | **SentryService & Module**                 | **L2: Component** | Sentry initialization, PII sanitization, breadcrumb API, release tracking & graceful flush               | `sentry.service.ts`, `sentry.module.ts`                      |
+| 1.2.1   | Sentry Unit Tests                          | L3: Execution     | Unit tests for SentryService enable/disable, withScope, and PII masking                                  | `src/common/services/sentry.service.spec.ts`                 |
+| **2.0** | **HTTP Lifecycle & Filter Integration**    | **L1: Module**    | Exception filtering, RFC 9457 eventId correlation & HTTP breadcrumbs                                     | `src/common/filters/`, `src/common/interceptors/`            |
+| **2.1** | **Zero-Noise Filter Hook**                 | **L2: Component** | Capture 5xx in Sentry; route 4xx to warning breadcrumbs; inject `eventId` into JSON                      | `global-exception.filter.ts`                                 |
+| 2.1.1   | Filter Sentry Unit Tests                   | L3: Execution     | Test 500 Sentry dispatch, 400/409 breadcrumb routing, and eventId output                                 | `global-exception.filter.spec.ts`                            |
+| **2.2** | **Logging & Trace Interceptor**            | **L2: Component** | Attach `requestId` tag, `user` identity, and HTTP latency breadcrumb                                     | `logging.interceptor.ts`                                     |
+| 2.2.1   | Interceptor Unit Tests                     | L3: Execution     | Test tag and breadcrumb recording on request completion                                                  | `logging.interceptor.spec.ts`                                |
+| **3.0** | **Distributed State & Background Workers** | **L1: Module**    | Concurrency breadcrumbs, slow query profiling & worker dead-letter alerts                                | `src/database/`, `src/modules/outbox/`, `redlock.service.ts` |
+| **3.1** | **Redlock Breadcrumbs**                    | **L2: Component** | Record lock attempt, acquisition, and release breadcrumbs                                                | `src/common/services/redlock.service.ts`                     |
+| **3.2** | **Drizzle Query Breadcrumbs & Tracing**    | **L2: Component** | Attach SQL query execution breadcrumbs via DrizzleLogger; latency profiling handled via Sentry APM Spans | `src/database/database.module.ts`                            |
+| **3.3** | **Outbox Dead-Letter Alerting**            | **L2: Component** | Capture Sentry exception when Outbox relay event exhausts max retries (3/3)                              | `src/modules/outbox/outbox.service.ts`                       |
+| 3.3.1   | Outbox Sentry Unit Tests                   | L3: Execution     | Verify Outbox dead-letter exception dispatch on 3rd failure attempt                                      | `src/modules/outbox/outbox.service.spec.ts`                  |
 
 ---
 

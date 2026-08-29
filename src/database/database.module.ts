@@ -28,7 +28,7 @@ export type DrizzleDB = NodePgDatabase<
       useFactory: (config: ConfigService, sentryService?: SentryService) => {
         let databaseUrl = config.get<string>("DB_URL");
         if (databaseUrl) {
-          // WHY: Map legacy SSL modes to 'sslmode=verify-full' to suppress pg-connection-string warnings and ensure future-proof compatibility.
+          // Map legacy SSL modes to 'sslmode=verify-full' to suppress pg-connection-string warnings and ensure future-proof compatibility.
           databaseUrl = databaseUrl.replace(
             /sslmode=(require|prefer|verify-ca)/gi,
             "sslmode=verify-full",
