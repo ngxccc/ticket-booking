@@ -2,18 +2,18 @@ import type { DrizzleDB } from "@/database/database.module";
 import {
   bookings,
   vouchers,
-  type TBooking,
-  type TNewBooking,
-  type TVoucher,
-  type TNewVoucher,
+  type Booking,
+  type NewBooking,
+  type Voucher,
+  type NewVoucher,
 } from "@/database/schemas";
 import { createUser } from "./user.factory";
 import { createShow } from "./show.factory";
 
 export async function createVoucher(
   db: DrizzleDB,
-  overrides: Partial<TNewVoucher> = {},
-): Promise<TVoucher> {
+  overrides: Partial<NewVoucher> = {},
+): Promise<Voucher> {
   const code = `VOUCHER-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
 
   const [voucher] = await db
@@ -36,8 +36,8 @@ export async function createVoucher(
 
 export async function createBooking(
   db: DrizzleDB,
-  overrides: Partial<TNewBooking> = {},
-): Promise<TBooking> {
+  overrides: Partial<NewBooking> = {},
+): Promise<Booking> {
   const userId = overrides.userId ?? (await createUser(db)).id;
   const showId = overrides.showId ?? (await createShow(db)).id;
 

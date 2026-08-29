@@ -55,10 +55,9 @@ export const movieTranslations = snakeCase.table(
   },
   (table) => [primaryKey({ columns: [table.movieId, table.languageCode] })],
 );
-
-export type TMovie = typeof movies.$inferSelect;
-export type TNewMovie = typeof movies.$inferInsert;
-export type TGenre = typeof genres.$inferSelect;
-export type TNewGenre = typeof genres.$inferInsert;
-export type TMovieTranslation = typeof movieTranslations.$inferSelect;
-export type TNewMovieTranslation = typeof movieTranslations.$inferInsert;
+export type Movie = typeof movies.$inferSelect;
+export type NewMovie = typeof movies.$inferInsert;
+export type Genre = typeof genres.$inferSelect;
+export type NewGenre = typeof genres.$inferInsert;
+export type MovieTranslation = typeof movieTranslations.$inferSelect;
+export type NewMovieTranslation = typeof movieTranslations.$inferInsert;

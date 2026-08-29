@@ -1,7 +1,7 @@
 import { Logger } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { resolve } from "node:path";
-import { users, type TNewUser, type TUser } from "@/database/schemas";
+import { users, type NewUser, type User } from "@/database/schemas";
 import { env } from "@/env";
 import { TIME_IN_MS } from "@/common/constants/time.constant";
 import {
@@ -84,7 +84,7 @@ export async function seedLoadTestData(): Promise<BookingLoadFixture> {
     );
 
     const userFixtures: TestUserFixture[] = [];
-    const userInsertValues: TNewUser[] = [];
+    const userInsertValues: NewUser[] = [];
 
     for (let i = 0; i < totalVus; i++) {
       const userEmail = `loadtest-${timestamp}-${String(i)}@example.com`;
@@ -98,7 +98,7 @@ export async function seedLoadTestData(): Promise<BookingLoadFixture> {
 
     // Batch insert users in chunks of 500 to stay within PostgreSQL parameter limits ($65,535)
     const chunkSize = 500;
-    const insertedUsers: Pick<TUser, "id" | "email" | "role">[] = [];
+    const insertedUsers: Pick<User, "id" | "email" | "role">[] = [];
 
     for (let i = 0; i < userInsertValues.length; i += chunkSize) {
       const chunk = userInsertValues.slice(i, i + chunkSize);

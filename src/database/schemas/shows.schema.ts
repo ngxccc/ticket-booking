@@ -61,8 +61,7 @@ export const showSeats = snakeCase.table(
     ),
   ],
 );
-
-export type TShow = typeof shows.$inferSelect;
-export type TNewShow = typeof shows.$inferInsert;
-export type TShowSeat = typeof showSeats.$inferSelect;
-export type TNewShowSeat = typeof showSeats.$inferInsert;
+export type Show = typeof shows.$inferSelect;
+export type NewShow = typeof shows.$inferInsert;
+export type ShowSeat = typeof showSeats.$inferSelect;
+export type NewShowSeat = typeof showSeats.$inferInsert;

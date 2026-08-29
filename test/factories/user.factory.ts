@@ -1,10 +1,10 @@
 import type { DrizzleDB } from "@/database/database.module";
-import { users, type TUser, type TNewUser } from "@/database/schemas";
+import { users, type User, type NewUser } from "@/database/schemas";
 
 export async function createUser(
   db: DrizzleDB,
-  overrides: Partial<TNewUser> = {},
-): Promise<TUser> {
+  overrides: Partial<NewUser> = {},
+): Promise<User> {
   const uid = crypto.randomUUID().slice(0, 8);
 
   const [user] = await db

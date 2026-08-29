@@ -58,12 +58,11 @@ export const seats = snakeCase.table(
     index("seats_seat_type_id_idx").on(table.seatTypeId),
   ],
 );
-
-export type TCinema = typeof cinemas.$inferSelect;
-export type TNewCinema = typeof cinemas.$inferInsert;
-export type THall = typeof halls.$inferSelect;
-export type TNewHall = typeof halls.$inferInsert;
-export type TSeatType = typeof seatTypes.$inferSelect;
-export type TNewSeatType = typeof seatTypes.$inferInsert;
-export type TSeat = typeof seats.$inferSelect;
-export type TNewSeat = typeof seats.$inferInsert;
+export type Cinema = typeof cinemas.$inferSelect;
+export type NewCinema = typeof cinemas.$inferInsert;
+export type Hall = typeof halls.$inferSelect;
+export type NewHall = typeof halls.$inferInsert;
+export type SeatType = typeof seatTypes.$inferSelect;
+export type NewSeatType = typeof seatTypes.$inferInsert;
+export type Seat = typeof seats.$inferSelect;
+export type NewSeat = typeof seats.$inferInsert;

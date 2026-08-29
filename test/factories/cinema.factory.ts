@@ -4,20 +4,20 @@ import {
   halls,
   seatTypes,
   seats,
-  type TCinema,
-  type TNewCinema,
-  type THall,
-  type TNewHall,
-  type TSeatType,
-  type TNewSeatType,
-  type TSeat,
-  type TNewSeat,
+  type Cinema,
+  type NewCinema,
+  type Hall,
+  type NewHall,
+  type SeatType,
+  type NewSeatType,
+  type Seat,
+  type NewSeat,
 } from "@/database/schemas";
 
 export async function createCinema(
   db: DrizzleDB,
-  overrides: Partial<TNewCinema> = {},
-): Promise<TCinema> {
+  overrides: Partial<NewCinema> = {},
+): Promise<Cinema> {
   const [cinema] = await db
     .insert(cinemas)
     .values({
@@ -35,8 +35,8 @@ export async function createCinema(
 
 export async function createHall(
   db: DrizzleDB,
-  overrides: Partial<TNewHall> = {},
-): Promise<THall> {
+  overrides: Partial<NewHall> = {},
+): Promise<Hall> {
   const cinemaId = overrides.cinemaId ?? (await createCinema(db)).id;
 
   const [hall] = await db
@@ -57,8 +57,8 @@ export async function createHall(
 
 export async function createSeatType(
   db: DrizzleDB,
-  overrides: Partial<TNewSeatType> = {},
-): Promise<TSeatType> {
+  overrides: Partial<NewSeatType> = {},
+): Promise<SeatType> {
   const [seatType] = await db
     .insert(seatTypes)
     .values({
@@ -76,8 +76,8 @@ export async function createSeatType(
 
 export async function createSeat(
   db: DrizzleDB,
-  overrides: Partial<TNewSeat> = {},
-): Promise<TSeat> {
+  overrides: Partial<NewSeat> = {},
+): Promise<Seat> {
   const hallId = overrides.hallId ?? (await createHall(db)).id;
   const seatTypeId = overrides.seatTypeId ?? (await createSeatType(db)).id;
 
@@ -105,7 +105,7 @@ export async function createBatchSeats(
   seatTypeId: string,
   count = 5,
   row = "A",
-): Promise<TSeat[]> {
+): Promise<Seat[]> {
   const seatValues = Array.from({ length: count }, (_, idx) => ({
     hallId,
     seatTypeId,

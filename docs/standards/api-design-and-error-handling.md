@@ -81,3 +81,27 @@ All error responses across HTTP exceptions, validation failures, and unhandled e
 - **Behavior**:
   - Mutating operations (`POST /bookings/reserve`, payment webhooks) MUST record the key in Redis with a 24-hour TTL.
   - Concurrent duplicate requests with the same key return the original response without re-executing side-effects.
+
+---
+
+## 6. TypeScript Type & Interface Naming Standards
+
+Adheres strictly to the **Microsoft TypeScript Coding Guidelines**, **Google TypeScript Style Guide**, and `@typescript-eslint/naming-convention` industry standards:
+
+### 6.1. Prohibition of Hungarian Notation (`I` / `T` Prefixes)
+
+- **NEVER prefix interfaces with `I`** (e.g. ❌ `IUser`, ❌ `IAuthService` $\rightarrow$ ✅ `User`, ✅ `AuthService`).
+  - _Rationale_: TypeScript uses a **structural type system (duck typing)**, not nominal typing like C# or Java. An interface describes a contract/shape, not an OOP-specific construct. Prefixing with `I` leaks implementation details to consumers and creates friction when refactoring between classes, types, and interfaces.
+- **NEVER prefix types with `T`** (e.g. ❌ `TSentryBreadcrumbCategory`, ❌ `TPaymentPayload` $\rightarrow$ ✅ `SentryBreadcrumbCategory`, ✅ `PaymentPayload`).
+  - _Rationale_: Modern IDEs (VS Code, JetBrains WebStorm) provide instant hover information and color syntax highlighting that clearly distinguish types from values. Prefixing types with `T` is redundant noise that degrades readability.
+
+### 6.2. Naming Convention Rules Summary Table
+
+| Construct                      | Convention                                | Example (Good)                            | Anti-Pattern (Avoid)                       |
+| :----------------------------- | :---------------------------------------- | :---------------------------------------- | :----------------------------------------- |
+| **Interfaces**                 | `PascalCase`                              | `AuthService`, `InvalidParam`             | `IAuthService`, `IInvalidParam`            |
+| **Type Aliases**               | `PascalCase`                              | `SentryBreadcrumbCategory`, `Nullable<T>` | `TSentryBreadcrumbCategory`, `type_sentry` |
+| **Enums & Objects as Const**   | `PascalCase` / `UPPER_SNAKE_CASE`         | `SENTRY_BREADCRUMB_CATEGORY`              | `sentryBreadcrumbCategory`                 |
+| **Generics / Type Parameters** | Single uppercase or `PascalCase` with `T` | `T`, `TData`, `TResult`, `TError`         | `data_type`, `t`                           |
+| **Functions & Methods**        | `camelCase`                               | `hashPassword`, `canActivate`             | `HashPassword`, `hash_password`            |
+| **Constants**                  | `UPPER_SNAKE_CASE`                        | `DEFAULT_REDLOCK_OPTIONS`                 | `defaultRedlockOptions`                    |

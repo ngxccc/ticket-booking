@@ -1,13 +1,13 @@
 import type { DrizzleDB } from "@/database/database.module";
 import { createUser } from "../factories/user.factory";
-import type { TUser } from "@/database/schemas";
+import type { User } from "@/database/schemas";
 
 export const UserMother = {
   /** Standard active customer user (role: user, status: active) */
   customer(
     db: DrizzleDB,
     email = `customer-${crypto.randomUUID().slice(0, 6)}@ticketbooking.com`,
-  ): Promise<TUser> {
+  ): Promise<User> {
     return createUser(db, {
       email,
       fullName: "Regular Customer",
@@ -20,7 +20,7 @@ export const UserMother = {
   admin(
     db: DrizzleDB,
     email = `admin-${crypto.randomUUID().slice(0, 6)}@ticketbooking.com`,
-  ): Promise<TUser> {
+  ): Promise<User> {
     return createUser(db, {
       email,
       fullName: "System Admin",
@@ -30,7 +30,7 @@ export const UserMother = {
   },
 
   /** Unverified user pending email verification (status: pending_verification) */
-  unverified(db: DrizzleDB): Promise<TUser> {
+  unverified(db: DrizzleDB): Promise<User> {
     return createUser(db, {
       role: "user",
       status: "pending_verification",

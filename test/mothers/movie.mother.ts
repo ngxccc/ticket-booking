@@ -1,10 +1,10 @@
 import type { DrizzleDB } from "@/database/database.module";
 import { createMovie } from "../factories/movie.factory";
-import type { TMovie } from "@/database/schemas";
+import type { Movie } from "@/database/schemas";
 
 export const MovieMother = {
   /** Standard theatrical movie release (120 minutes, PG) */
-  standard(db: DrizzleDB): Promise<TMovie> {
+  standard(db: DrizzleDB): Promise<Movie> {
     return createMovie(db, {
       durationMinutes: 120,
       rating: "PG",
@@ -13,7 +13,7 @@ export const MovieMother = {
   },
 
   /** Extended duration blockbuster movie (300 minutes, PG) */
-  blockbusterLong(db: DrizzleDB): Promise<TMovie> {
+  blockbusterLong(db: DrizzleDB): Promise<Movie> {
     return createMovie(db, {
       durationMinutes: 300,
       rating: "PG",
@@ -22,7 +22,7 @@ export const MovieMother = {
   },
 
   /** Short animated film (30 minutes, G) */
-  animationShort(db: DrizzleDB): Promise<TMovie> {
+  animationShort(db: DrizzleDB): Promise<Movie> {
     return createMovie(db, {
       durationMinutes: 30,
       rating: "G",

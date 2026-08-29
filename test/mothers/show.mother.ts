@@ -1,10 +1,10 @@
 import type { DrizzleDB } from "@/database/database.module";
 import { createShow } from "../factories/show.factory";
-import type { TShow } from "@/database/schemas";
+import type { Show } from "@/database/schemas";
 
 export const ShowMother = {
   /** Show scheduled for tomorrow (+24h from now, 2h duration) */
-  tomorrow(db: DrizzleDB, hallId?: string, movieId?: string): Promise<TShow> {
+  tomorrow(db: DrizzleDB, hallId?: string, movieId?: string): Promise<Show> {
     const start = new Date(Date.now() + 86400000);
     const end = new Date(start.getTime() + 7200000);
 
@@ -25,7 +25,7 @@ export const ShowMother = {
     startTime: Date,
     endTime: Date,
     basePrice = 100000,
-  ): Promise<TShow> {
+  ): Promise<Show> {
     return createShow(db, {
       hallId,
       movieId,
