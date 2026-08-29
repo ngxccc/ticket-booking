@@ -2,6 +2,13 @@ import type { Pool } from "pg";
 import { env } from "@/env";
 import { TIME_IN_MS } from "@/common/constants/time.constant";
 import { createTestPool, dropTestSchema } from "./database.helper";
+import { Logger } from "@nestjs/common";
+import { spyOn } from "bun:test";
+
+// Suppress intentional NestJS error/warning log noise during negative unit test suites.
+spyOn(Logger.prototype, "error").mockImplementation(() => undefined);
+spyOn(Logger.prototype, "warn").mockImplementation(() => undefined);
+spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
 
 export const ORPHAN_SCHEMA_MAX_AGE_MS = TIME_IN_MS.HOUR;
 

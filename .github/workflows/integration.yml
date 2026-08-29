@@ -52,7 +52,7 @@ jobs:
         run: bun run db:migrate stg
 
       - name: Unit Tests
-        run: bun run test:cov
+        run: bun run test:ci
 
       - name: E2E Tests
         run: bun run test:e2e
