@@ -252,3 +252,14 @@ ALTER TABLE "bookings" ADD CONSTRAINT "bookings_voucher_id_vouchers_id_fkey" FOR
 ALTER TABLE "tickets" ADD CONSTRAINT "tickets_booking_id_bookings_id_fkey" FOREIGN KEY ("booking_id") REFERENCES "bookings"("id") ON DELETE CASCADE;--> statement-breakpoint
 ALTER TABLE "tickets" ADD CONSTRAINT "tickets_show_seat_id_show_seats_id_fkey" FOREIGN KEY ("show_seat_id") REFERENCES "show_seats"("id") ON DELETE RESTRICT;--> statement-breakpoint
 ALTER TABLE "payments" ADD CONSTRAINT "payments_booking_id_bookings_id_fkey" FOREIGN KEY ("booking_id") REFERENCES "bookings"("id") ON DELETE RESTRICT;
+CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA public;--> statement-breakpoint
+CREATE OR REPLACE FUNCTION public.show_occupied_range(start_t timestamptz, end_t timestamptz)
+RETURNS tstzrange AS $$
+  SELECT tstzrange(start_t, end_t + interval '15 minutes', '[)');
+$$ LANGUAGE sql IMMUTABLE;--> statement-breakpoint
+ALTER TABLE "shows" DROP CONSTRAINT IF EXISTS "no_hall_schedule_overlap";--> statement-breakpoint
+ALTER TABLE "shows" ADD CONSTRAINT "no_hall_schedule_overlap"
+EXCLUDE USING gist (
+  hall_id WITH =,
+  public.show_occupied_range(start_time, end_time) WITH &&
+);
