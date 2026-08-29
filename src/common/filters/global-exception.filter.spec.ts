@@ -1,4 +1,5 @@
 import type { SentryService } from "../services/sentry.service";
+import { SENTRY_BREADCRUMB_CATEGORY } from "@/common/constants/sentry.constant";
 import { describe, expect, it, mock, beforeEach, spyOn } from "bun:test";
 import {
   BadRequestException,
@@ -8,6 +9,7 @@ import {
 } from "@nestjs/common";
 import type { I18nService } from "nestjs-i18n";
 import { GlobalExceptionFilter } from "./global-exception.filter";
+
 describe("GlobalExceptionFilter", () => {
   let filter: GlobalExceptionFilter;
   let mockResponse: {
@@ -336,7 +338,7 @@ describe("GlobalExceptionFilter", () => {
       expect(addBreadcrumbMock).toHaveBeenCalledTimes(1);
       expect(addBreadcrumbMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          category: "http.client_error",
+          category: SENTRY_BREADCRUMB_CATEGORY.HTTP_CLIENT_ERROR,
           level: "warning",
         }),
       );

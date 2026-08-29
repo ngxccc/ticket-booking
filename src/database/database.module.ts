@@ -1,3 +1,6 @@
+import { SentryService } from "@/common/services/sentry.service";
+import { SENTRY_BREADCRUMB_CATEGORY } from "@/common/constants/sentry.constant";
+import type { Logger as DrizzleLogger } from "drizzle-orm/logger";
 import { Global, Module } from "@nestjs/common";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "./schemas";
@@ -21,8 +24,8 @@ export type DrizzleDB = NodePgDatabase<
   providers: [
     {
       provide: DATABASE_CONNECTION,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => {
+      inject: [ConfigService, { token: SentryService, optional: true }],
+      useFactory: (config: ConfigService, sentryService?: SentryService) => {
         let databaseUrl = config.get<string>("DB_URL");
         if (databaseUrl) {
           // WHY: Map legacy SSL modes to 'sslmode=verify-full' to suppress pg-connection-string warnings and ensure future-proof compatibility.
@@ -41,9 +44,24 @@ export type DrizzleDB = NodePgDatabase<
               database: config.get<string>("DB_DATABASE") ?? "ticket_booking",
             });
 
+        const drizzleLogger: DrizzleLogger = {
+          logQuery(query: string, params: unknown[]): void {
+            sentryService?.addBreadcrumb({
+              category: SENTRY_BREADCRUMB_CATEGORY.DB_QUERY,
+              message: query.length > 300 ? `${query.slice(0, 300)}...` : query,
+              level: "info",
+              data: {
+                query,
+                paramCount: params.length,
+              },
+            });
+          },
+        };
+
         return drizzle({
           client: pool,
           relations: schema.schemaRelations,
+          logger: drizzleLogger,
           jit: true,
         });
       },

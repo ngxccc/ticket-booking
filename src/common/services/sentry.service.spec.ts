@@ -10,6 +10,7 @@ import {
 import * as Sentry from "@sentry/nestjs";
 import type { Scope } from "@sentry/nestjs";
 import { env } from "@/env";
+import { SENTRY_BREADCRUMB_CATEGORY } from "@/common/constants/sentry.constant";
 
 describe("SentryService", () => {
   let service: SentryService;
@@ -365,7 +366,7 @@ describe("SentryService", () => {
       ).mockImplementation(() => undefined);
 
       service.addBreadcrumb({
-        category: "redlock",
+        category: SENTRY_BREADCRUMB_CATEGORY.REDLOCK,
         message: "Acquiring lock",
         level: "info",
         data: { resource: "seat-1", token: "secret" },
@@ -373,7 +374,7 @@ describe("SentryService", () => {
 
       expect(addBreadcrumbSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          category: "redlock",
+          category: SENTRY_BREADCRUMB_CATEGORY.REDLOCK,
           message: "Acquiring lock",
           level: "info",
           data: { resource: "seat-1", token: "[REDACTED]" },

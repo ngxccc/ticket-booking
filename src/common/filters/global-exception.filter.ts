@@ -13,6 +13,7 @@ import type { Request, Response } from "express";
 import { I18nContext, I18nService } from "nestjs-i18n";
 import { extractDatabaseErrorDetails } from "@/common/utils/error.util";
 import { PG_ERROR_CODE } from "@/common/constants/error.constant";
+import { SENTRY_BREADCRUMB_CATEGORY } from "@/common/constants/sentry.constant";
 
 export interface InvalidParam {
   name: string;
@@ -157,7 +158,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     } else {
       // Record breadcrumb for 4xx errors without triggering Sentry alerts or consuming error quota.
       this.sentryService?.addBreadcrumb({
-        category: "http.client_error",
+        category: SENTRY_BREADCRUMB_CATEGORY.HTTP_CLIENT_ERROR,
         message: `${request.method} ${request.url} [${String(status)}] ${title}`,
         level: "warning",
         data: { status, title, detail },

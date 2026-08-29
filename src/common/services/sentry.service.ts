@@ -14,6 +14,7 @@ import {
   setTag as setSentryTag,
 } from "@sentry/nestjs";
 import { env } from "@/env";
+import type { SentryBreadcrumbCategory } from "@/common/constants/sentry.constant";
 
 /**
  * Categorized sensitive key pattern registry for PII and credential detection.
@@ -263,7 +264,7 @@ export class SentryService implements OnModuleInit, OnApplicationShutdown {
    * @param breadcrumb - Breadcrumb payload with category, message, and diagnostic data
    */
   addBreadcrumb(breadcrumb: {
-    category: string;
+    category: SentryBreadcrumbCategory;
     message: string;
     level?: "debug" | "info" | "warning" | "error" | "fatal";
     data?: Record<string, unknown>;

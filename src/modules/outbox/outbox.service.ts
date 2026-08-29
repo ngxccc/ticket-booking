@@ -147,20 +147,25 @@ export class OutboxService
       return;
     }
 
+    const { promise: timeoutPromise, reject } = Promise.withResolvers<never>();
+    const timer = setTimeout(() => {
+      reject(new Error("BullMQ mailQueue.add timeout after 5s"));
+    }, 5000);
+
     await Promise.race([
-      this.mailQueue.add(jobName, payload, {
-        attempts: 5,
-        backoff: {
-          type: "exponential",
-          delay: 2000,
-        },
-        removeOnComplete: true,
-      }),
-      new Promise((_, reject) =>
-        setTimeout(() => {
-          reject(new Error("BullMQ mailQueue.add timeout after 5s"));
-        }, 5000),
-      ),
+      this.mailQueue
+        .add(jobName, payload, {
+          attempts: 5,
+          backoff: {
+            type: "exponential",
+            delay: 2000,
+          },
+          removeOnComplete: true,
+        })
+        .finally(() => {
+          clearTimeout(timer);
+        }),
+      timeoutPromise,
     ]);
   }
 }
