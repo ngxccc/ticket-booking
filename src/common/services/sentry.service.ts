@@ -14,7 +14,10 @@ import {
   setTag as setSentryTag,
 } from "@sentry/nestjs";
 import { env } from "@/env";
-import type { SentryBreadcrumbCategory } from "@/common/constants/sentry.constant";
+import {
+  SENTRY_BREADCRUMB_CATEGORY,
+  type SentryBreadcrumbCategory,
+} from "@/common/constants/sentry.constant";
 
 /**
  * Categorized sensitive key pattern registry for PII and credential detection.
@@ -135,6 +138,35 @@ export function sampleTraceTransaction(
 }
 
 /**
+ * Evaluates whether a breadcrumb is high-frequency background noise that should be dropped.
+ *
+ * Drops routine transaction markers ("begin", "commit"), background polling queries ("outbox_events ... skip locked"),
+ * and periodic maintenance queries ("delete from refresh_tokens").
+ */
+export function shouldDropBreadcrumb(breadcrumb: {
+  category?: string;
+  message?: string;
+}): boolean {
+  if (breadcrumb.category === SENTRY_BREADCRUMB_CATEGORY.DB_QUERY) {
+    const msg = breadcrumb.message?.toLowerCase().trim() ?? "";
+    if (msg === "begin" || msg === "commit") {
+      return true;
+    }
+    if (msg.includes("outbox_events") && msg.includes("skip locked")) {
+      return true;
+    }
+    // Drop periodic token cleanup cron queries specifically targeting expired tokens (< $1)
+    if (
+      msg.includes('delete from "refresh_tokens"') &&
+      msg.includes('"expires_at" <')
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Initializes Sentry SDK with dynamic sampling, PII scrubbing, and release tracking.
  */
 export function initSentry(): void {
@@ -175,6 +207,9 @@ export function initSentry(): void {
       return event;
     },
     beforeBreadcrumb(breadcrumb) {
+      if (shouldDropBreadcrumb(breadcrumb)) {
+        return null;
+      }
       if (breadcrumb.data) {
         breadcrumb.data = sanitizeSensitiveData(breadcrumb.data);
       }

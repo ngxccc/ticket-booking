@@ -1,11 +1,12 @@
-import { initSentry } from "./common/services/sentry.service";
+import "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import { Logger } from "nestjs-pino";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import type { Request, Response } from "express";
-import { AppModule } from "./app.module";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { apiReference } from "@scalar/nestjs-api-reference";
-import { Logger } from "nestjs-pino";
+import { initSentry } from "./common/services/sentry.service";
+import { AppModule } from "./app.module";
 
 // Initialize Sentry SDK before NestJS bootstrap to capture startup crashes and enable tracing instrumentation.
 initSentry();
