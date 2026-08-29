@@ -66,6 +66,14 @@ export default defineConfig(
             match: false,
           },
         },
+        {
+          selector: "typeAlias",
+          format: ["PascalCase"],
+          custom: {
+            regex: "^T[A-Z]",
+            match: false,
+          },
+        },
       ],
       "import-x/no-cycle": ["error", { maxDepth: 10, ignoreExternal: true }],
       "import-x/no-unresolved": "error",

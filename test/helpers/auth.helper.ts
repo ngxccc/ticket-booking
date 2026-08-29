@@ -1,11 +1,11 @@
 import type { JwtService } from "@nestjs/jwt";
 import type { DrizzleDB } from "@/database/database.module";
-import type { TUser, TNewUser } from "@/database/schemas";
+import type { User, NewUser } from "@/database/schemas";
 import type { JwtPayload } from "@/common/decorators/current-user.decorator";
 import { createUser } from "../factories/user.factory";
 
 export interface AuthenticatedSession {
-  user: TUser;
+  user: User;
   token: string;
   authHeader: { Authorization: string };
 }
@@ -26,7 +26,7 @@ export async function generateTestToken(
 export async function createAuthenticatedUser(
   db: DrizzleDB,
   jwtService: JwtService,
-  overrides: Partial<TNewUser> = {},
+  overrides: Partial<NewUser> = {},
 ): Promise<AuthenticatedSession> {
   const user = await createUser(db, {
     role: "user",
@@ -55,7 +55,7 @@ export async function createAuthenticatedUser(
 export async function createAuthenticatedAdmin(
   db: DrizzleDB,
   jwtService: JwtService,
-  overrides: Partial<TNewUser> = {},
+  overrides: Partial<NewUser> = {},
 ): Promise<AuthenticatedSession> {
   return createAuthenticatedUser(db, jwtService, {
     role: "admin",

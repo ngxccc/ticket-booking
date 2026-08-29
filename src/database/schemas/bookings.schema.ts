@@ -105,14 +105,13 @@ export const bookingCombos = snakeCase.table(
   },
   (table) => [primaryKey({ columns: [table.bookingId, table.comboId] })],
 );
-
-export type TVoucher = typeof vouchers.$inferSelect;
-export type TNewVoucher = typeof vouchers.$inferInsert;
-export type TBooking = typeof bookings.$inferSelect;
-export type TNewBooking = typeof bookings.$inferInsert;
-export type TTicket = typeof tickets.$inferSelect;
-export type TNewTicket = typeof tickets.$inferInsert;
-export type TCombo = typeof combos.$inferSelect;
-export type TNewCombo = typeof combos.$inferInsert;
-export type TBookingCombo = typeof bookingCombos.$inferSelect;
-export type TNewBookingCombo = typeof bookingCombos.$inferInsert;
+export type Voucher = typeof vouchers.$inferSelect;
+export type NewVoucher = typeof vouchers.$inferInsert;
+export type Booking = typeof bookings.$inferSelect;
+export type NewBooking = typeof bookings.$inferInsert;
+export type Ticket = typeof tickets.$inferSelect;
+export type NewTicket = typeof tickets.$inferInsert;
+export type Combo = typeof combos.$inferSelect;
+export type NewCombo = typeof combos.$inferInsert;
+export type BookingCombo = typeof bookingCombos.$inferSelect;
+export type NewBookingCombo = typeof bookingCombos.$inferInsert;

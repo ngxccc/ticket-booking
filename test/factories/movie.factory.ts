@@ -4,16 +4,16 @@ import {
   genres,
   movieGenres,
   movieTranslations,
-  type TMovie,
-  type TNewMovie,
-  type TGenre,
-  type TNewGenre,
+  type Movie,
+  type NewMovie,
+  type Genre,
+  type NewGenre,
 } from "@/database/schemas";
 
 export async function createMovie(
   db: DrizzleDB,
-  overrides: Partial<TNewMovie> = {},
-): Promise<TMovie> {
+  overrides: Partial<NewMovie> = {},
+): Promise<Movie> {
   const [movie] = await db
     .insert(movies)
     .values({
@@ -34,8 +34,8 @@ export async function createMovie(
 
 export async function createGenre(
   db: DrizzleDB,
-  overrides: Partial<TNewGenre> = {},
-): Promise<TGenre> {
+  overrides: Partial<NewGenre> = {},
+): Promise<Genre> {
   const [genre] = await db
     .insert(genres)
     .values({

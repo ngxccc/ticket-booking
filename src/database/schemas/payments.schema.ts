@@ -27,6 +27,5 @@ export const payments = snakeCase.table(
     index("payments_booking_id_idx").on(table.bookingId),
   ],
 );
-
-export type TPayment = typeof payments.$inferSelect;
-export type TNewPayment = typeof payments.$inferInsert;
+export type Payment = typeof payments.$inferSelect;
+export type NewPayment = typeof payments.$inferInsert;

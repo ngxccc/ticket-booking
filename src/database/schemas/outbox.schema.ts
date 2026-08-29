@@ -31,6 +31,5 @@ export const outboxEvents = snakeCase.table(
     ),
   ],
 );
-
-export type TOutboxEvent = typeof outboxEvents.$inferSelect;
-export type TNewOutboxEvent = typeof outboxEvents.$inferInsert;
+export type OutboxEvent = typeof outboxEvents.$inferSelect;
+export type NewOutboxEvent = typeof outboxEvents.$inferInsert;

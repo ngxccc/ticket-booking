@@ -72,8 +72,7 @@ export const refreshTokens = snakeCase.table(
     index("refresh_tokens_user_id_idx").on(table.userId),
   ],
 );
-
-export type TUser = typeof users.$inferSelect;
-export type TNewUser = typeof users.$inferInsert;
-export type TRefreshToken = typeof refreshTokens.$inferSelect;
-export type TNewRefreshToken = typeof refreshTokens.$inferInsert;
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type RefreshToken = typeof refreshTokens.$inferSelect;
+export type NewRefreshToken = typeof refreshTokens.$inferInsert;

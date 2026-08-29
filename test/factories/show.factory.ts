@@ -2,18 +2,18 @@ import type { DrizzleDB } from "@/database/database.module";
 import {
   shows,
   showSeats,
-  type TShow,
-  type TNewShow,
-  type TShowSeat,
-  type TNewShowSeat,
+  type Show,
+  type NewShow,
+  type ShowSeat,
+  type NewShowSeat,
 } from "@/database/schemas";
 import { createMovie } from "./movie.factory";
 import { createHall, createSeatType, createBatchSeats } from "./cinema.factory";
 
 export async function createShow(
   db: DrizzleDB,
-  overrides: Partial<TNewShow> = {},
-): Promise<TShow> {
+  overrides: Partial<NewShow> = {},
+): Promise<Show> {
   const movieId = overrides.movieId ?? (await createMovie(db)).id;
   const hallId = overrides.hallId ?? (await createHall(db)).id;
 
@@ -40,8 +40,8 @@ export async function createShow(
 
 export async function createShowSeat(
   db: DrizzleDB,
-  overrides: Partial<TNewShowSeat> = {},
-): Promise<TShowSeat> {
+  overrides: Partial<NewShowSeat> = {},
+): Promise<ShowSeat> {
   let showId = overrides.showId;
   let seatId = overrides.seatId;
 
@@ -82,7 +82,7 @@ export async function createBatchShowSeats(
   db: DrizzleDB,
   showId: string,
   seatIds: string[],
-): Promise<TShowSeat[]> {
+): Promise<ShowSeat[]> {
   const values = seatIds.map((seatId) => ({
     showId,
     seatId,
