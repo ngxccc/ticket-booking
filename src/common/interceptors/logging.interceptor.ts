@@ -1,3 +1,5 @@
+import { SentryService } from "../services/sentry.service";
+import { SENTRY_BREADCRUMB_CATEGORY } from "@/common/constants/sentry.constant";
 import {
   Injectable,
   HttpException,
@@ -5,6 +7,7 @@ import {
   type ExecutionContext,
   type CallHandler,
   Logger,
+  Optional,
 } from "@nestjs/common";
 import { throwError, type Observable } from "rxjs";
 import { tap, catchError } from "rxjs/operators";
@@ -14,6 +17,7 @@ import type { Request, Response } from "express";
 export class LoggingInterceptor implements NestInterceptor {
   private readonly logger = new Logger("HTTP");
 
+  constructor(@Optional() private readonly sentryService?: SentryService) {}
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     if (context.getType() !== "http") {
       return next.handle();
@@ -24,6 +28,27 @@ export class LoggingInterceptor implements NestInterceptor {
     const response = ctx.getResponse<Response>();
     const { method, originalUrl } = request;
     const startTime = Date.now();
+
+    const rawRequestId =
+      (request.headers as Record<string, unknown> | undefined)?.[
+        "x-request-id"
+      ] ?? (request as unknown as { id?: string | number }).id;
+    if (typeof rawRequestId === "string" || typeof rawRequestId === "number") {
+      this.sentryService?.setTag("requestId", String(rawRequestId));
+    }
+
+    const user = (
+      request as unknown as {
+        user?: { id?: string; email?: string; role?: string };
+      }
+    ).user;
+    if (user) {
+      this.sentryService?.setUser({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      });
+    }
 
     return next.handle().pipe(
       tap(() => {
@@ -38,6 +63,23 @@ export class LoggingInterceptor implements NestInterceptor {
         } else {
           this.logger.debug(message);
         }
+
+        this.sentryService?.addBreadcrumb({
+          category: SENTRY_BREADCRUMB_CATEGORY.HTTP,
+          message: `[${method}] ${originalUrl} [${String(statusCode)}] ${String(duration)}ms`,
+          level:
+            statusCode >= 500
+              ? "error"
+              : statusCode >= 400
+                ? "warning"
+                : "info",
+          data: {
+            method,
+            url: originalUrl,
+            statusCode,
+            duration,
+          },
+        });
       }),
       catchError((err: unknown) => {
         const duration = Date.now() - startTime;
