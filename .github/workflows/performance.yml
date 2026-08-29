@@ -62,9 +62,6 @@ jobs:
       - name: Setup Environment
         uses: ./.github/setup-environment
 
-      - name: Install Doppler CLI
-        uses: dopplerhq/cli-action@v4
-
       - name: Setup Grafana k6
         uses: grafana/setup-k6-action@v1
 
