@@ -1,3 +1,4 @@
+import { SentryModule } from "./common/modules/sentry.module";
 import { BullModule } from "@nestjs/bullmq";
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from "@nestjs/core";
 import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
@@ -78,6 +79,7 @@ const getRedisOptions = () =>
           : new ThrottlerStorageRedisService(getRedisOptions()),
     }),
     DatabaseModule,
+    SentryModule,
     AuthModule,
     UsersModule,
     OutboxModule,
@@ -87,15 +89,15 @@ const getRedisOptions = () =>
   controllers: [AppController],
   providers: [
     {
-      provide: APP_FILTER, // Global Exception Filter
+      provide: APP_FILTER,
       useClass: GlobalExceptionFilter,
     },
     {
-      provide: APP_INTERCEPTOR, // Global Interceptor
+      provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
     },
     {
-      provide: APP_PIPE, // Global Validation Pipe
+      provide: APP_PIPE,
       useFactory: createAppValidationPipe,
     },
   ],
