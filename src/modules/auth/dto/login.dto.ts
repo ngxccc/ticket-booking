@@ -1,44 +1,59 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsString, MinLength } from "class-validator";
-import { i18nMsg } from "@/common/utils/i18n-message.util";
-import { IsEmailField } from "@/common/decorators";
+import { z } from "zod";
+import { zEmail } from "@/common/schemas/zod-primitives";
+import { i18nZodMsg } from "@/common/utils/i18n-message.util";
 
-export class LoginDto {
+/**
+ * Zod validation schema for user login authentication requests.
+ */
+export const loginSchema = z
+  .object({
+    email: zEmail(),
+    password: z
+      .string(i18nZodMsg("validation.isString"))
+      .min(8, { message: i18nZodMsg("validation.minLength", { "0": 8 }) }),
+  })
+  .strict();
+
+export type LoginDtoType = z.infer<typeof loginSchema>;
+
+/**
+ * Data Transfer Object for user login request.
+ */
+export class LoginDto implements LoginDtoType {
+  public static readonly zodSchema = loginSchema;
+
   @ApiProperty({
     example: "user@example.com",
     description: "Registered user email address",
   })
-  @IsEmailField()
-  email!: string;
+  public email!: string;
 
   @ApiProperty({ example: "Password123!", description: "Account password" })
-  @IsString({ message: i18nMsg("validation.isString") })
-  @IsNotEmpty({ message: i18nMsg("validation.isNotEmpty") })
-  @MinLength(8, { message: i18nMsg("validation.minLength") })
-  password!: string;
+  public password!: string;
 }
 
 export class UserInfoDto {
   @ApiProperty({ example: "019fa8bc-8f4d-7000-b366-e691f45cfb8f" })
-  id!: string;
+  public id!: string;
 
   @ApiProperty({ example: "user@example.com" })
-  email!: string;
+  public email!: string;
 
   @ApiProperty({ example: "John Doe" })
-  fullName!: string;
+  public fullName!: string;
 
   @ApiProperty({ example: "USER" })
-  role!: string;
+  public role!: string;
 }
 
 export class LoginResponseDto {
   @ApiProperty({ example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." })
-  accessToken!: string;
+  public accessToken!: string;
 
   @ApiProperty({ example: "d9b2e8a1-3c5f-4a7b-8e9d-1f2a3b4c5d6e" })
-  refreshToken!: string;
+  public refreshToken!: string;
 
   @ApiProperty({ type: UserInfoDto })
-  user!: UserInfoDto;
+  public user!: UserInfoDto;
 }

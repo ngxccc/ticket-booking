@@ -1,22 +1,38 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsString, MaxLength } from "class-validator";
-import { i18nMsg } from "@/common/utils/i18n-message.util";
-import { IsPassword } from "@/common/decorators/is-password.decorator";
+import { z } from "zod";
+import { zPassword } from "@/common/schemas/zod-primitives";
+import { i18nZodMsg } from "@/common/utils/i18n-message.util";
 
-export class ChangePasswordDto {
+/**
+ * Zod validation schema for password change requests.
+ */
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z
+      .string(i18nZodMsg("validation.isString"))
+      .min(1, { message: i18nZodMsg("validation.isNotEmpty") })
+      .max(256, { message: i18nZodMsg("validation.maxLength", { "0": 256 }) }),
+    newPassword: zPassword(),
+  })
+  .strict();
+
+export type ChangePasswordDtoType = z.infer<typeof changePasswordSchema>;
+
+/**
+ * Data Transfer Object for changing account password.
+ */
+export class ChangePasswordDto implements ChangePasswordDtoType {
+  public static readonly zodSchema = changePasswordSchema;
+
   @ApiProperty({
     example: "CurrentPassword123!",
     description: "Current account password",
   })
-  @IsString({ message: i18nMsg("validation.isString") })
-  @IsNotEmpty({ message: i18nMsg("validation.isNotEmpty") })
-  @MaxLength(256, { message: i18nMsg("validation.maxLength") })
-  currentPassword!: string;
+  public currentPassword!: string;
 
   @ApiProperty({
     example: "NewSecurePassword456!",
     description: "New account password (must differ from current)",
   })
-  @IsPassword()
-  newPassword!: string;
+  public newPassword!: string;
 }
