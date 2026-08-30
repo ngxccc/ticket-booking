@@ -52,7 +52,7 @@ export async function cleanScopedRedisKeys(redis: Redis): Promise<void> {
         "MATCH",
         "*",
         "COUNT",
-        100,
+        500,
       );
       cursor = nextCursor;
 

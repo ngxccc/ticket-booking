@@ -15,9 +15,9 @@ const scryptAsync = promisify(scryptCb) as (
   options: ScryptOptions,
 ) => Promise<Buffer>;
 
-// Use reduced scrypt cost parameter (N=1024) in test environment to eliminate CPU bottlenecks during test execution.
+// Use ultra-lightweight scrypt parameters (N=128, r=1, p=1) in test environment to reduce CPU hashing overhead to microseconds while preserving exact functional verification.
 const SCRYPT_OPTIONS: ScryptOptions =
-  env.NODE_ENV === "test" ? { N: 1024, r: 8, p: 1 } : { N: 16384, r: 8, p: 1 };
+  env.NODE_ENV === "test" ? { N: 128, r: 1, p: 1 } : { N: 16384, r: 8, p: 1 };
 
 const KEY_LENGTH_BYTES = 64;
 const SALT_BYTES = 16;
