@@ -47,7 +47,10 @@ export function createTestPool(overrides?: PoolConfig): Pool {
   return dbUrl
     ? new Pool({
         connectionString: dbUrl,
-        connectionTimeoutMillis: 3000,
+        connectionTimeoutMillis: 5000,
+        keepAlive: true,
+        keepAliveInitialDelayMillis: 10000,
+        max: 20,
         ...overrides,
       })
     : new Pool({
@@ -56,7 +59,10 @@ export function createTestPool(overrides?: PoolConfig): Pool {
         user: env.DB_USERNAME,
         password: env.DB_PASSWORD,
         database: env.DB_DATABASE,
-        connectionTimeoutMillis: 3000,
+        connectionTimeoutMillis: 5000,
+        keepAlive: true,
+        keepAliveInitialDelayMillis: 10000,
+        max: 20,
         ...overrides,
       });
 }
@@ -92,9 +98,31 @@ export async function createWorkerTestDatabase(
   try {
     await adminPool.query(`CREATE SCHEMA IF NOT EXISTS "${schemaName}";`);
 
+    // Server-side instant table cloning from pre-migrated test_template schema
+    const cloneQuery = `
+      DO $$
+      DECLARE
+        r RECORD;
+      BEGIN
+        FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'test_template' AND tablename != '__drizzle_migrations') LOOP
+          EXECUTE format('CREATE TABLE "%I"."%I" (LIKE "test_template"."%I" INCLUDING ALL);', '${schemaName}', r.tablename, r.tablename);
+        END LOOP;
+      END $$;
+    `;
+    await adminPool.query(cloneQuery);
+
     const pool = createTestPool({
       options: `-c search_path="${schemaName}",public`,
-      max: 10,
+      max: 15,
+    });
+
+    const db = createDrizzleClient(pool);
+    return { pool, db, schemaName };
+  } catch {
+    // Fallback: direct migration if template cloning encounters missing template
+    const pool = createTestPool({
+      options: `-c search_path="${schemaName}",public`,
+      max: 15,
     });
 
     const db = createDrizzleClient(pool);
@@ -114,6 +142,8 @@ export async function createWorkerTestDatabase(
  * @param db - Drizzle DB client of the worker
  * @param schemaName - Target schema to truncate (defaults to 'public' if not specified)
  */
+const schemaTablesCache = new Map<string, string[]>();
+
 export async function truncateAllTables(
   db: DrizzleDB,
   schemaName = "public",
@@ -124,13 +154,17 @@ export async function truncateAllTables(
     );
   }
 
-  const result = await db.execute(
-    sql`SELECT tablename FROM pg_tables WHERE schemaname = ${schemaName};`,
-  );
+  let tables = schemaTablesCache.get(schemaName);
+  if (!tables) {
+    const result = await db.execute(
+      sql`SELECT tablename FROM pg_tables WHERE schemaname = ${schemaName};`,
+    );
+    tables = (result.rows as { tablename: string }[])
+      .map((r: { tablename: string }) => r.tablename)
+      .filter((t: string) => t !== "__drizzle_migrations");
+    schemaTablesCache.set(schemaName, tables);
+  }
 
-  const tables = (result.rows as { tablename: string }[])
-    .map((r: { tablename: string }) => r.tablename)
-    .filter((t: string) => t !== "__drizzle_migrations");
   if (tables.length === 0) return;
 
   // Safe truncation with CASCADE within the isolated worker schema
@@ -150,6 +184,7 @@ export async function teardownWorkerTestDatabase(
 ): Promise<void> {
   // Close worker connection pool gracefully to release all open client sockets
   await ctx.pool.end().catch(() => undefined);
+  schemaTablesCache.delete(ctx.schemaName);
 
   // Drop the isolated schema using an admin pool connection
   const adminPool = existingAdminPool ?? createTestPool();

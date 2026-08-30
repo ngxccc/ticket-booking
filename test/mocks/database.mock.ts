@@ -27,29 +27,39 @@ export function createMockDb() {
     where: mockDeleteWhere,
   }));
   const mockDb = {
-    select: mock(() => ({
-      from: mock(() => ({
-        where: mock(() => {
-          const limitMock = mock(() => {
-            const getResult = () => {
-              if (selectResultsQueue.length > 0) {
-                const res = selectResultsQueue.shift();
-                return Promise.resolve(res ?? selectResult);
-              }
-              return Promise.resolve(selectResult);
-            };
-            const resultPromise = getResult();
-            return Object.assign(resultPromise, {
-              for: mock(() => resultPromise),
-            });
-          });
-          return {
-            limit: limitMock,
-            for: mock(() => ({ limit: limitMock })),
-          };
-        }),
-      })),
-    })),
+    select: mock(() => {
+      const getResult = () => {
+        if (selectResultsQueue.length > 0) {
+          const res = selectResultsQueue.shift();
+          return Promise.resolve(res ?? selectResult);
+        }
+        return Promise.resolve(selectResult);
+      };
+      const qb: Record<string, unknown> = {};
+      qb["then"] = (
+        onfulfilled?: (value: unknown) => unknown,
+        onrejected?: (reason: unknown) => unknown,
+      ) => getResult().then(onfulfilled, onrejected);
+      const chainMethods = [
+        "from",
+        "where",
+        "leftJoin",
+        "innerJoin",
+        "rightJoin",
+        "fullJoin",
+        "groupBy",
+        "having",
+        "orderBy",
+        "limit",
+        "offset",
+        "for",
+        "$dynamic",
+      ];
+      for (const method of chainMethods) {
+        qb[method] = mock(() => qb);
+      }
+      return qb;
+    }),
     insert: mock(() => ({
       values: mockInsertValues,
     })),

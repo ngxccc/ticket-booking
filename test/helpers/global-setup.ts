@@ -3,7 +3,13 @@ import "@nestjs/testing";
 import type { Pool } from "pg";
 import { env } from "@/env";
 import { TIME_IN_MS } from "@/common/constants/time.constant";
-import { createTestPool, dropTestSchema } from "./database.helper";
+import {
+  createDrizzleClient,
+  createTestPool,
+  dropTestSchema,
+} from "./database.helper";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { join } from "path";
 import { Logger } from "@nestjs/common";
 import { spyOn } from "bun:test";
 
@@ -43,25 +49,60 @@ export async function cleanupOrphanTestSchemas(pool: Pool): Promise<void> {
 }
 
 /**
+ * Pre-provisions and migrates a shared template schema once globally, enabling instantaneous server-side table cloning.
+ *
+ * @param adminPool - Active PostgreSQL connection pool
+ */
+export async function ensureTemplateSchemaMigrated(
+  adminPool: Pool,
+): Promise<void> {
+  await adminPool.query(`CREATE SCHEMA IF NOT EXISTS "test_template";`);
+  const pool = createTestPool({
+    options: `-c search_path="test_template",public`,
+    max: 2,
+  });
+  const db = createDrizzleClient(pool);
+  const migrationsFolder = join(import.meta.dir, "../../drizzle");
+  await migrate(db, { migrationsFolder, migrationsSchema: "test_template" });
+  await pool.end().catch(() => undefined);
+}
+
+/**
  * Global pre-flight initialization hook executed before parallel test workers spawn.
  * Fails open gracefully if the database is unreachable (e.g. during unit test runs).
  */
-export async function setupGlobalTestEnvironment(): Promise<void> {
-  if (env.NODE_ENV !== "test" || !env.DB_URL) return;
+let isGlobalEnvInitialized = false;
 
+export async function setupGlobalTestEnvironment(): Promise<void> {
+  if (env.NODE_ENV !== "test" || !env.DB_URL || isGlobalEnvInitialized) return;
+
+  // Only execute database pre-flight checks if the test suite is an integration/e2e test under test/
+  const isRunningIntegrationTest = process.argv.some(
+    (arg) =>
+      arg.includes("test/") ||
+      arg.includes(".e2e") ||
+      arg.includes(".integration"),
+  );
+
+  if (!isRunningIntegrationTest) {
+    return;
+  }
+
+  isGlobalEnvInitialized = true;
   let pool: Pool | undefined;
 
   try {
-    pool = createTestPool();
+    pool = createTestPool({ max: 2 });
 
     // Pre-installing btree_gist globally in public schema avoids per-worker catalog lock contention on pg_extension.
     await pool.query(
       "CREATE EXTENSION IF NOT EXISTS btree_gist SCHEMA public;",
     );
 
+    // Migrate template schema once to eliminate per-worker DDL execution overhead
+    await ensureTemplateSchemaMigrated(pool);
+
     await cleanupOrphanTestSchemas(pool);
-  } catch {
-    // Fail-open resilience: allow offline unit test suites (e.g. bun test src/) to pass when PostgreSQL is unreachable.
   } finally {
     if (pool) {
       await pool.end().catch(() => undefined);
