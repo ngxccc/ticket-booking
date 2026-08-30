@@ -37,15 +37,6 @@ describe("Booking Module Integration", () => {
 
 ## 2. Test Data Factory & Object Mother Patterns
 
-```mermaid
-flowchart TD
-    subgraph Patterns[Test Data Patterns]
-        F[Test Factories: test/factories/] -->|Dynamic Entities with Overrides| D[Auto-resolves Foreign Key DAGs]
-        M[Object Mothers: test/mothers/] -->|Standard Domain Scenarios| S[MovieMother.standard, UserMother.customer]
-        A[Auth Helper: test/helpers/auth.helper.ts] -->|Direct JWT Signing| H[createAuthenticatedUser, createAuthenticatedAdmin]
-    end
-```
-
 - **Factory Pattern**: Use `create<Entity>(db, overrides)` with `Partial<TNewEntity> = {}` to automatically resolve parent relationships.
 - **Object Mother Pattern**: Centralize domain presets (`MovieMother.standard()`, `UserMother.admin()`).
 - **Auth Helper**: Use `createAuthenticatedUser()` to get a ready-to-use `{ user, token, authHeader }` without cross-module HTTP requests.

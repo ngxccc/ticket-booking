@@ -18,12 +18,7 @@
 
 ## 3. Repository Layout (Single-Context)
 
-```
-/
-├── CONTEXT.md          # Global domain glossary and ubiquitous language
-├── docs/adr/           # Architecture Decision Records (0001-...)
-└── src/                # Application modules adhering to the domain model
-```
+- Root `CONTEXT.md` (Domain Glossary), `docs/adr/000X-<kebab-case-title>.md` (ADRs), `src/` (Domain Modules).
 
 ---
 
@@ -32,12 +27,6 @@
 ### A. Module-Scoped Invariant Matrix
 
 Domain invariants are scoped per Domain Module (e.g. `ShowsDomainInvariants: INV-1..4`, `BookingDomainInvariants: INV-1..6`, `AuthDomainInvariants: INV-1..4`). Invariant identifiers are unique within the module and shared across all endpoints/operations in that domain:
-
-```mermaid
-flowchart LR
-    Docs["SSOT Workflow Doc<br/>(docs/design/*.md)"] <--> Code["Domain Service TSDoc<br/>(@invariant INV-N)"]
-    Code <--> Tests["Integration Tests<br/>(it('... (INV-N)'))"]
-```
 
 ### B. The Traceability Triangle
 

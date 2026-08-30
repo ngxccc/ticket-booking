@@ -21,17 +21,6 @@ Issues and specifications for this repository are managed via **GitHub Issues**.
 
 ## 3. Repository Label Taxonomy
 
-```mermaid
-flowchart LR
-    subgraph StatusFlow[Status Lifecycle]
-        S1[status:triage] --> S2[status:in-progress]
-        S1 --> S3[status:blocked]
-        S2 --> S4[status:needs-review]
-        S4 --> S5[status:approved]
-        S1 -.-> S6[wontfix]
-    end
-```
-
 ### A. Status Labels (Lifecycle)
 
 - `status:triage` — Initial state; newly created issue awaiting evaluation.

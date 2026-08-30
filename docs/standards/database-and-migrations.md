@@ -14,16 +14,6 @@
 
 ## 2. Indexing Strategy & Performance Rules
 
-```mermaid
-flowchart TD
-    subgraph IndexDecision[Index Type Selection]
-        I1[B-Tree Index] -->|Equality & Range Lookups| R1["id, email, user_id, show_id, start_time"]
-        I2[Composite Index] -->|Multi-column Queries| R2["(hall_id, start_time) — High Cardinality First"]
-        I3[Partial Index] -->|Filtered Subsets| R3["status = 'pending_verification'"]
-        I4[GiST Index] -->|Interval / Range Exclusion| R4["tsrange(start_time, end_time)"]
-    end
-```
-
 - **Index Naming**:
   - Non-unique index: `<table>_<columns>_idx` (e.g. `shows_hall_id_start_time_idx`).
   - Unique index: `<table>_<columns>_uidx` (e.g. `users_email_uidx`).
