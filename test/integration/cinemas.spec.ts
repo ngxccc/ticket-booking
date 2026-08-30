@@ -19,14 +19,7 @@ import type { DrizzleDB } from "@/database/database.module";
 import { createCinema, createHall } from "../factories/cinema.factory";
 import type { ApiResponse } from "@/common/utils/api-response.util";
 import type { CinemaListResponseDto } from "@/modules/catalog/dto";
-
-interface Rfc9457ErrorResponse {
-  type?: string;
-  title?: string;
-  status?: number;
-  detail?: string;
-  invalidParams?: { name: string; reason: string }[];
-}
+import type { Rfc9457ErrorResponse } from "@/common/filters/global-exception.filter";
 
 describe("Catalog Module Integration - Cinemas", () => {
   let setup: TestAppSetup;
