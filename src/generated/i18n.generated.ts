@@ -38,6 +38,10 @@ export type I18nTranslations = {
         "PAYOS_WEBHOOK_INVALID_SIGNATURE": string;
         "PAYOS_WEBHOOK_STALE_TIMESTAMP": string;
     };
+    "catalog": {
+        "MOVIE_NOT_FOUND": string;
+        "CINEMA_NOT_FOUND": string;
+    };
     "common": {
         "INTERNAL_SERVER_ERROR": string;
         "INVALID_INPUT": string;
