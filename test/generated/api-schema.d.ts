@@ -640,23 +640,23 @@ export interface components {
        */
       amount: number;
       /**
-       * @description Payment transaction description
-       * @example Movie ticket booking payment
+       * @description Payment description string
+       * @example Thanh toan ve xem phim
        */
       description: string;
       /**
-       * @description Receiving account number
-       * @example 123456789
+       * @description PayOS receiving bank account number
+       * @example 1234567890
        */
       accountNumber: string;
       /**
-       * @description Transaction reference code
-       * @example PAYOS123456
+       * @description Banking system transaction reference
+       * @example FT2401019999
        */
       reference: string;
       /**
-       * @description Transaction timestamp (YYYY-MM-DD HH:mm:ss)
-       * @example 2026-07-29 10:15:00
+       * @description Transaction datetime formatted string
+       * @example 2026-08-30 10:00:00
        */
       transactionDateTime: string;
       /**

@@ -18,7 +18,7 @@ import {
   type TestDatabaseContext,
 } from "./database.helper";
 import { createRedisClient } from "@/config/redis.config";
-import { createAppValidationPipe } from "@/common/pipes/validation.pipe";
+import { ZodValidationPipe } from "@/common/pipes/zod-validation.pipe";
 
 /**
  * Encapsulates the runtime application and isolated resources provisioned for a test suite.
@@ -133,7 +133,7 @@ export async function createTestApp(
     .compile();
 
   const app = moduleFixture.createNestApplication();
-  app.useGlobalPipes(createAppValidationPipe());
+  app.useGlobalPipes(new ZodValidationPipe());
   await app.init();
 
   const db = dbContext.db;
