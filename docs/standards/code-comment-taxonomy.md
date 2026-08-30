@@ -11,7 +11,7 @@ Self-documenting code with expressive naming is always preferred over explanator
 
 ## The 4-Tier Comment Taxonomy
 
-- **Tier 1 (Public APIs & Utilities)**: TSDoc / JSDoc (`/** ... */`) specifying intent, params, returns, and invariants.
+- **Tier 1 (Public APIs & Utilities)**: TSDoc / JSDoc (`/** ... */`) specifying concise intent, params, returns, and thrown exceptions.
 - **Tier 2 (Technical Rationale)**: Natural English sentences explaining why non-obvious logic exists or what disaster is prevented.
 - **Tier 3 (Tracked Debt)**: `// TODO(ticket-or-context):` comments naming the issue or condition.
 - **Tier 4 (Prohibited)**: Echoing code, excusing poor naming, dead commented code, changelog tags, or non-English comments.

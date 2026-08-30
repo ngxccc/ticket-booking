@@ -28,8 +28,6 @@
 
 Domain invariants are scoped per Domain Module (e.g. `ShowsDomainInvariants: INV-1..4`, `BookingDomainInvariants: INV-1..6`, `AuthDomainInvariants: INV-1..4`). Invariant identifiers are unique within the module and shared across all endpoints/operations in that domain:
 
-### B. The Traceability Triangle
+### B. Invariant Traceability
 
 1. **SSOT Specification**: `docs/design/<feature>-workflow.md` explicitly enumerates all domain invariants (`INV-1`, `INV-2`, etc.).
-2. **Service TSDoc**: Exported service methods MUST document all enforced invariants via `@invariant INV-N (<Name>): <Enforcement Details>` in Tier 1 TSDoc.
-3. **Test Assertions**: Test suites MUST tag corresponding test assertions with `(INV-N)` in the `it("...")` description to guarantee continuous verification.
