@@ -93,7 +93,7 @@ describe("Booking Module Integration", () => {
 
     const insertedCinema = await createCinema(db, {
       name: "Grand Cinema Center",
-      address: "123 Main St",
+      streetAddress: "123 Main St",
     });
 
     const insertedHall = await createHall(db, {
