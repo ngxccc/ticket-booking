@@ -48,3 +48,13 @@ body:
       placeholder: "References ADR-0001, requires SELECT FOR UPDATE or Redlock..."
     validations:
       required: false
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: "Dependencies & Execution Order"
+      description: "Specify if this feature is blocked by or blocks other issues"
+      placeholder: |
+        - **Blocked by**: #91 (Catalog Discovery)
+        - **Blocks**: #93 (Seating Chart Matrix)
+    validations:
+      required: false

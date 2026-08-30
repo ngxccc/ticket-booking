@@ -102,3 +102,14 @@ When splitting an Epic or Parent feature issue into sub-tasks, link them nativel
    ```bash
    gh api repos/{owner}/{repo}/issues/<parent_number>/sub_issues --jq '.[] | "#\(.number): \(.title)"'
    ```
+
+---
+
+## 7. Issue Templates (Single Source of Truth)
+
+All issue structures and required fields are defined in `.github/ISSUE_TEMPLATE/`:
+
+- **Feature / Epic**: `.github/ISSUE_TEMPLATE/feature_request.yml`
+- **Sub-Issue / Tracer-Bullet**: `.github/ISSUE_TEMPLATE/sub_issue.yml`
+- **Refactor / Tech Debt**: `.github/ISSUE_TEMPLATE/task.yml`
+- **Bug Report**: `.github/ISSUE_TEMPLATE/bug_report.yml`

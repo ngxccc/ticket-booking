@@ -1,7 +1,7 @@
-name: "Refactor / Technical Task"
-description: "Propose a code refactoring, test suite enhancement, or technical debt cleanup"
-title: "refactor(<area>): <summary>"
-labels: ["type:refactor", "status:triage"]
+name: "Technical Task / Maintenance"
+description: "Propose code refactoring, test suite enhancement, performance tuning, or maintenance chore"
+title: "<type>(<area>): <summary>"
+labels: ["status:triage"]
 body:
   - type: textarea
     id: goal
@@ -39,3 +39,13 @@ body:
         - [ ] Linter passes with 0 warnings (`bun run lint`)
     validations:
       required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: "Dependencies & Execution Order"
+      description: "Specify if this task is blocked by or blocks other issues"
+      placeholder: |
+        - **Blocked by**: #82
+        - **Blocks**: #84
+    validations:
+      required: false
