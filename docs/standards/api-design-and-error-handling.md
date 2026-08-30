@@ -86,16 +86,9 @@ All error responses across HTTP exceptions, validation failures, and unhandled e
 
 ## 6. TypeScript Type & Interface Naming Standards
 
-Adheres strictly to the **Microsoft TypeScript Coding Guidelines**, **Google TypeScript Style Guide**, and `@typescript-eslint/naming-convention` industry standards:
+- **No Hungarian Prefixes**: Never prefix interfaces with `I` (use `AuthService`, not `IAuthService`) or types with `T` (use `PaymentPayload`, not `TPaymentPayload`).
 
-### 6.1. Prohibition of Hungarian Notation (`I` / `T` Prefixes)
-
-- **NEVER prefix interfaces with `I`** (e.g. ❌ `IUser`, ❌ `IAuthService` $\rightarrow$ ✅ `User`, ✅ `AuthService`).
-  - _Rationale_: TypeScript uses a **structural type system (duck typing)**, not nominal typing like C# or Java. An interface describes a contract/shape, not an OOP-specific construct. Prefixing with `I` leaks implementation details to consumers and creates friction when refactoring between classes, types, and interfaces.
-- **NEVER prefix types with `T`** (e.g. ❌ `TSentryBreadcrumbCategory`, ❌ `TPaymentPayload` $\rightarrow$ ✅ `SentryBreadcrumbCategory`, ✅ `PaymentPayload`).
-  - _Rationale_: Modern IDEs (VS Code, JetBrains WebStorm) provide instant hover information and color syntax highlighting that clearly distinguish types from values. Prefixing types with `T` is redundant noise that degrades readability.
-
-### 6.2. Naming Convention Rules Summary Table
+### Naming Conventions Summary Table
 
 | Construct                      | Convention                                | Example (Good)                            | Anti-Pattern (Avoid)                       |
 | :----------------------------- | :---------------------------------------- | :---------------------------------------- | :----------------------------------------- |

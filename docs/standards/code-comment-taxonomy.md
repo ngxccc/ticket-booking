@@ -11,18 +11,10 @@ Self-documenting code with expressive naming is always preferred over explanator
 
 ## The 4-Tier Comment Taxonomy
 
-```mermaid
-flowchart TD
-    Start[Deciding whether to write a comment] --> Q1{Is code unclear due to naming or length?}
-    Q1 -- Yes --> A1[REFACTOR FIRST: Rename variables, extract functions. DO NOT COMMENT]
-    Q1 -- No --> Q2{Is it a public utility, shared helper, or exported API?}
-    Q2 -- Yes --> A2[WRITE TSDoc: /** ... */ with intent, params, returns, invariants]
-    Q2 -- No --> Q3{Is there a non-obvious invariant, security guard, workaround, or fail-open?}
-    Q3 -- Yes --> A3[WRITE Inline Rationale: Natural prose explaining the risk or trade-off]
-    Q3 -- No --> Q4{Is it temporary technical debt?}
-    Q4 -- Yes --> A4[WRITE // TODO: With ticket or context]
-    Q4 -- No --> A5[NO COMMENT: Keep code self-documenting]
-```
+- **Tier 1 (Public APIs & Utilities)**: TSDoc / JSDoc (`/** ... */`) specifying intent, params, returns, and invariants.
+- **Tier 2 (Technical Rationale)**: Natural English sentences explaining why non-obvious logic exists or what disaster is prevented.
+- **Tier 3 (Tracked Debt)**: `// TODO(ticket-or-context):` comments naming the issue or condition.
+- **Tier 4 (Prohibited)**: Echoing code, excusing poor naming, dead commented code, changelog tags, or non-English comments.
 
 ---
 

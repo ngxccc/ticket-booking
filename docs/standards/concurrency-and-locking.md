@@ -2,15 +2,6 @@
 
 ## 1. Locking Tier Decision Matrix
 
-```mermaid
-flowchart TD
-    subgraph LockingHierarchy[Concurrency Control Hierarchy]
-        L1["Tier 1: PostgreSQL Exclusion Constraint (GiST)<br/>(Engine-level schedule overlap protection)"]
-        L2["Tier 2: Pessimistic Row Lock (SELECT FOR UPDATE)<br/>(Single DB Transaction seat/inventory allocation)"]
-        L3["Tier 3: Distributed Lock (Redlock)<br/>(Multi-instance cross-service resource lock)"]
-    end
-```
-
 | Concurrency Tier              | Mechanism               | When to Apply                                                 | Failure Mode                                       |
 | :---------------------------- | :---------------------- | :------------------------------------------------------------ | :------------------------------------------------- |
 | **Tier 1 (DB Constraint)**    | `EXCLUDE USING gist`    | Show scheduling, hall time slot allocation.                   | PostgreSQL error `23P01` (Exclusion Violation).    |
