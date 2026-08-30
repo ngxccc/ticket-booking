@@ -3,9 +3,17 @@ import { i18nMsg, i18nZodMsg } from "./i18n-message.util";
 
 describe("i18n Message Utility Specification", () => {
   describe("i18nMsg", () => {
-    it("should return a function for class-validator integration", () => {
+    it("should return a function for class-validator integration and evaluate key", () => {
       const msgFn = i18nMsg("validation.isEmail");
       expect(typeof msgFn).toBe("function");
+      const result = msgFn({
+        property: "email",
+        value: "invalid",
+        targetName: "TestDto",
+        constraints: [],
+        object: {},
+      });
+      expect(typeof result).toBe("string");
     });
   });
 
