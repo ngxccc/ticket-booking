@@ -9,11 +9,23 @@ import {
 } from "drizzle-orm/pg-core";
 import { baseEntity, primaryKeyUuid } from "./helpers.schema";
 
-export const cinemas = snakeCase.table("cinemas", {
-  ...baseEntity,
-  name: varchar({ length: 255 }).notNull(),
-  address: varchar({ length: 255 }),
-});
+export const cinemas = snakeCase.table(
+  "cinemas",
+  {
+    ...baseEntity,
+    name: varchar({ length: 255 }).notNull(),
+    city: varchar({ length: 100 }).notNull(),
+    ward: varchar({ length: 100 }).notNull(),
+    streetAddress: varchar({ length: 255 }).notNull(),
+    postalCode: varchar({ length: 10 }),
+    latitude: decimal({ precision: 10, scale: 8 }),
+    longitude: decimal({ precision: 11, scale: 8 }),
+  },
+  (table) => [
+    index("cinemas_city_ward_idx").on(table.city, table.ward),
+    index("cinemas_name_idx").on(table.name),
+  ],
+);
 
 export const halls = snakeCase.table(
   "halls",
@@ -58,6 +70,7 @@ export const seats = snakeCase.table(
     index("seats_seat_type_id_idx").on(table.seatTypeId),
   ],
 );
+
 export type Cinema = typeof cinemas.$inferSelect;
 export type NewCinema = typeof cinemas.$inferInsert;
 export type Hall = typeof halls.$inferSelect;

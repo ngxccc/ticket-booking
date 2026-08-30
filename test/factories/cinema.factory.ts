@@ -22,7 +22,12 @@ export async function createCinema(
     .insert(cinemas)
     .values({
       name: `Cinema-${crypto.randomUUID().slice(0, 8)}`,
-      address: "720A Dien Bien Phu, Binh Thanh, HCMC",
+      city: "Thành phố Hồ Chí Minh",
+      ward: "Phường Bến Nghé",
+      streetAddress: "72 Lê Thánh Tôn",
+      postalCode: "70000",
+      latitude: "10.77810000",
+      longitude: "106.70250000",
       ...overrides,
     })
     .returning();
@@ -37,14 +42,18 @@ export async function createHall(
   db: DrizzleDB,
   overrides: Partial<NewHall> = {},
 ): Promise<Hall> {
-  const cinemaId = overrides.cinemaId ?? (await createCinema(db)).id;
+  let cinemaId = overrides.cinemaId;
+  if (!cinemaId) {
+    const cinema = await createCinema(db);
+    cinemaId = cinema.id;
+  }
 
   const [hall] = await db
     .insert(halls)
     .values({
       cinemaId,
-      name: `Hall-${crypto.randomUUID().slice(0, 8)}`,
-      totalSeats: 100,
+      name: `Hall-${crypto.randomUUID().slice(0, 4)}`,
+      totalSeats: 0,
       ...overrides,
     })
     .returning();
@@ -62,7 +71,7 @@ export async function createSeatType(
   const [seatType] = await db
     .insert(seatTypes)
     .values({
-      name: `SeatType-${crypto.randomUUID().slice(0, 8)}`,
+      name: `Standard-${crypto.randomUUID().slice(0, 8)}`,
       priceMultiplier: "1.00",
       ...overrides,
     })
@@ -78,8 +87,17 @@ export async function createSeat(
   db: DrizzleDB,
   overrides: Partial<NewSeat> = {},
 ): Promise<Seat> {
-  const hallId = overrides.hallId ?? (await createHall(db)).id;
-  const seatTypeId = overrides.seatTypeId ?? (await createSeatType(db)).id;
+  let hallId = overrides.hallId;
+  if (!hallId) {
+    const hall = await createHall(db);
+    hallId = hall.id;
+  }
+
+  let seatTypeId = overrides.seatTypeId;
+  if (!seatTypeId) {
+    const seatType = await createSeatType(db);
+    seatTypeId = seatType.id;
+  }
 
   const [seat] = await db
     .insert(seats)
@@ -88,7 +106,7 @@ export async function createSeat(
       seatTypeId,
       row: "A",
       number: 1,
-      seatNumber: `A1-${crypto.randomUUID().slice(0, 4)}`,
+      seatNumber: "A1",
       ...overrides,
     })
     .returning();
@@ -106,14 +124,13 @@ export async function createBatchSeats(
   count = 5,
   row = "A",
 ): Promise<Seat[]> {
-  const seatValues = Array.from({ length: count }, (_, idx) => ({
+  const seatValues: NewSeat[] = Array.from({ length: count }, (_, i) => ({
     hallId,
     seatTypeId,
     row,
-    number: idx + 1,
-    seatNumber: `${row}${(idx + 1).toString()}`,
+    number: i + 1,
+    seatNumber: `${row}${String(i + 1)}`,
   }));
 
-  const inserted = await db.insert(seats).values(seatValues).returning();
-  return inserted;
+  return db.insert(seats).values(seatValues).returning();
 }

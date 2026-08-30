@@ -79,7 +79,7 @@ describe("Shows Module Integration", () => {
     const movie = await MovieMother.standard(db);
     const cinema = await createCinema(db, {
       name: "CGV Landmark",
-      address: "720A Dien Bien Phu",
+      streetAddress: "720A Dien Bien Phu",
     });
 
     const hall1 = await createHall(db, {
