@@ -1,20 +1,35 @@
 import { ApiProperty } from "@nestjs/swagger";
-import {
-  ArrayMaxSize,
-  ArrayMinSize,
-  IsArray,
-  IsOptional,
-  IsString,
-  IsUUID,
-} from "class-validator";
+import { z } from "zod";
+import { zUuidV7 } from "@/common/schemas/zod-primitives";
+import { i18nZodMsg } from "@/common/utils/i18n-message.util";
 
-export class ReserveSeatsDto {
+/**
+ * Validation schema for seat reservation requests.
+ */
+export const reserveSeatsSchema = z
+  .object({
+    showId: zUuidV7(),
+    seatIds: z
+      .array(zUuidV7())
+      .min(1, i18nZodMsg("validation.isNotEmpty"))
+      .max(6, i18nZodMsg("validation.maxLength", { "0": 6 })),
+    voucherCode: z.string(i18nZodMsg("validation.isString")).optional(),
+  })
+  .strict();
+
+export type ReserveSeatsDtoType = z.infer<typeof reserveSeatsSchema>;
+
+/**
+ * Data Transfer Object for reserving and locking cinema seats.
+ */
+export class ReserveSeatsDto implements ReserveSeatsDtoType {
+  public static readonly zodSchema = reserveSeatsSchema;
+
   @ApiProperty({
     example: "019fa8bc-8f4d-7000-b366-e691f45cfb8f",
     description: "UUIDv7 of the scheduled movie show",
   })
-  @IsUUID("7")
-  showId!: string;
+  public showId!: string;
 
   @ApiProperty({
     example: [
@@ -23,38 +38,32 @@ export class ReserveSeatsDto {
     ],
     description: "Array of 1 to 6 seat UUIDv7s to reserve and lock",
   })
-  @IsArray()
-  @ArrayMinSize(1)
-  @ArrayMaxSize(6)
-  @IsUUID("7", { each: true })
-  seatIds!: string[];
+  public seatIds!: string[];
 
   @ApiProperty({
     example: "DISCOUNT50",
     description: "Optional promotion or voucher code",
     required: false,
   })
-  @IsOptional()
-  @IsString()
-  voucherCode?: string;
+  public voucherCode?: string;
 }
 
 export class ReserveSeatsResponseDto {
   @ApiProperty({ example: "019fa8bc-8f4d-7000-b366-e691f45cfb8f" })
-  bookingId!: string;
+  public bookingId!: string;
 
   @ApiProperty({ example: "019fa8bc-8f4d-7000-b366-e691f45cfb8f" })
-  showId!: string;
+  public showId!: string;
 
   @ApiProperty({ example: 100000 })
-  totalPrice!: number;
+  public totalPrice!: number;
 
   @ApiProperty({ example: "pending_payment" })
-  status!: string;
+  public status!: string;
 
   @ApiProperty({ example: "2026-07-28T12:45:00.000Z" })
-  expiresAt!: string;
+  public expiresAt!: string;
 
   @ApiProperty({ example: ["019fa8bc-8f4d-7000-b366-e691f45cfb8f"] })
-  seats!: string[];
+  public seats!: string[];
 }

@@ -1,98 +1,111 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { Type } from "class-transformer";
-import {
-  IsInt,
-  IsNotEmpty,
-  IsPositive,
-  IsString,
-  IsUUID,
-} from "class-validator";
+import { z } from "zod";
+import { zUuidV7 } from "@/common/schemas/zod-primitives";
+import { i18nZodMsg } from "@/common/utils/i18n-message.util";
 import {
   paymentMethodEnum,
   type PaymentMethod,
 } from "@/database/schemas/enums.schema";
-import { i18nMsg } from "@/common/utils/i18n-message.util";
-import { TransformEnum } from "@/common/decorators";
 
-export class ConfirmBookingDto {
+/**
+ * Validation schema for booking confirmation requests.
+ */
+export const confirmBookingSchema = z
+  .object({
+    bookingId: zUuidV7(),
+    orderCode: z
+      .number(i18nZodMsg("validation.isInt"))
+      .int(i18nZodMsg("validation.isInt"))
+      .positive(i18nZodMsg("validation.isPositive")),
+    paymentMethod: z.enum(
+      paymentMethodEnum.enumValues,
+      i18nZodMsg("validation.isIn", {
+        "0": paymentMethodEnum.enumValues.join(", "),
+      }),
+    ),
+    transactionId: z
+      .string(i18nZodMsg("validation.isString"))
+      .min(1, i18nZodMsg("validation.isNotEmpty")),
+    amount: z
+      .number(i18nZodMsg("validation.isInt"))
+      .int(i18nZodMsg("validation.isInt"))
+      .positive(i18nZodMsg("validation.isPositive")),
+  })
+  .strict();
+
+export type ConfirmBookingDtoType = z.infer<typeof confirmBookingSchema>;
+
+/**
+ * Data Transfer Object for confirming a reserved booking with payment.
+ */
+export class ConfirmBookingDto implements ConfirmBookingDtoType {
+  public static readonly zodSchema = confirmBookingSchema;
+
   @ApiProperty({
     example: "019fa8bc-8f4d-7000-b366-e691f45cfb8f",
     description: "UUIDv7 of the pending reservation to confirm",
   })
-  @IsUUID("7", { message: i18nMsg("validation.isUuid") })
-  @IsNotEmpty({ message: i18nMsg("validation.isNotEmpty") })
-  bookingId!: string;
+  public bookingId!: string;
 
   @ApiProperty({
     example: 123456,
     description: "PayOS unique numerical order code",
   })
-  @Type(() => Number)
-  @IsInt({ message: i18nMsg("validation.isInt") })
-  @IsPositive({ message: i18nMsg("validation.isPositive") })
-  @IsNotEmpty({ message: i18nMsg("validation.isNotEmpty") })
-  orderCode!: number;
+  public orderCode!: number;
 
   @ApiProperty({
     example: "PAYOS",
     enum: ["PAYOS", "CASH", "VNPAY", "MOMO", "ZALOPAY"],
     description: "Payment method used for the transaction",
   })
-  @TransformEnum(paymentMethodEnum.enumValues)
-  paymentMethod!: PaymentMethod;
+  public paymentMethod!: PaymentMethod;
 
   @ApiProperty({
     example: "TXN-123456789",
     description: "External payment gateway transaction ID",
   })
-  @IsString({ message: i18nMsg("validation.isString") })
-  @IsNotEmpty({ message: i18nMsg("validation.isNotEmpty") })
-  transactionId!: string;
+  public transactionId!: string;
 
   @ApiProperty({
     example: 200000,
     description: "Actual paid amount in VND",
   })
-  @Type(() => Number)
-  @IsInt({ message: i18nMsg("validation.isInt") })
-  @IsPositive({ message: i18nMsg("validation.isPositive") })
-  @IsNotEmpty({ message: i18nMsg("validation.isNotEmpty") })
-  amount!: number;
+  public amount!: number;
 }
 
 export class ConfirmedTicketDto {
   @ApiProperty({ example: "019fa8bc-8f4d-7000-b366-e691f45cfb8f" })
-  ticketId!: string;
+  public ticketId!: string;
 
   @ApiProperty({ example: "TKT-A1B2C3D4" })
-  ticketCode!: string;
+  public ticketCode!: string;
 
   @ApiProperty({ example: "019fa8bc-8f4d-7000-b366-e691f45cfb8f" })
-  showSeatId!: string;
+  public showSeatId!: string;
 
   @ApiProperty({ example: 100000 })
-  finalPrice!: number;
+  public finalPrice!: number;
 }
 
 export class ConfirmBookingResponseDto {
   @ApiProperty({ example: "019fa8bc-8f4d-7000-b366-e691f45cfb8f" })
-  bookingId!: string;
+  public bookingId!: string;
 
   @ApiProperty({ example: "019fa8bc-8f4d-7000-b366-e691f45cfb8f" })
-  paymentId!: string;
+  public paymentId!: string;
 
   @ApiProperty({ example: "PAYOS-TX-12345" })
-  transactionId!: string;
+  public transactionId!: string;
 
   @ApiProperty({ example: "confirmed" })
-  status!: "confirmed";
+  public status!: "confirmed";
 
   @ApiProperty({ example: "2026-07-28T12:45:00.000Z" })
-  confirmedAt!: string; // ISO 8601 Timestamp
+  public confirmedAt!: string;
 
   @ApiProperty({ example: 100000 })
-  totalPrice!: number;
+  public totalPrice!: number;
 
   @ApiProperty({ type: [ConfirmedTicketDto] })
-  tickets!: ConfirmedTicketDto[];
+  public tickets!: ConfirmedTicketDto[];
 }
