@@ -1,124 +1,165 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { Type } from "class-transformer";
-import {
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsString,
-  ValidateNested,
-} from "class-validator";
+import { z } from "zod";
+import { i18nZodMsg } from "@/common/utils/i18n-message.util";
 
-export class PayOSWebhookDataDto {
+/**
+ * Validation schema for PayOS webhook inner transaction details.
+ */
+export const payOSWebhookDataSchema = z
+  .object({
+    orderCode: z.number(i18nZodMsg("validation.isInt")),
+    amount: z.number(i18nZodMsg("validation.isInt")),
+    description: z.string(i18nZodMsg("validation.isString")),
+    accountNumber: z.string(i18nZodMsg("validation.isString")),
+    reference: z.string(i18nZodMsg("validation.isString")),
+    transactionDateTime: z.string(i18nZodMsg("validation.isString")),
+    currency: z.string(i18nZodMsg("validation.isString")),
+    paymentLinkId: z.string(i18nZodMsg("validation.isString")),
+    code: z.string(i18nZodMsg("validation.isString")),
+    desc: z.string(i18nZodMsg("validation.isString")),
+    counterAccountBankId: z
+      .string(i18nZodMsg("validation.isString"))
+      .nullable()
+      .optional(),
+    counterAccountBankName: z
+      .string(i18nZodMsg("validation.isString"))
+      .nullable()
+      .optional(),
+    counterAccountName: z
+      .string(i18nZodMsg("validation.isString"))
+      .nullable()
+      .optional(),
+    counterAccountNumber: z
+      .string(i18nZodMsg("validation.isString"))
+      .nullable()
+      .optional(),
+    virtualAccountName: z
+      .string(i18nZodMsg("validation.isString"))
+      .nullable()
+      .optional(),
+    virtualAccountNumber: z
+      .string(i18nZodMsg("validation.isString"))
+      .nullable()
+      .optional(),
+  })
+  .strict();
+
+export type PayOSWebhookDataType = z.infer<typeof payOSWebhookDataSchema>;
+
+/**
+ * Data Transfer Object for PayOS transaction payload details.
+ */
+export class PayOSWebhookDataDto implements PayOSWebhookDataType {
+  public static readonly zodSchema = payOSWebhookDataSchema;
+
   @ApiProperty({ example: 123456, description: "PayOS unique order code" })
-  @IsNumber()
-  @IsNotEmpty()
-  orderCode!: number;
+  public orderCode!: number;
 
   @ApiProperty({ example: 200000, description: "Payment amount in VND" })
-  @IsNumber()
-  @IsNotEmpty()
-  amount!: number;
+  public amount!: number;
 
   @ApiProperty({
-    example: "Movie ticket booking payment",
-    description: "Payment transaction description",
+    example: "Thanh toan ve xem phim",
+    description: "Payment description string",
   })
-  @IsString()
-  description!: string;
+  public description!: string;
 
   @ApiProperty({
-    example: "123456789",
-    description: "Receiving account number",
+    example: "1234567890",
+    description: "PayOS receiving bank account number",
   })
-  @IsString()
-  accountNumber!: string;
+  public accountNumber!: string;
 
   @ApiProperty({
-    example: "PAYOS123456",
-    description: "Transaction reference code",
+    example: "FT2401019999",
+    description: "Banking system transaction reference",
   })
-  @IsString()
-  reference!: string;
+  public reference!: string;
 
   @ApiProperty({
-    example: "2026-07-29 10:15:00",
-    description: "Transaction timestamp (YYYY-MM-DD HH:mm:ss)",
+    example: "2026-08-30 10:00:00",
+    description: "Transaction datetime formatted string",
   })
-  @IsString()
-  transactionDateTime!: string;
+  public transactionDateTime!: string;
 
   @ApiProperty({ example: "VND", description: "Currency unit" })
-  @IsString()
-  currency!: string;
+  public currency!: string;
 
   @ApiProperty({ example: "link123", description: "Payment link ID" })
-  @IsString()
-  paymentLinkId!: string;
+  public paymentLinkId!: string;
 
   @ApiProperty({ example: "00", description: "PayOS payment status code" })
-  @IsString()
-  code!: string;
+  public code!: string;
 
   @ApiProperty({ example: "success", description: "Status description" })
-  @IsString()
-  desc!: string;
+  public desc!: string;
 
   @ApiProperty({ example: null, required: false, nullable: true })
-  @IsOptional()
-  counterAccountBankId?: string | null;
+  public counterAccountBankId?: string | null;
 
   @ApiProperty({ example: null, required: false, nullable: true })
-  @IsOptional()
-  counterAccountBankName?: string | null;
+  public counterAccountBankName?: string | null;
 
   @ApiProperty({ example: null, required: false, nullable: true })
-  @IsOptional()
-  counterAccountName?: string | null;
+  public counterAccountName?: string | null;
 
   @ApiProperty({ example: null, required: false, nullable: true })
-  @IsOptional()
-  counterAccountNumber?: string | null;
+  public counterAccountNumber?: string | null;
 
   @ApiProperty({ example: null, required: false, nullable: true })
-  @IsOptional()
-  virtualAccountName?: string | null;
+  public virtualAccountName?: string | null;
 
   @ApiProperty({ example: null, required: false, nullable: true })
-  @IsOptional()
-  virtualAccountNumber?: string | null;
+  public virtualAccountNumber?: string | null;
 }
 
-export class PayOSWebhookDto {
+/**
+ * Validation schema for PayOS webhook notification payload.
+ */
+export const payOSWebhookSchema = z
+  .object({
+    code: z
+      .string(i18nZodMsg("validation.isString"))
+      .min(1, i18nZodMsg("validation.isNotEmpty")),
+    desc: z.string(i18nZodMsg("validation.isString")),
+    data: payOSWebhookDataSchema,
+    signature: z
+      .string(i18nZodMsg("validation.isString"))
+      .min(1, i18nZodMsg("validation.isNotEmpty")),
+  })
+  .strict();
+
+export type PayOSWebhookDtoType = z.infer<typeof payOSWebhookSchema>;
+
+/**
+ * Data Transfer Object for PayOS webhook notification payload.
+ */
+export class PayOSWebhookDto implements PayOSWebhookDtoType {
+  public static readonly zodSchema = payOSWebhookSchema;
+
   @ApiProperty({ example: "00", description: "Webhook result code" })
-  @IsString()
-  @IsNotEmpty()
-  code!: string;
+  public code!: string;
 
   @ApiProperty({ example: "success", description: "Result description" })
-  @IsString()
-  desc!: string;
+  public desc!: string;
 
   @ApiProperty({
     type: PayOSWebhookDataDto,
     description: "PayOS transaction payload details",
   })
-  @ValidateNested()
-  @Type(() => PayOSWebhookDataDto)
-  data!: PayOSWebhookDataDto;
+  public data!: PayOSWebhookDataDto;
 
   @ApiProperty({
     example: "a1b2c3d4e5f6...",
     description: "PayOS HMAC-SHA256 verification signature",
   })
-  @IsString()
-  @IsNotEmpty()
-  signature!: string;
+  public signature!: string;
 }
 
 export class PayOSWebhookResponseDto {
   @ApiProperty({ example: true })
-  success!: boolean;
+  public success!: boolean;
 
   @ApiProperty({ example: "Webhook processed successfully" })
-  message!: string;
+  public message!: string;
 }
