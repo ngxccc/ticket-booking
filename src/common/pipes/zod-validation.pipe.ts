@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Optional,
   type ArgumentMetadata,
   type PipeTransform,
 } from "@nestjs/common";
@@ -45,7 +46,7 @@ interface SchemaHolder {
  */
 @Injectable()
 export class ZodValidationPipe implements PipeTransform {
-  constructor(private readonly schema?: ZodType) {}
+  constructor(@Optional() private readonly schema?: ZodType) {}
 
   /**
    * Transforms and validates the incoming payload against the configured or inferred Zod schema.

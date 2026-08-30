@@ -23,7 +23,7 @@ import { BookingModule } from "./modules/booking/booking.module";
 import { ShowsModule } from "./modules/shows/shows.module";
 import { AppController } from "./app.controller";
 import { parseRedisOptions } from "./config/redis.config";
-import { createAppValidationPipe } from "./common/pipes/validation.pipe";
+import { ZodValidationPipe } from "./common/pipes/zod-validation.pipe";
 
 const getRedisOptions = () =>
   parseRedisOptions(env.REDIS_URL, env.REDIS_HOST, env.REDIS_PORT);
@@ -98,7 +98,7 @@ const getRedisOptions = () =>
     },
     {
       provide: APP_PIPE,
-      useFactory: createAppValidationPipe,
+      useClass: ZodValidationPipe,
     },
   ],
 })
