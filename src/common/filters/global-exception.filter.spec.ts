@@ -49,6 +49,7 @@ describe("GlobalExceptionFilter", () => {
       }),
     } as unknown as ArgumentsHost;
   });
+
   describe("when handling standard HttpExceptions", () => {
     it("should format UnauthorizedException correctly according to RFC 9457", () => {
       const exception = new UnauthorizedException(
@@ -188,6 +189,9 @@ describe("GlobalExceptionFilter", () => {
       const mockI18n = {
         translate: mock().mockImplementation(
           (key: string, options?: { args?: Record<string, unknown> }) => {
+            if (key === "common.INVALID_INPUT") {
+              return "Submitted data format is invalid";
+            }
             if (key === "validation.minLength") {
               const prop =
                 typeof options?.args?.["property"] === "string"
@@ -207,7 +211,7 @@ describe("GlobalExceptionFilter", () => {
         mockI18n as unknown as I18nService,
       );
       const exception = new BadRequestException({
-        detail: "Submitted data format is invalid",
+        detail: "common.INVALID_INPUT|{}",
         invalidParams: [
           {
             name: "password",
@@ -220,6 +224,7 @@ describe("GlobalExceptionFilter", () => {
 
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
+          detail: "Submitted data format is invalid",
           invalidParams: [
             {
               name: "password",

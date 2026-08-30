@@ -1,3 +1,5 @@
+import "@nestjs/common";
+import "@nestjs/core";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import type { BenchmarkMetric } from "./benchmark.util";

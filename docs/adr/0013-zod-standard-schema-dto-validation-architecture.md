@@ -48,7 +48,7 @@ We decided to establish a Schema-First DTO Validation and Sanitization Architect
 2. **Standard Schema Native Custom Pipe (`ZodValidationPipe`)**:
    - Implement a lightweight, zero-reflection `ZodValidationPipe` implementing NestJS `PipeTransform`.
    - Executes `schema.safeParse(value)` synchronously. On validation failure, extracts `ZodError.issues` and flattens them into RFC 9457 `invalidParams: [{ name, reason }]`.
-   - Throws standard NestJS `BadRequestException({ detail: "Invalid payload format", invalidParams })` conforming to the existing RFC 9457 exception pipeline.
+   - Throws standard NestJS `BadRequestException({ detail: i18nZodMsg("common.INVALID_INPUT"), invalidParams })` conforming to the existing RFC 9457 exception pipeline.
 3. **Dot/Bracket Nested Path Serialization**:
    - Field names in RFC 9457 `invalidParams` are serialized using dot and bracket notation (e.g., `timeSlots[2]`, `customer.address.city`), providing exact path attribution for frontend form mapping.
 4. **Decoupled i18n Localization via `GlobalExceptionFilter`**:
