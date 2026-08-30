@@ -80,7 +80,4 @@ type Rfc9457ErrorResponse = components["schemas"]["Rfc9457ErrorResponseDto"];
 
 ## 6. Performance Benchmarks & Stress Testing (`test/benchmarks/`)
 
-- **Location**: `test/benchmarks/` with naming convention `<domain>.bench.ts` (e.g. `shows-batch.bench.ts`).
-- **Runner**: `bun run test:bench` (or filter by domain: `bun run test:bench shows`).
-- **Structure**: Export `runBenchmark(): Promise<BenchmarkMetric[]>` returning metrics (`task`, `iterations`, `minMs`, `avgMs`, `p50Ms`, `p95Ms`, `p99Ms`, `opsPerSec`).
-- **Output Standards**: Console table output only — zero emojis, zero ASCII decorative dividers (`===`), machine-readable and CI/CD-friendly.
+All performance benchmark suites (`test/benchmarks/<domain>.bench.ts`) MUST strictly adhere to the 7 Production Benchmarking Invariants in [`docs/standards/benchmarking-and-performance-testing.md`](benchmarking-and-performance-testing.md).

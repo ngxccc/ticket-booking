@@ -181,6 +181,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         timestamp: new Date().toISOString(),
       });
   }
+
   // Extracts user-friendly error detail and field validation constraints from diverse NestJS exception formats.
   private parseHttpExceptionResponse(
     res: unknown,
@@ -202,7 +203,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
   private extractDetail(res: Record<string, unknown>, lang?: string): string {
     if (typeof res["detail"] === "string") {
-      return res["detail"];
+      return this.formatReason(res["detail"], lang);
     }
 
     const msg = res["message"];
