@@ -9,7 +9,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { movieRatingEnum } from "./enums.schema";
-import { baseEntity, primaryKeyUuid } from "./helpers.schema";
+import { baseEntity, baseTimestamps, primaryKeyUuid } from "./helpers.schema";
 
 export const movies = snakeCase.table("movies", {
   ...baseEntity,
@@ -52,9 +52,14 @@ export const movieTranslations = snakeCase.table(
     languageCode: varchar({ length: 10 }).notNull(),
     title: varchar({ length: 255 }).notNull(),
     description: text(),
+    ...baseTimestamps,
   },
-  (table) => [primaryKey({ columns: [table.movieId, table.languageCode] })],
+  (table) => [
+    primaryKey({ columns: [table.movieId, table.languageCode] }),
+    index("movie_translations_title_idx").on(table.title),
+  ],
 );
+
 export type Movie = typeof movies.$inferSelect;
 export type NewMovie = typeof movies.$inferInsert;
 export type Genre = typeof genres.$inferSelect;
