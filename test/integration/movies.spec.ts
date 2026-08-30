@@ -29,14 +29,7 @@ import type {
   MovieListResponseDto,
   MovieResponseDto,
 } from "@/modules/catalog/dto";
-
-interface Rfc9457ErrorResponse {
-  type?: string;
-  title?: string;
-  status?: number;
-  detail?: string;
-  invalidParams?: { name: string; reason: string }[];
-}
+import type { Rfc9457ErrorResponse } from "@/common/filters/global-exception.filter";
 
 describe("Catalog Module Integration - Movies", () => {
   let setup: TestAppSetup;
