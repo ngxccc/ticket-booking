@@ -23,11 +23,10 @@ Self-documenting code with expressive naming is always preferred over explanator
 **Scope**: Exported utilities (`utils/`), shared test helpers (`test/helpers/`, `test/factories/`, `test/mothers/`), custom decorators, pipes, guards, and complex domain service methods.  
 **Purpose**: Surface rich IDE IntelliSense tooltips and auto-generated API documentation.
 
-#### Requirements:
+#### Requirements
 
 - Concise 1–2 sentence summary of intent.
 - `@param`, `@returns`, `@throws` tags where signatures require clarification.
-- `@invariant INV-N` tag: **Reserved strictly for High-Risk Core Business Logic & Concurrency Engine** (e.g. Booking, Payment, Schedule Collision) as part of the Traceability Triangle. Do NOT annotate generic utilities, test infrastructure, or helpers with artificial `INV-N` codes.
 
 ```ts
 /**
@@ -36,8 +35,6 @@ Self-documenting code with expressive naming is always preferred over explanator
  * @param payload Raw webhook payload data
  * @param signature Received signature header
  * @returns true if signature is authentic; otherwise false
- *
- * @invariant INV-6 (Anti-Tampering): Prevents unauthorized payment confirmations
  */
 export function verifyPayOSSignature(
   payload: unknown,
@@ -54,13 +51,16 @@ export function verifyPayOSSignature(
 **Scope**: Non-obvious architectural decisions, security safeguards, concurrency handling, resilience strategies, and third-party library workarounds.  
 **Format**: Concise, natural English sentences explaining the technical reason, invariant, or failure mode prevented. (Do not mandate artificial prefixes like `// WHY:`; write direct, professional prose).
 
-#### 4 Primary Use Cases:
+#### 4 Primary Use Cases
 
 1. **Third-Party Workarounds & Library Edge Cases**:
+
    ```ts
    // Redlock v5 CJS export fails ESM resolution under verbatimModuleSyntax; ambient declaration bridges ESM import.
    ```
+
 2. **Security Safeguards (Timing attacks, XSS, User Enumeration)**:
+
    ```ts
    // Split limit of 2 guards against colons inside a base-encoded key segment producing extra parts.
    const [salt, key] = storedHash.split(":", 2);
@@ -70,12 +70,16 @@ export function verifyPayOSSignature(
      return false;
    }
    ```
+
 3. **Resilience & Fault Tolerance (Fail-Open, Timeouts, Retries)**:
+
    ```ts
    // Fail-open strategy if Redis rate-limiter is offline or timing out, prioritizing API availability over rate limiting.
    return true;
    ```
+
 4. **Database & Operating System Invariants**:
+
    ```ts
    // Trust reverse proxy headers (X-Forwarded-For) so throttler correctly identifies client IPs behind WAF/CDN.
    app.set("trust proxy", 1);

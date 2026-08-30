@@ -1,19 +1,8 @@
-import { validate } from "class-validator";
-import { plainToInstance } from "class-transformer";
-import { RegisterDto } from "./register.dto";
 import { describe, expect, it } from "bun:test";
-
-interface RawRegisterDto {
-  email?: unknown;
-  fullName?: unknown;
-  phoneNumber?: unknown;
-  password?: unknown;
-  confirmPassword?: unknown;
-  agreeTerms?: unknown;
-}
+import { RegisterDto, registerSchema } from "./register.dto";
 
 describe("RegisterDto Validation", () => {
-  const getValidDto = (): RawRegisterDto => ({
+  const getValidPayload = () => ({
     email: "test@example.com",
     fullName: "John Doe",
     phoneNumber: "0912345678",
@@ -22,182 +11,128 @@ describe("RegisterDto Validation", () => {
     agreeTerms: true,
   });
 
-  const validateDto = async (dtoObj: RawRegisterDto) => {
-    const dto = plainToInstance(RegisterDto, dtoObj);
-    return validate(dto);
-  };
-
-  it("should pass validation with valid data", async () => {
-    const dto = getValidDto();
-    const errors = await validateDto(dto);
-    expect(errors.length).toBe(0);
-  });
-
-  describe("Email Validation", () => {
-    it("should fail when email is empty", async () => {
-      const dto = getValidDto();
-      dto.email = "";
-      const errors = await validateDto(dto);
-      expect(errors.length).toBeGreaterThan(0);
-      const emailError = errors.find((e) => e.property === "email");
-      expect(emailError).toBeDefined();
-    });
-
-    it("should fail when email format is invalid", async () => {
-      const dto = getValidDto();
-      dto.email = "invalid-email-format";
-      const errors = await validateDto(dto);
-      expect(errors.length).toBeGreaterThan(0);
-      const emailError = errors.find((e) => e.property === "email");
-      expect(emailError).toBeDefined();
+  describe("Schema Integrity", () => {
+    it("should successfully validate and expose static zodSchema when payload is valid", () => {
+      const valid = getValidPayload();
+      const result = registerSchema.safeParse(valid);
+      expect(result.success).toBe(true);
+      expect(RegisterDto.zodSchema).toBe(registerSchema);
     });
   });
 
-  describe("Full Name Validation", () => {
-    it("should fail when fullName is empty", async () => {
-      const dto = getValidDto();
-      dto.fullName = "";
-      const errors = await validateDto(dto);
-      expect(errors.length).toBeGreaterThan(0);
-      const nameError = errors.find((e) => e.property === "fullName");
-      expect(nameError).toBeDefined();
+  describe("email field", () => {
+    it("should normalize email to lowercase and trim whitespace when formatted email is provided", () => {
+      const payload = {
+        ...getValidPayload(),
+        email: "  ALEX.DOE+tag@EXAMPLE.COM  ",
+      };
+      const result = registerSchema.safeParse(payload);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.email).toBe("alex.doe+tag@example.com");
+      }
     });
 
-    it("should sanitize HTML tags from fullName", async () => {
-      const dto = getValidDto();
-      dto.fullName = "<b>Test</b> User";
-      const errors = await validateDto(dto);
-      expect(errors.length).toBe(0);
-
-      // Since plainToInstance runs sanitizeString, it should transform "<b>Test</b> User" to "Test User"
-      const transformedDto = plainToInstance(RegisterDto, dto);
-      expect(transformedDto.fullName).toBe("Test User");
-    });
-
-    it("should fail validation if XSS script tags make fullName empty", async () => {
-      const dto = getValidDto();
-      dto.fullName = "<script>alert('XSS')</script>";
-      const errors = await validateDto(dto);
-      expect(errors.length).toBeGreaterThan(0);
-      const nameError = errors.find((e) => e.property === "fullName");
-      expect(nameError).toBeDefined();
+    it("should fail validation when email format is invalid", () => {
+      const payload = { ...getValidPayload(), email: "invalid-email" };
+      const result = registerSchema.safeParse(payload);
+      expect(result.success).toBe(false);
     });
   });
 
-  describe("Phone Number Validation", () => {
-    it("should fail when phoneNumber is empty", async () => {
-      const dto = getValidDto();
-      dto.phoneNumber = "";
-      const errors = await validateDto(dto);
-      expect(errors.length).toBeGreaterThan(0);
-      const phoneError = errors.find((e) => e.property === "phoneNumber");
-      expect(phoneError).toBeDefined();
+  describe("fullName field", () => {
+    it("should strip HTML tags and collapse whitespace when input contains markup", () => {
+      const payload = {
+        ...getValidPayload(),
+        fullName: "  <script>alert(1)</script> <b>John</b>   Doe  ",
+      };
+      const result = registerSchema.safeParse(payload);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.fullName).toBe("John Doe");
+      }
     });
 
-    it("should fail when phoneNumber is too short", async () => {
-      const dto = getValidDto();
-      dto.phoneNumber = "091234567"; // 9 digits
-      const errors = await validateDto(dto);
-      expect(errors.length).toBeGreaterThan(0);
-      const phoneError = errors.find((e) => e.property === "phoneNumber");
-      expect(phoneError).toBeDefined();
-    });
-
-    it("should fail when phoneNumber is too long", async () => {
-      const dto = getValidDto();
-      dto.phoneNumber = "09123456789"; // 11 digits
-      const errors = await validateDto(dto);
-      expect(errors.length).toBeGreaterThan(0);
-      const phoneError = errors.find((e) => e.property === "phoneNumber");
-      expect(phoneError).toBeDefined();
-    });
-
-    it("should fail when phoneNumber does not start with valid Vietnamese prefix", async () => {
-      const dto = getValidDto();
-      dto.phoneNumber = "0212345678"; // Prefix 02 is not 03/05/07/08/09
-      const errors = await validateDto(dto);
-      expect(errors.length).toBeGreaterThan(0);
-      const phoneError = errors.find((e) => e.property === "phoneNumber");
-      expect(phoneError).toBeDefined();
-    });
-
-    it("should fail when phoneNumber contains non-numeric characters", async () => {
-      const dto = getValidDto();
-      dto.phoneNumber = "091234567a";
-      const errors = await validateDto(dto);
-      expect(errors.length).toBeGreaterThan(0);
-      const phoneError = errors.find((e) => e.property === "phoneNumber");
-      expect(phoneError).toBeDefined();
+    it("should fail validation when fullName is empty string", () => {
+      const payload = { ...getValidPayload(), fullName: "" };
+      expect(registerSchema.safeParse(payload).success).toBe(false);
     });
   });
 
-  describe("Password Validation", () => {
-    it("should fail when password is less than 8 characters", async () => {
-      const dto = getValidDto();
-      dto.password = "Pass12";
-      dto.confirmPassword = "Pass12";
-      const errors = await validateDto(dto);
-      expect(errors.length).toBeGreaterThan(0);
-      const passwordError = errors.find((e) => e.property === "password");
-      expect(passwordError).toBeDefined();
+  describe("phoneNumber field", () => {
+    it("should pass validation when valid 10-digit Vietnamese phone numbers are supplied", () => {
+      const validPhones = [
+        "0912345678",
+        "0812345678",
+        "0712345678",
+        "0512345678",
+        "0312345678",
+      ];
+      for (const phone of validPhones) {
+        const payload = { ...getValidPayload(), phoneNumber: phone };
+        expect(registerSchema.safeParse(payload).success).toBe(true);
+      }
     });
 
-    it("should fail when password does not contain an uppercase letter", async () => {
-      const dto = getValidDto();
-      dto.password = "password123!";
-      dto.confirmPassword = "password123!";
-      const errors = await validateDto(dto);
-      expect(errors.length).toBeGreaterThan(0);
-      const passwordError = errors.find((e) => e.property === "password");
-      expect(passwordError).toBeDefined();
-    });
-
-    it("should fail when password does not contain a number", async () => {
-      const dto = getValidDto();
-      dto.password = "Password!";
-      dto.confirmPassword = "Password!";
-      const errors = await validateDto(dto);
-      expect(errors.length).toBeGreaterThan(0);
-      const passwordError = errors.find((e) => e.property === "password");
-      expect(passwordError).toBeDefined();
-    });
-
-    it("should fail when password does not contain a special character", async () => {
-      const dto = getValidDto();
-      dto.password = "Password123";
-      dto.confirmPassword = "Password123";
-      const errors = await validateDto(dto);
-      expect(errors.length).toBeGreaterThan(0);
-      const passwordError = errors.find((e) => e.property === "password");
-      expect(passwordError).toBeDefined();
-    });
-    it("should fail when password and confirmPassword do not match", async () => {
-      const dto = getValidDto();
-      dto.confirmPassword = "DifferentPassword123!";
-      const errors = await validateDto(dto);
-      expect(errors.length).toBeGreaterThan(0);
-      const confirmError = errors.find((e) => e.property === "confirmPassword");
-      expect(confirmError).toBeDefined();
+    it("should fail validation when phone prefix or length is invalid", () => {
+      const invalidPhones = [
+        "0123456789",
+        "0212345678",
+        "091234567",
+        "09123456789",
+      ];
+      for (const phone of invalidPhones) {
+        const payload = { ...getValidPayload(), phoneNumber: phone };
+        expect(registerSchema.safeParse(payload).success).toBe(false);
+      }
     });
   });
 
-  describe("Terms Acceptance Validation", () => {
-    it("should fail when agreeTerms is false", async () => {
-      const dto = getValidDto();
-      dto.agreeTerms = false;
-      const errors = await validateDto(dto);
-      expect(errors.length).toBeGreaterThan(0);
-      const termsError = errors.find((e) => e.property === "agreeTerms");
-      expect(termsError).toBeDefined();
+  describe("password & confirmPassword fields", () => {
+    it("should fail validation when password fails complexity requirements", () => {
+      expect(
+        registerSchema.safeParse({
+          ...getValidPayload(),
+          password: "weak",
+          confirmPassword: "weak",
+        }).success,
+      ).toBe(false);
+      expect(
+        registerSchema.safeParse({
+          ...getValidPayload(),
+          password: "password123!",
+          confirmPassword: "password123!",
+        }).success,
+      ).toBe(false);
+      expect(
+        registerSchema.safeParse({
+          ...getValidPayload(),
+          password: "Password!",
+          confirmPassword: "Password!",
+        }).success,
+      ).toBe(false);
     });
 
-    it("should fail when agreeTerms is not a boolean", async () => {
-      const dto = getValidDto();
-      dto.agreeTerms = "true";
-      const errors = await validateDto(dto);
-      expect(errors.length).toBeGreaterThan(0);
-      const termsError = errors.find((e) => e.property === "agreeTerms");
-      expect(termsError).toBeDefined();
+    it("should fail validation when password and confirmPassword do not match", () => {
+      const payload = {
+        ...getValidPayload(),
+        password: "Password123!",
+        confirmPassword: "DifferentPassword456!",
+      };
+      const result = registerSchema.safeParse(payload);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("agreeTerms & strictness controls", () => {
+    it("should fail validation when agreeTerms is false", () => {
+      const payload = { ...getValidPayload(), agreeTerms: false };
+      expect(registerSchema.safeParse(payload).success).toBe(false);
+    });
+
+    it("should fail validation when unrecognized keys are present in payload", () => {
+      const payload = { ...getValidPayload(), unexpectedKey: "malicious" };
+      expect(registerSchema.safeParse(payload).success).toBe(false);
     });
   });
 });
