@@ -274,29 +274,32 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (rawReason.includes("|")) {
       const pipeIndex = rawReason.indexOf("|");
       const key = rawReason.slice(0, pipeIndex);
-      const jsonStr = rawReason.slice(pipeIndex + 1);
+      const jsonStr = rawReason.slice(pipeIndex + 1).trim();
 
-      let args: Record<string, unknown> = {};
-      if (jsonStr) {
+      if (jsonStr.startsWith("{") && jsonStr.endsWith("}")) {
+        let args: Record<string, unknown> = {};
         try {
-          args = JSON.parse(jsonStr) as Record<string, unknown>;
+          const parsed = JSON.parse(jsonStr) as unknown;
+          if (isRecordObject(parsed)) {
+            args = { ...parsed };
+          }
         } catch {
           // ignore JSON parse error
         }
-      }
 
-      if (
-        propName &&
-        (!args["property"] ||
-          typeof args["property"] !== "string" ||
-          !args["property"].trim())
-      ) {
-        args["property"] = propName;
-      }
+        if (
+          propName &&
+          (!args["property"] ||
+            typeof args["property"] !== "string" ||
+            !args["property"].trim())
+        ) {
+          args["property"] = propName;
+        }
 
-      if (key) {
-        const translated = this.translateWithArgs(key, lang, args, key);
-        return translated.trim();
+        if (key) {
+          const translated = this.translateWithArgs(key, lang, args, key);
+          return translated.trim();
+        }
       }
     }
     return rawReason.trim();

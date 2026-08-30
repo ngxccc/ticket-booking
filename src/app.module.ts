@@ -21,6 +21,7 @@ import { UsersModule } from "./modules/users/users.module";
 import { OutboxModule } from "./modules/outbox/outbox.module";
 import { BookingModule } from "./modules/booking/booking.module";
 import { ShowsModule } from "./modules/shows/shows.module";
+import { CatalogModule } from "./modules/catalog/catalog.module";
 import { AppController } from "./app.controller";
 import { parseRedisOptions } from "./config/redis.config";
 import { ZodValidationPipe } from "./common/pipes/zod-validation.pipe";
@@ -85,6 +86,7 @@ const getRedisOptions = () =>
     OutboxModule,
     BookingModule,
     ShowsModule,
+    CatalogModule,
   ],
   controllers: [AppController],
   providers: [
