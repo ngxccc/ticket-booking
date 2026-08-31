@@ -14,7 +14,7 @@ import {
   teardownTestApp,
   type TestAppSetup,
 } from "../helpers/app.helper";
-import { truncateAllTables } from "../helpers/database.helper";
+import { truncateAllTables } from "@/database/database.connection";
 import type { DrizzleDB } from "@/database/database.module";
 import { createCinema, createHall } from "../factories/cinema.factory";
 import type { ApiResponse } from "@/common/utils/api-response.util";

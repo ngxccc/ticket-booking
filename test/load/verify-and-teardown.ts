@@ -15,10 +15,8 @@ import {
   users,
 } from "@/database/schemas";
 import { createRedisClient } from "@/config/redis.config";
-import {
-  createTestPool,
-  createDrizzleClient,
-} from "../helpers/database.helper";
+import { createTestPool } from "../helpers/database.helper";
+import { createDrizzleClient } from "@/database/database.connection";
 import type { DrizzleDB } from "@/database/database.module";
 import type { BookingLoadFixture } from "./fixtures/types";
 import { REDIS_KEYS } from "@/modules/booking/booking.constants";

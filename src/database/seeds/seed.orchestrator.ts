@@ -1,0 +1,66 @@
+import { truncateAllTables } from "@/database/database.connection";
+import { isScopeActive, normalizeSeedScopes } from "./constants/seed.constant";
+import type { SeedOptions, SeedSummary } from "./types/seed.type";
+import { seedTier1Reference } from "./tiers/tier1-reference.seeder";
+
+/**
+ * Coordinates and executes database seeding across requested scopes and tiers.
+ *
+ * @param options - Seeding configuration options
+ * @returns Comprehensive summary of seeded entity counts and timing
+ */
+export async function seedDatabase(options: SeedOptions): Promise<SeedSummary> {
+  const startTime = Date.now();
+  const normalizedScopes = normalizeSeedScopes(options.scope);
+
+  const summary: SeedSummary = {
+    genres: 0,
+    seatTypes: 0,
+    users: 0,
+    cinemas: 0,
+    halls: 0,
+    seats: 0,
+    movies: 0,
+    movieTranslations: 0,
+    shows: 0,
+    showSeats: 0,
+    durationMs: 0,
+    errors: [],
+  };
+
+  try {
+    // 1. Handle Reset Flag
+    if (options.reset) {
+      await truncateAllTables(options.db);
+    }
+
+    // 2. Tier 1: Master Reference Data
+    if (
+      isScopeActive(
+        normalizedScopes,
+        "reference",
+        "genres",
+        "seat-types",
+        "users",
+      )
+    ) {
+      const tier1Result = await seedTier1Reference(
+        options.db,
+        normalizedScopes,
+      );
+      summary.genres = tier1Result.genres.length;
+      summary.seatTypes = tier1Result.seatTypes.length;
+      summary.users = tier1Result.users.length;
+    }
+
+    // Tier 2 (Ticket 02) and Tier 3 (Ticket 03) will be integrated in subsequent tickets.
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    summary.errors.push(errorMessage);
+    throw error;
+  } finally {
+    summary.durationMs = Date.now() - startTime;
+  }
+
+  return summary;
+}

@@ -5,6 +5,7 @@ on:
     branches: ["main"]
     paths:
       - "src/**"
+      - "!src/database/seeds/**"
       - "drizzle/**"
       - "package.json"
       - "bun.lock"
