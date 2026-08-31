@@ -22,21 +22,32 @@
 
 ---
 
-## 3. Query Optimization: YAGNI Selective Projections
+## 3. Query Optimization: YAGNI Selective Projections & Selective Returning
 
-- **PROHIBITION**: Never execute `SELECT *` or return unbounded full tables in production hot-paths.
-- **MANDATORY**: Explicitly project only required columns using Drizzle `.select({ ... })`:
+- **PROHIBITION**: Never execute `SELECT *` (`.select()`) or unbounded `.returning()` across any layer of the application (API services, seeders, background jobs, or CLI tools).
+- **MANDATORY**:
+  1. **Explicit Selective Projections**: Explicitly project only required columns using Drizzle `.select({ col1: table.col1, ... })` to maximize PostgreSQL Index-Only Scans and prevent unneeded serialization of heavy or sensitive columns (e.g. `passwordHash`, `verificationToken`).
+  2. **Explicit Selective Returning**: When mutating records with `.returning()`, always specify the exact return payload shape (e.g. `.returning({ id: table.id, name: table.name })`). Never emit bare `.returning()`.
 
 ```ts
-// GOOD (Selective, leverages Index-Only Scan)
+// GOOD (Selective Projection, leverages Index-Only Scan)
 const [show] = await db
   .select({ id: shows.id, status: shows.status })
   .from(shows)
   .where(eq(shows.id, showId))
   .limit(1);
 
-// BANNED in hot-paths (Fetches unneeded columns)
+// GOOD (Selective Returning on Mutation)
+const [newCinema] = await db
+  .insert(cinemas)
+  .values(cinemaData)
+  .returning({ id: cinemas.id, name: cinemas.name });
+
+// BANNED (Fetches unneeded columns, bypasses index-only scan optimization)
 const [show] = await db.select().from(shows).where(eq(shows.id, showId));
+
+// BANNED (Returns entire raw row including timestamps and internal metadata)
+const [newCinema] = await db.insert(cinemas).values(cinemaData).returning();
 ```
 
 ---

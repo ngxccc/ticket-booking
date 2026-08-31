@@ -4,10 +4,8 @@ import { resolve } from "node:path";
 import { users, type NewUser, type User } from "@/database/schemas";
 import { env } from "@/env";
 import { TIME_IN_MS } from "@/common/constants/time.constant";
-import {
-  createTestPool,
-  createDrizzleClient,
-} from "../helpers/database.helper";
+import { createTestPool } from "../helpers/database.helper";
+import { createDrizzleClient } from "@/database/database.connection";
 import { generateTestToken } from "../helpers/auth.helper";
 import type { BookingLoadFixture, TestUserFixture } from "./fixtures/types";
 import {

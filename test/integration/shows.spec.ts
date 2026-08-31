@@ -20,7 +20,7 @@ import {
   teardownTestApp,
   type TestAppSetup,
 } from "../helpers/app.helper";
-import { truncateAllTables } from "../helpers/database.helper";
+import { truncateAllTables } from "@/database/database.connection";
 import {
   createAuthenticatedAdmin,
   createAuthenticatedUser,

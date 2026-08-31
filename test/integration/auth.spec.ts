@@ -16,11 +16,10 @@ import {
   teardownTestApp,
   type TestAppSetup,
 } from "../helpers/app.helper";
-import { truncateAllTables } from "../helpers/database.helper";
 import type { DrizzleDB } from "@/database/database.module";
 import { users, refreshTokens, outboxEvents } from "@/database/schemas";
-
 import type { components } from "../generated/api-schema";
+import { truncateAllTables } from "@/database/database.connection";
 
 type ApiResponse<T = unknown> = components["schemas"]["ApiResponseDto"] & {
   data?: T;

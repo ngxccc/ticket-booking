@@ -3,15 +3,12 @@ import "@nestjs/testing";
 import type { Pool } from "pg";
 import { env } from "@/env";
 import { TIME_IN_MS } from "@/common/constants/time.constant";
-import {
-  createDrizzleClient,
-  createTestPool,
-  dropTestSchema,
-} from "./database.helper";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { join } from "path";
 import { Logger } from "@nestjs/common";
 import { spyOn } from "bun:test";
+import { createTestPool, dropTestSchema } from "./database.helper";
+import { createDrizzleClient } from "@/database/database.connection";
 
 // Suppress intentional NestJS log noise during unit test suites to keep terminal output clean.
 spyOn(Logger.prototype, "error").mockImplementation(() => undefined);
@@ -89,12 +86,8 @@ export async function setupGlobalTestEnvironment(): Promise<void> {
   }
 
   isGlobalEnvInitialized = true;
-  let pool: Pool | undefined;
-
+  const pool = createTestPool({ max: 2 });
   try {
-    pool = createTestPool({ max: 2 });
-
-    // Pre-installing btree_gist globally in public schema avoids per-worker catalog lock contention on pg_extension.
     await pool.query(
       "CREATE EXTENSION IF NOT EXISTS btree_gist SCHEMA public;",
     );
@@ -104,11 +97,8 @@ export async function setupGlobalTestEnvironment(): Promise<void> {
 
     await cleanupOrphanTestSchemas(pool);
   } finally {
-    if (pool) {
-      await pool.end().catch(() => undefined);
-    }
+    await pool.end().catch(() => undefined);
   }
 }
 
 // Bunfig preload executes this file before worker suites spawn; top-level await guarantees pre-flight completion.
-await setupGlobalTestEnvironment();
