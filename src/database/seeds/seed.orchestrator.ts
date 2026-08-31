@@ -1,7 +1,13 @@
 import { truncateAllTables } from "@/database/database.connection";
 import { isScopeActive, normalizeSeedScopes } from "./constants/seed.constant";
-import type { SeedOptions, SeedSummary } from "./types/seed.type";
+import type {
+  SeedOptions,
+  SeedSummary,
+  Tier1SeedResult,
+  Tier2SeedResult,
+} from "./types/seed.type";
 import { seedTier1Reference } from "./tiers/tier1-reference.seeder";
+import { seedTier2Catalog } from "./tiers/tier2-catalog.seeder";
 
 /**
  * Coordinates and executes database seeding across requested scopes and tiers.
@@ -29,12 +35,12 @@ export async function seedDatabase(options: SeedOptions): Promise<SeedSummary> {
   };
 
   try {
-    // 1. Handle Reset Flag
     if (options.reset) {
       await truncateAllTables(options.db);
     }
 
-    // 2. Tier 1: Master Reference Data
+    let tier1Result: Tier1SeedResult | undefined;
+
     if (
       isScopeActive(
         normalizedScopes,
@@ -44,16 +50,28 @@ export async function seedDatabase(options: SeedOptions): Promise<SeedSummary> {
         "users",
       )
     ) {
-      const tier1Result = await seedTier1Reference(
-        options.db,
-        normalizedScopes,
-      );
+      tier1Result = await seedTier1Reference(options.db, normalizedScopes);
       summary.genres = tier1Result.genres.length;
       summary.seatTypes = tier1Result.seatTypes.length;
       summary.users = tier1Result.users.length;
     }
 
-    // Tier 2 (Ticket 02) and Tier 3 (Ticket 03) will be integrated in subsequent tickets.
+    let tier2Result: Tier2SeedResult | undefined;
+
+    if (isScopeActive(normalizedScopes, "catalog", "cinemas", "movies")) {
+      tier2Result = await seedTier2Catalog(
+        options.db,
+        normalizedScopes,
+        tier1Result,
+      );
+      summary.cinemas = tier2Result.cinemas.length;
+      summary.halls = tier2Result.halls.length;
+      summary.seats = tier2Result.seatsCount;
+      summary.movies = tier2Result.movies.length;
+      summary.movieTranslations = tier2Result.movieTranslationsCount;
+    }
+
+    // Tier 3 (Ticket 03) will be integrated in subsequent tickets.
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     summary.errors.push(errorMessage);

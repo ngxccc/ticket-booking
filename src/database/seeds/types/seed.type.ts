@@ -1,4 +1,12 @@
 import type { DrizzleDB } from "@/database/database.module";
+import type {
+  Cinema,
+  Genre,
+  Hall,
+  Movie,
+  SeatType,
+  User,
+} from "@/database/schemas";
 import type { SeedScope } from "../constants/seed.constant";
 
 /**
@@ -33,23 +41,14 @@ export interface SeedSummary {
   errors: string[];
 }
 
-export interface SeededGenreRef {
-  id: string;
-  name: string;
-}
+export type SeededGenreRef = Pick<Genre, "id" | "name">;
 
-export interface SeededSeatTypeRef {
-  id: string;
-  name: string;
-  priceMultiplier: string;
-}
+export type SeededSeatTypeRef = Pick<
+  SeatType,
+  "id" | "name" | "priceMultiplier"
+>;
 
-export interface SeededUserRef {
-  id: string;
-  email: string;
-  role: string;
-  fullName: string;
-}
+export type SeededUserRef = Pick<User, "id" | "email" | "role" | "fullName">;
 
 /**
  * Result payload produced by Tier 1 Master Reference seeder.
@@ -58,4 +57,26 @@ export interface Tier1SeedResult {
   genres: SeededGenreRef[];
   seatTypes: SeededSeatTypeRef[];
   users: SeededUserRef[];
+}
+
+export type SeededCinemaRef = Pick<Cinema, "id" | "name" | "city">;
+
+export type SeededHallRef = Pick<
+  Hall,
+  "id" | "cinemaId" | "name" | "totalSeats"
+>;
+
+export type SeededMovieRef = Pick<Movie, "id" | "durationMinutes"> & {
+  title: string;
+};
+
+/**
+ * Result payload produced by Tier 2 Catalog seeder.
+ */
+export interface Tier2SeedResult {
+  cinemas: SeededCinemaRef[];
+  halls: SeededHallRef[];
+  seatsCount: number;
+  movies: SeededMovieRef[];
+  movieTranslationsCount: number;
 }

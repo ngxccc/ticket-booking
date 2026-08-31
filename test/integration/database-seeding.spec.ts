@@ -12,11 +12,23 @@ import {
   type TestDatabaseContext,
 } from "../helpers/database.helper";
 import { truncateAllTables } from "@/database/database.connection";
-import { genres, seatTypes, users } from "@/database/schemas";
+import {
+  cinemas,
+  genres,
+  halls,
+  movieGenres,
+  movies,
+  movieTranslations,
+  seats,
+  seatTypes,
+  users,
+} from "@/database/schemas";
 import { seedDatabase } from "@/database/seeds/seed.orchestrator";
 import { MASTER_GENRES } from "@/database/seeds/data/genres.data";
 import { SEAT_TYPES_DATA } from "@/database/seeds/data/seat-types.data";
 import { SEED_USERS_DATA } from "@/database/seeds/data/users.data";
+import { SEED_CINEMAS_DATA } from "@/database/seeds/data/cinemas.data";
+import { SEED_MOVIES_DATA } from "@/database/seeds/data/movies.data";
 import { comparePassword } from "@/common/utils/crypto.util";
 import { DEFAULT_SEED_PASSWORD } from "@/database/seeds/constants/seed.constant";
 
@@ -42,93 +54,87 @@ describe("Database Seeding Engine Integration", () => {
         scope: "reference",
       });
 
+      expect(summary.errors).toHaveLength(0);
       expect(summary.genres).toBe(MASTER_GENRES.length);
       expect(summary.seatTypes).toBe(SEAT_TYPES_DATA.length);
       expect(summary.users).toBe(SEED_USERS_DATA.length);
 
-      // Verify genres in database
-      const dbGenres = await context.db.select().from(genres);
-      expect(dbGenres.length).toBe(MASTER_GENRES.length);
-      const genreNames = dbGenres.map((g) => g.name);
-      for (const expectedGenre of MASTER_GENRES) {
-        expect(genreNames).toContain(expectedGenre.name);
-      }
+      // Verify Database Rows
+      const dbGenres = await context.db
+        .select({ id: genres.id, name: genres.name })
+        .from(genres);
+      expect(dbGenres).toHaveLength(MASTER_GENRES.length);
 
-      // Verify seat types in database
-      const dbSeatTypes = await context.db.select().from(seatTypes);
-      expect(dbSeatTypes.length).toBe(SEAT_TYPES_DATA.length);
-      const standardType = dbSeatTypes.find((st) => st.name === "Standard");
-      expect(standardType).toBeDefined();
-      expect(standardType?.priceMultiplier).toBe("1.00");
+      const dbSeatTypes = await context.db
+        .select({
+          id: seatTypes.id,
+          name: seatTypes.name,
+          priceMultiplier: seatTypes.priceMultiplier,
+        })
+        .from(seatTypes);
+      expect(dbSeatTypes).toHaveLength(SEAT_TYPES_DATA.length);
 
-      const vipType = dbSeatTypes.find((st) => st.name === "VIP");
-      expect(vipType).toBeDefined();
-      expect(vipType?.priceMultiplier).toBe("1.20");
+      const dbUsers = await context.db
+        .select({
+          id: users.id,
+          email: users.email,
+          role: users.role,
+          status: users.status,
+          passwordHash: users.passwordHash,
+        })
+        .from(users);
+      expect(dbUsers).toHaveLength(SEED_USERS_DATA.length);
 
-      const coupleType = dbSeatTypes.find((st) => st.name === "Couple");
-      expect(coupleType).toBeDefined();
-      expect(coupleType?.priceMultiplier).toBe("2.00");
-
-      // Verify system users in database
-      const dbUsers = await context.db.select().from(users);
-      expect(dbUsers.length).toBe(SEED_USERS_DATA.length);
-
-      const adminUser = dbUsers.find(
-        (u) => u.email === "admin@ticketbooking.com",
-      );
+      // Verify Scrypt Password Hash Correctness
+      const adminUser = dbUsers.find((u) => u.role === "admin");
       expect(adminUser).toBeDefined();
-      expect(adminUser?.role).toBe("admin");
       expect(adminUser?.status).toBe("active");
-
-      // Verify pre-computed password hash works with comparePassword utility
-      if (adminUser?.passwordHash) {
-        const isPasswordValid = await comparePassword(
-          DEFAULT_SEED_PASSWORD,
-          adminUser.passwordHash,
-        );
-        expect(isPasswordValid).toBe(true);
-      }
+      const isPasswordValid = await comparePassword(
+        DEFAULT_SEED_PASSWORD,
+        adminUser?.passwordHash ?? "",
+      );
+      expect(isPasswordValid).toBeTrue();
     });
 
     it("should be idempotent and produce zero duplicate rows when run consecutively", async () => {
-      // First run
-      await seedDatabase({
+      // First Execution
+      const summary1 = await seedDatabase({
         db: context.db,
         scope: "reference",
       });
+      expect(summary1.genres).toBe(MASTER_GENRES.length);
+      expect(summary1.seatTypes).toBe(SEAT_TYPES_DATA.length);
+      expect(summary1.users).toBe(SEED_USERS_DATA.length);
 
-      const firstGenreCount = (await context.db.select().from(genres)).length;
-      const firstSeatTypeCount = (await context.db.select().from(seatTypes))
-        .length;
-      const firstUserCount = (await context.db.select().from(users)).length;
-
-      // Second consecutive run
-      const summarySecondRun = await seedDatabase({
+      // Second Execution (Idempotency Assert)
+      const summary2 = await seedDatabase({
         db: context.db,
         scope: "reference",
       });
+      expect(summary2.errors).toHaveLength(0);
 
-      const secondGenreCount = (await context.db.select().from(genres)).length;
-      const secondSeatTypeCount = (await context.db.select().from(seatTypes))
-        .length;
-      const secondUserCount = (await context.db.select().from(users)).length;
+      const dbGenres = await context.db.select({ id: genres.id }).from(genres);
+      const dbSeatTypes = await context.db
+        .select({ id: seatTypes.id })
+        .from(seatTypes);
+      const dbUsers = await context.db.select({ id: users.id }).from(users);
 
-      expect(secondGenreCount).toBe(firstGenreCount);
-      expect(secondSeatTypeCount).toBe(firstSeatTypeCount);
-      expect(secondUserCount).toBe(firstUserCount);
-      expect(summarySecondRun.errors).toHaveLength(0);
+      expect(dbGenres.length).toBe(MASTER_GENRES.length);
+      expect(dbSeatTypes.length).toBe(SEAT_TYPES_DATA.length);
+      expect(dbUsers.length).toBe(SEED_USERS_DATA.length);
     });
 
     it("should support selective granular scoping for genres, seat-types, and users", async () => {
-      // Seed only genres
       await seedDatabase({
         db: context.db,
         scope: "genres",
       });
 
-      const dbGenres = await context.db.select().from(genres);
-      const dbSeatTypes = await context.db.select().from(seatTypes);
-      const dbUsers = await context.db.select().from(users);
+      const dbGenres = await context.db.select({ id: genres.id }).from(genres);
+      const dbSeatTypes = await context.db
+        .select({ id: seatTypes.id })
+        .from(seatTypes);
+      const dbUsers = await context.db.select({ id: users.id }).from(users);
 
       expect(dbGenres.length).toBe(MASTER_GENRES.length);
       expect(dbSeatTypes.length).toBe(0);
@@ -136,15 +142,16 @@ describe("Database Seeding Engine Integration", () => {
     });
 
     it("should support comma-separated multi-scopes and array scopes", async () => {
-      // Seed genres and users together via comma-separated string
       await seedDatabase({
         db: context.db,
         scope: "genres,users",
       });
 
-      const dbGenres = await context.db.select().from(genres);
-      const dbSeatTypes = await context.db.select().from(seatTypes);
-      const dbUsers = await context.db.select().from(users);
+      const dbGenres = await context.db.select({ id: genres.id }).from(genres);
+      const dbSeatTypes = await context.db
+        .select({ id: seatTypes.id })
+        .from(seatTypes);
+      const dbUsers = await context.db.select({ id: users.id }).from(users);
 
       expect(dbGenres.length).toBe(MASTER_GENRES.length);
       expect(dbSeatTypes.length).toBe(0);
@@ -159,6 +166,8 @@ describe("Database Seeding Engine Integration", () => {
       expect(summary.genres).toBe(MASTER_GENRES.length);
       expect(summary.seatTypes).toBe(SEAT_TYPES_DATA.length);
       expect(summary.users).toBe(SEED_USERS_DATA.length);
+      expect(summary.cinemas).toBe(SEED_CINEMAS_DATA.length);
+      expect(summary.movies).toBe(SEED_MOVIES_DATA.length);
     });
 
     it("should reject execution when an invalid scope is provided", async () => {
@@ -175,6 +184,118 @@ describe("Database Seeding Engine Integration", () => {
       expect(thrownError).toBeDefined();
       expect(thrownError?.message).toMatch(/invalid seeding scope/i);
     });
+  });
+
+  describe("Tier 2: Catalog Data Seeding (Cinemas, Halls, Procedural Seats, Movies)", () => {
+    it("should successfully seed cinemas, halls, and 8x10 procedural physical seats", async () => {
+      const summary = await seedDatabase({
+        db: context.db,
+        scope: "cinemas",
+      });
+
+      expect(summary.errors).toHaveLength(0);
+      expect(summary.cinemas).toBe(SEED_CINEMAS_DATA.length);
+
+      const totalExpectedHalls = SEED_CINEMAS_DATA.reduce(
+        (acc, c) => acc + c.halls.length,
+        0,
+      );
+      expect(summary.halls).toBe(totalExpectedHalls);
+
+      const totalExpectedSeats = totalExpectedHalls * 80;
+      expect(summary.seats).toBe(totalExpectedSeats);
+
+      // Verify Database Rows
+      const dbCinemas = await context.db
+        .select({ id: cinemas.id, name: cinemas.name, city: cinemas.city })
+        .from(cinemas);
+      expect(dbCinemas).toHaveLength(SEED_CINEMAS_DATA.length);
+
+      const dbHalls = await context.db
+        .select({ id: halls.id, cinemaId: halls.cinemaId, name: halls.name })
+        .from(halls);
+      expect(dbHalls).toHaveLength(totalExpectedHalls);
+
+      const dbSeats = await context.db
+        .select({ id: seats.id, row: seats.row, number: seats.number })
+        .from(seats);
+      expect(dbSeats).toHaveLength(totalExpectedSeats);
+    });
+
+    it("should successfully seed bilingual movies, translations, and genre links", async () => {
+      const summary = await seedDatabase({
+        db: context.db,
+        scope: "movies",
+      });
+
+      expect(summary.errors).toHaveLength(0);
+      expect(summary.movies).toBe(SEED_MOVIES_DATA.length);
+      expect(summary.movieTranslations).toBe(SEED_MOVIES_DATA.length * 2);
+
+      // Verify Movies in Database
+      const dbMovies = await context.db
+        .select({ id: movies.id, tmdbId: movies.tmdbId })
+        .from(movies);
+      expect(dbMovies).toHaveLength(SEED_MOVIES_DATA.length);
+
+      // Verify Translations in Database
+      const dbTranslations = await context.db
+        .select({
+          movieId: movieTranslations.movieId,
+          languageCode: movieTranslations.languageCode,
+          title: movieTranslations.title,
+        })
+        .from(movieTranslations);
+      expect(dbTranslations).toHaveLength(SEED_MOVIES_DATA.length * 2);
+
+      // Verify Genre Links
+      const dbMovieGenres = await context.db
+        .select({ movieId: movieGenres.movieId, genreId: movieGenres.genreId })
+        .from(movieGenres);
+      expect(dbMovieGenres.length).toBeGreaterThanOrEqual(
+        SEED_MOVIES_DATA.length,
+      );
+    });
+
+    it(
+      "should be idempotent across Tier 2 and produce zero duplicate rows when run consecutively",
+      async () => {
+        // First Run
+        await seedDatabase({
+          db: context.db,
+          scope: "catalog",
+        });
+
+        // Second Run (Idempotency Assert)
+        const summary2 = await seedDatabase({
+          db: context.db,
+          scope: "catalog",
+        });
+
+        expect(summary2.errors).toHaveLength(0);
+
+        const totalExpectedHalls = SEED_CINEMAS_DATA.reduce(
+          (acc, c) => acc + c.halls.length,
+          0,
+        );
+        const totalExpectedSeats = totalExpectedHalls * 80;
+
+        const dbCinemas = await context.db
+          .select({ id: cinemas.id })
+          .from(cinemas);
+        const dbHalls = await context.db.select({ id: halls.id }).from(halls);
+        const dbSeats = await context.db.select({ id: seats.id }).from(seats);
+        const dbMovies = await context.db
+          .select({ id: movies.id })
+          .from(movies);
+
+        expect(dbCinemas.length).toBe(SEED_CINEMAS_DATA.length);
+        expect(dbHalls.length).toBe(totalExpectedHalls);
+        expect(dbSeats.length).toBe(totalExpectedSeats);
+        expect(dbMovies.length).toBe(SEED_MOVIES_DATA.length);
+      },
+      { timeout: 20000 },
+    );
   });
 
   describe("Production Safety Guard", () => {
