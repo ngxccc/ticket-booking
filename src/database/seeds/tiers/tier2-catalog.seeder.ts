@@ -341,12 +341,18 @@ export async function seedTier2Catalog(
     result.cinemas = seededCinemas;
     result.halls = seededHalls;
 
-    const seatTypes = tier1Result?.seatTypes ?? (await seedSeatTypes(db));
+    const seatTypes =
+      tier1Result?.seatTypes && tier1Result.seatTypes.length > 0
+        ? tier1Result.seatTypes
+        : await seedSeatTypes(db);
     result.seatsCount = await seedHallSeats(db, seededHalls, seatTypes);
   }
 
   if (shouldSeedMovies) {
-    const genres = tier1Result?.genres ?? (await seedGenres(db));
+    const genres =
+      tier1Result?.genres && tier1Result.genres.length > 0
+        ? tier1Result.genres
+        : await seedGenres(db);
     const { movies: seededMovies, translationsCount } = await seedMovies(
       db,
       genres,
