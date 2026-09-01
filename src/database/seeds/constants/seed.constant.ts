@@ -9,10 +9,9 @@ let cachedSeedPasswordHash: string | undefined;
 
 /**
  * Retrieves the salted Scrypt password hash for the default seed password.
- * Memoizes the derived hash in memory to ensure single-calculation CPU efficiency (<1ms in test, ~50ms in dev)
- * while dynamically adapting to the active environment's Scrypt parameters (ADR 0007).
+ * Memoizes the computed hash in memory so all seeded users share the same hash computation.
  *
- * @returns Colon-delimited salt and hex-encoded Scrypt hash
+ * @returns Salted Scrypt password hash string
  */
 export async function getSeedPasswordHash(): Promise<string> {
   cachedSeedPasswordHash ??= await hashPassword(DEFAULT_SEED_PASSWORD);
@@ -51,40 +50,44 @@ export type SeedScope = (typeof SEED_SCOPES)[number];
 /**
  * Parses and normalizes single string, comma-separated string, or array of scopes into a unique array of SeedScope.
  *
- * @param input - Raw scope input string, SeedScope, or array of SeedScope
- * @returns Array of validated SeedScope
+ * @param input - Raw scope parameter from CLI or API
+ * @returns Cleaned array of unique, validated SeedScope values
+ * @throws Error if an unrecognized scope is encountered
  */
 export function normalizeSeedScopes(
   input?: SeedScope | SeedScope[] | (string & {}),
 ): SeedScope[] {
-  if (!input || input === "all") {
+  if (!input) {
     return ["all"];
   }
 
-  const rawArray = Array.isArray(input)
-    ? input
-    : input.split(",").map((s) => s.trim());
+  const rawList = Array.isArray(input) ? input : input.split(",");
+  const normalized: SeedScope[] = [];
 
-  const validScopes = new Set<SeedScope>();
-  for (const item of rawArray) {
-    if (SEED_SCOPES.includes(item as SeedScope)) {
-      validScopes.add(item as SeedScope);
-    } else {
+  for (const item of rawList) {
+    const trimmed = item.trim();
+    if (!trimmed) continue;
+
+    if (!SEED_SCOPES.includes(trimmed as SeedScope)) {
       throw new Error(
-        `Invalid seeding scope "${item}". Supported scopes: ${SEED_SCOPES.join(", ")}`,
+        `Invalid seeding scope: "${trimmed}". Allowed scopes are: ${SEED_SCOPES.join(", ")}`,
       );
+    }
+
+    if (!normalized.includes(trimmed as SeedScope)) {
+      normalized.push(trimmed as SeedScope);
     }
   }
 
-  return Array.from(validScopes);
+  return normalized.length === 0 ? ["all"] : normalized;
 }
 
 /**
  * Evaluates whether any of the target scopes match the active scope list (handling 'all' wildcard).
  *
- * @param activeScopes - Current normalized list of active scopes
- * @param targets - Scopes to test against
- * @returns true if any target scope is active
+ * @param activeScopes - Normalized active scopes
+ * @param targets - Scopes required for a specific execution block
+ * @returns true if 'all' is present or any target matches activeScopes
  */
 export function isScopeActive(
   activeScopes: SeedScope[],
@@ -95,11 +98,3 @@ export function isScopeActive(
   }
   return targets.some((target) => activeScopes.includes(target));
 }
-
-/**
- * Batch chunk sizes for high-performance multi-row database insertions.
- */
-export const SEED_BATCH_CHUNK_SIZE = {
-  SHOW_SEATS: 1000,
-  SEATS: 500,
-} as const;

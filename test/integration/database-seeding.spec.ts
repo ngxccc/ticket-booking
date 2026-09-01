@@ -16,11 +16,13 @@ import {
   cinemas,
   genres,
   halls,
-  movieGenres,
   movies,
+  movieGenres,
   movieTranslations,
   seats,
   seatTypes,
+  shows,
+  showSeats,
   users,
 } from "@/database/schemas";
 import { seedDatabase } from "@/database/seeds/seed.orchestrator";
@@ -31,6 +33,12 @@ import { SEED_CINEMAS_DATA } from "@/database/seeds/data/cinemas.data";
 import { SEED_MOVIES_DATA } from "@/database/seeds/data/movies.data";
 import { comparePassword } from "@/common/utils/crypto.util";
 import { DEFAULT_SEED_PASSWORD } from "@/database/seeds/constants/seed.constant";
+import { SHOWS_CONSTANTS } from "@/modules/shows/shows.constants";
+import { TIME_IN_MS } from "@/common/constants/time.constant";
+import {
+  seedShowsAndShowSeats,
+  seedTier3Schedule,
+} from "@/database/seeds/tiers/tier3-schedule.seeder";
 
 describe("Database Seeding Engine Integration", () => {
   let context: TestDatabaseContext;
@@ -59,7 +67,6 @@ describe("Database Seeding Engine Integration", () => {
       expect(summary.seatTypes).toBe(SEAT_TYPES_DATA.length);
       expect(summary.users).toBe(SEED_USERS_DATA.length);
 
-      // Verify Database Rows
       const dbGenres = await context.db
         .select({ id: genres.id, name: genres.name })
         .from(genres);
@@ -85,7 +92,6 @@ describe("Database Seeding Engine Integration", () => {
         .from(users);
       expect(dbUsers).toHaveLength(SEED_USERS_DATA.length);
 
-      // Verify Scrypt Password Hash Correctness
       const adminUser = dbUsers.find((u) => u.role === "admin");
       expect(adminUser).toBeDefined();
       expect(adminUser?.status).toBe("active");
@@ -97,7 +103,6 @@ describe("Database Seeding Engine Integration", () => {
     });
 
     it("should be idempotent and produce zero duplicate rows when run consecutively", async () => {
-      // First Execution
       const summary1 = await seedDatabase({
         db: context.db,
         scope: "reference",
@@ -106,7 +111,6 @@ describe("Database Seeding Engine Integration", () => {
       expect(summary1.seatTypes).toBe(SEAT_TYPES_DATA.length);
       expect(summary1.users).toBe(SEED_USERS_DATA.length);
 
-      // Second Execution (Idempotency Assert)
       const summary2 = await seedDatabase({
         db: context.db,
         scope: "reference",
@@ -158,17 +162,23 @@ describe("Database Seeding Engine Integration", () => {
       expect(dbUsers.length).toBe(SEED_USERS_DATA.length);
     });
 
-    it("should seed all supported entities when no scope option is provided", async () => {
-      const summary = await seedDatabase({
-        db: context.db,
-      });
+    it(
+      "should seed all supported entities when no scope option is provided",
+      async () => {
+        const summary = await seedDatabase({
+          db: context.db,
+        });
 
-      expect(summary.genres).toBe(MASTER_GENRES.length);
-      expect(summary.seatTypes).toBe(SEAT_TYPES_DATA.length);
-      expect(summary.users).toBe(SEED_USERS_DATA.length);
-      expect(summary.cinemas).toBe(SEED_CINEMAS_DATA.length);
-      expect(summary.movies).toBe(SEED_MOVIES_DATA.length);
-    });
+        expect(summary.genres).toBe(MASTER_GENRES.length);
+        expect(summary.seatTypes).toBe(SEAT_TYPES_DATA.length);
+        expect(summary.users).toBe(SEED_USERS_DATA.length);
+        expect(summary.cinemas).toBe(SEED_CINEMAS_DATA.length);
+        expect(summary.movies).toBe(SEED_MOVIES_DATA.length);
+        expect(summary.shows).toBeGreaterThan(0);
+        expect(summary.showSeats).toBe(summary.shows * 80);
+      },
+      { timeout: 30000 },
+    );
 
     it("should reject execution when an invalid scope is provided", async () => {
       let thrownError: Error | null = null;
@@ -205,7 +215,6 @@ describe("Database Seeding Engine Integration", () => {
       const totalExpectedSeats = totalExpectedHalls * 80;
       expect(summary.seats).toBe(totalExpectedSeats);
 
-      // Verify Database Rows
       const dbCinemas = await context.db
         .select({ id: cinemas.id, name: cinemas.name, city: cinemas.city })
         .from(cinemas);
@@ -232,13 +241,11 @@ describe("Database Seeding Engine Integration", () => {
       expect(summary.movies).toBe(SEED_MOVIES_DATA.length);
       expect(summary.movieTranslations).toBe(SEED_MOVIES_DATA.length * 2);
 
-      // Verify Movies in Database
       const dbMovies = await context.db
         .select({ id: movies.id, tmdbId: movies.tmdbId })
         .from(movies);
       expect(dbMovies).toHaveLength(SEED_MOVIES_DATA.length);
 
-      // Verify Translations in Database
       const dbTranslations = await context.db
         .select({
           movieId: movieTranslations.movieId,
@@ -248,7 +255,6 @@ describe("Database Seeding Engine Integration", () => {
         .from(movieTranslations);
       expect(dbTranslations).toHaveLength(SEED_MOVIES_DATA.length * 2);
 
-      // Verify Genre Links
       const dbMovieGenres = await context.db
         .select({ movieId: movieGenres.movieId, genreId: movieGenres.genreId })
         .from(movieGenres);
@@ -260,13 +266,11 @@ describe("Database Seeding Engine Integration", () => {
     it(
       "should be idempotent across Tier 2 and produce zero duplicate rows when run consecutively",
       async () => {
-        // First Run
         await seedDatabase({
           db: context.db,
           scope: "catalog",
         });
 
-        // Second Run (Idempotency Assert)
         const summary2 = await seedDatabase({
           db: context.db,
           scope: "catalog",
@@ -296,6 +300,108 @@ describe("Database Seeding Engine Integration", () => {
       },
       { timeout: 20000 },
     );
+  });
+
+  describe("Tier 3: Dynamic Schedule & Preallocated Seats Engine", () => {
+    it(
+      "should dynamically seed relative shows (T+0 to T+6) strictly enforcing Invariant INV-1",
+      async () => {
+        const summary = await seedDatabase({
+          db: context.db,
+          scope: "all",
+        });
+
+        expect(summary.errors).toHaveLength(0);
+        expect(summary.shows).toBeGreaterThan(0);
+        expect(summary.showSeats).toBe(summary.shows * 80);
+
+        const now = new Date();
+        const bufferMs =
+          SHOWS_CONSTANTS.CLEANING_BUFFER_MINUTES * TIME_IN_MS.MINUTE;
+
+        // Verify Invariant INV-1: Every created showtime must be in the future (>= NOW + 15m)
+        const dbShows = await context.db
+          .select({
+            id: shows.id,
+            startTime: shows.startTime,
+            endTime: shows.endTime,
+          })
+          .from(shows);
+
+        expect(dbShows.length).toBe(summary.shows);
+        for (const show of dbShows) {
+          expect(show.startTime.getTime()).toBeGreaterThanOrEqual(
+            now.getTime() + bufferMs - 5000, // 5s clock tolerance
+          );
+          expect(show.endTime.getTime()).toBeGreaterThan(
+            show.startTime.getTime(),
+          );
+        }
+
+        // Verify Show Seats preallocation (80 seats per show, status = 'available')
+        const dbShowSeats = await context.db
+          .select({
+            id: showSeats.id,
+            status: showSeats.status,
+          })
+          .from(showSeats);
+
+        expect(dbShowSeats.length).toBe(summary.shows * 80);
+        expect(dbShowSeats.every((s) => s.status === "available")).toBeTrue();
+      },
+      { timeout: 30000 },
+    );
+
+    it(
+      "should support standalone scope=shows with automatic fallback catalog resolution",
+      async () => {
+        const summary = await seedDatabase({
+          db: context.db,
+          scope: "shows",
+        });
+
+        expect(summary.errors).toHaveLength(0);
+        expect(summary.shows).toBeGreaterThan(0);
+        expect(summary.showSeats).toBe(summary.shows * 80);
+      },
+      { timeout: 30000 },
+    );
+
+    it(
+      "should be idempotent and never trigger PostgreSQL GiST exclusion collisions on consecutive runs",
+      async () => {
+        // First Run
+        const summary1 = await seedDatabase({
+          db: context.db,
+          scope: "all",
+        });
+        expect(summary1.shows).toBeGreaterThan(0);
+
+        // Second Run (Consecutive Execution)
+        const summary2 = await seedDatabase({
+          db: context.db,
+          scope: "all",
+        });
+        expect(summary2.errors).toHaveLength(0);
+        expect(summary2.shows).toBe(summary1.shows);
+
+        const dbShows = await context.db.select({ id: shows.id }).from(shows);
+        expect(dbShows.length).toBe(summary1.shows);
+      },
+      { timeout: 30000 },
+    );
+
+    it("should return empty result when no halls or movies are provided to seedShowsAndShowSeats", async () => {
+      const result = await seedShowsAndShowSeats(context.db, [], []);
+      expect(result.shows).toHaveLength(0);
+      expect(result.showSeatsCount).toBe(0);
+    });
+
+    it("should return empty result when schedule scope is not active in seedTier3Schedule", async () => {
+      const result = await seedTier3Schedule(context.db, ["genres"]);
+      expect(result.shows).toHaveLength(0);
+      expect(result.showSeatsCount).toBe(0);
+    });
   });
 
   describe("Production Safety Guard", () => {

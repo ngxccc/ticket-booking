@@ -5,9 +5,11 @@ import type {
   SeedSummary,
   Tier1SeedResult,
   Tier2SeedResult,
+  Tier3SeedResult,
 } from "./types/seed.type";
 import { seedTier1Reference } from "./tiers/tier1-reference.seeder";
 import { seedTier2Catalog } from "./tiers/tier2-catalog.seeder";
+import { seedTier3Schedule } from "./tiers/tier3-schedule.seeder";
 
 /**
  * Coordinates and executes database seeding across requested scopes and tiers.
@@ -71,7 +73,17 @@ export async function seedDatabase(options: SeedOptions): Promise<SeedSummary> {
       summary.movieTranslations = tier2Result.movieTranslationsCount;
     }
 
-    // Tier 3 (Ticket 03) will be integrated in subsequent tickets.
+    let tier3Result: Tier3SeedResult | undefined;
+
+    if (isScopeActive(normalizedScopes, "schedule", "shows")) {
+      tier3Result = await seedTier3Schedule(
+        options.db,
+        normalizedScopes,
+        tier2Result,
+      );
+      summary.shows = tier3Result.shows.length;
+      summary.showSeats = tier3Result.showSeatsCount;
+    }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     summary.errors.push(errorMessage);

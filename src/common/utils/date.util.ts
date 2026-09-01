@@ -1,5 +1,7 @@
 import { TIME_IN_MS } from "@/common/constants/time.constant";
 
+const timezoneFormatterCache = new Map<string, Intl.DateTimeFormat>();
+
 /**
  * Parse a duration string (e.g., "7d", "15m", "2h", "30s") and return its equivalent in milliseconds.
  * @param duration The duration string
@@ -60,4 +62,35 @@ export function minutesToMs(minutes: number): number {
  */
 export function daysToMs(days: number): number {
   return days * TIME_IN_MS.DAY;
+}
+
+/**
+ * Extracts numerical calendar date parts ({ year, month, day }) in a target IANA timezone.
+ * Uses cached Intl.DateTimeFormat instances to eliminate object allocation overhead on repeated calls.
+ *
+ * @param date - Source Date instance (defaults to new Date())
+ * @param timeZone - Target IANA timezone identifier (defaults to "Asia/Ho_Chi_Minh")
+ * @returns Object containing numerical { year, month, day } where month is 1-indexed (1..12)
+ */
+export function getTimezoneDateParts(
+  date: Date = new Date(),
+  timeZone = "Asia/Ho_Chi_Minh",
+): { year: number; month: number; day: number } {
+  let formatter = timezoneFormatterCache.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    timezoneFormatterCache.set(timeZone, formatter);
+  }
+
+  const parts = formatter.formatToParts(date);
+  const year = Number(parts.find((p) => p.type === "year")?.value);
+  const month = Number(parts.find((p) => p.type === "month")?.value);
+  const day = Number(parts.find((p) => p.type === "day")?.value);
+
+  return { year, month, day };
 }
