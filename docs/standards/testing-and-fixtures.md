@@ -50,7 +50,38 @@ describe("Booking Module Integration", () => {
 
 ---
 
-## 4. OpenAPI Contract-First Type Assertions
+## 4. Contract-Driven Assertions & Anti-Pattern Protections
+
+### A. Single Envelope Boundary
+
+- **Rule**: Services MUST return raw domain objects or primitives (`null`, `MovieResponseDto`, `{ accessToken, refreshToken }`). Services NEVER construct or return `ApiResponse` envelopes.
+- **Responsibility**: Controllers alone are responsible for HTTP envelope wrapping via `apiSuccess(data, meta)`.
+
+### B. Prohibition of Tautological Mock Mirroring (Unit Tests)
+
+- **Prohibition**: In Controller unit tests, NEVER reuse the mock service result variable inside the expected envelope assertion (`data: mockServiceResult`).
+- **Requirement**: Assert explicit object literals with distinct root-level keys (`success`, `data`, `meta`) to prevent blind mock echoing from hiding double-nesting bugs.
+
+```ts
+// GOOD: Explicit literal assertion validating envelope structure
+expect(response).toEqual({
+  success: true,
+  data: [{ id: "018f3a5e-7a2e-7b56-b74c-419b4eb14b9a", title: "Dune" }],
+  meta: { page: 1, limit: 10, total: 1, totalPages: 1 },
+});
+
+// BANNED: Tautological mock echoing (masks double wrapping)
+expect(response).toEqual({ success: true, data: mockMovieListResponse });
+```
+
+### C. Prohibition of Retrofitting Assertions (Integration Tests)
+
+- **Prohibition**: Never adapt an integration test expectation to match unexpected controller output (e.g. changing `body.data` to `body.data.data`) without validating against `docs/standards/api-design-and-error-handling.md`.
+- **Requirement**: Integration tests MUST assert schema compliance against the OpenAPI contract (`test/generated/api-schema.d.ts`), verifying array root structures (`Array.isArray(body.data)`) and root `body.meta`.
+
+---
+
+## 5. OpenAPI Contract-First Type Assertions
 
 - **PROHIBITION**: Never declare local, hand-rolled response interfaces inside test files (`interface UserProfile { ... }`).
 - **MANDATORY**: Import schema types from the generated OpenAPI specification (`test/generated/api-schema.d.ts`):
@@ -67,7 +98,7 @@ type Rfc9457ErrorResponse = components["schemas"]["Rfc9457ErrorResponseDto"];
 
 ---
 
-## 5. Database & State Isolation (Schema-per-Worker Architecture)
+## 6. Database & State Isolation (Schema-per-Worker Architecture)
 
 - **Dynamic Schema Provisioning**: Every integration test suite binds to a unique PostgreSQL schema (`test_${randomUUID().replace(/-/g, '_')}`) via `options: "-c search_path=<worker_schema>,public"` in the PostgreSQL `Pool` (ADR 0010).
 - **Extension Resolution**: Retain `public` in `search_path` to resolve global database extensions (e.g. `btree_gist`).
@@ -78,6 +109,6 @@ type Rfc9457ErrorResponse = components["schemas"]["Rfc9457ErrorResponseDto"];
 
 ---
 
-## 6. Performance Benchmarks & Stress Testing (`test/benchmarks/`)
+## 7. Performance Benchmarks & Stress Testing (`test/benchmarks/`)
 
 All performance benchmark suites (`test/benchmarks/<domain>.bench.ts`) MUST strictly adhere to the 7 Production Benchmarking Invariants in [`docs/standards/benchmarking-and-performance-testing.md`](benchmarking-and-performance-testing.md).
