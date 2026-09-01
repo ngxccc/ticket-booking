@@ -36,6 +36,7 @@ function parseCliArgs() {
       },
     },
     allowPositionals: false,
+    strict: false,
   });
 
   if (values.help) {
@@ -43,7 +44,7 @@ function parseCliArgs() {
     process.exit(0);
   }
 
-  const rawScope = values.scope;
+  const rawScope = typeof values.scope === "string" ? values.scope : undefined;
   let normalizedScopes: SeedScope[];
   try {
     normalizedScopes = normalizeSeedScopes(rawScope);
@@ -56,7 +57,7 @@ function parseCliArgs() {
 
   return {
     scopes: normalizedScopes,
-    reset: values.reset,
+    reset: Boolean(values.reset),
   };
 }
 
