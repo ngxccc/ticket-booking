@@ -92,7 +92,10 @@ docker compose up -d
 bun run i18n:generate
 bun run db:migrate
 
-# 4. Start development server
+# 4. Seed database fixtures (cinemas, halls, movies, relative schedule & show seats)
+bun run db:seed
+
+# 5. Start development server
 bun run dev
 ```
 
@@ -167,13 +170,14 @@ bun run check-types      # TypeScript typecheck (tsc --noEmit)
 bun run lint             # ESLint static analysis with cache
 bun run format           # Prettier code formatting
 
-# Database & Migrations
+# Database, Migrations & Seeding
 bun run db:generate      # Generate SQL migrations from Drizzle schemas
 bun run db:migrate       # Apply pending migrations
 bun run db:push          # Push schema directly to database (dev mode)
+bun run db:seed          # Seed 3-tier idempotent development fixtures
+bun run db:seed:reset    # Reset tables and re-seed fixtures (Blocked in production)
 bun run db:studio        # Launch Drizzle Studio web GUI
 bun run db:baseline      # Verify database baseline across environments
-
 # Testing & Benchmarking
 bun test                 # Run unit tests
 bun run test:watch       # Run unit tests in watch mode
