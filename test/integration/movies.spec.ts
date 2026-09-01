@@ -26,7 +26,7 @@ import {
 import { createShow } from "../factories/show.factory";
 import type { ApiResponse } from "@/common/utils/api-response.util";
 import type {
-  MovieListResponseDto,
+  PaginationMetaDto,
   MovieResponseDto,
 } from "@/modules/catalog/dto";
 import type { Rfc9457ErrorResponse } from "@/common/filters/global-exception.filter";
@@ -85,15 +85,18 @@ describe("Catalog Module Integration - Movies", () => {
         );
 
         expect(res.status).toBe(200);
-        const body = res.body as unknown as ApiResponse<MovieListResponseDto>;
+        const body = res.body as unknown as ApiResponse<
+          MovieResponseDto[],
+          PaginationMetaDto
+        >;
         expect(body.success).toBe(true);
-        expect(Array.isArray(body.data.data)).toBe(true);
-        expect(body.data.data.length).toBe(2);
-        expect(body.data.meta).toBeDefined();
-        expect(body.data.meta.page).toBe(1);
-        expect(body.data.meta.limit).toBe(10);
-        expect(body.data.meta.total).toBe(2);
-        expect(body.data.meta.totalPages).toBe(1);
+        expect(Array.isArray(body.data)).toBe(true);
+        expect(body.data.length).toBe(2);
+        expect(body.meta).toBeDefined();
+        expect(body.meta?.page).toBe(1);
+        expect(body.meta?.limit).toBe(10);
+        expect(body.meta?.total).toBe(2);
+        expect(body.meta?.totalPages).toBe(1);
       });
 
       it("should filter movies by status=now-showing requiring future active showtime (INV-1)", async () => {
@@ -129,10 +132,13 @@ describe("Catalog Module Integration - Movies", () => {
         );
 
         expect(res.status).toBe(200);
-        const body = res.body as unknown as ApiResponse<MovieListResponseDto>;
-        expect(body.data.data.length).toBe(1);
-        expect(body.data.data[0]?.id).toBe(movieWithShow.id);
-        expect(body.data.data[0]?.title).toBe("Phim Đang Chiếu");
+        const body = res.body as unknown as ApiResponse<
+          MovieResponseDto[],
+          PaginationMetaDto
+        >;
+        expect(body.data.length).toBe(1);
+        expect(body.data[0]?.id).toBe(movieWithShow.id);
+        expect(body.data[0]?.title).toBe("Phim Đang Chiếu");
       });
 
       it("should filter movies by status=coming-soon with future release date (INV-1)", async () => {
@@ -162,9 +168,12 @@ describe("Catalog Module Integration - Movies", () => {
         );
 
         expect(res.status).toBe(200);
-        const body = res.body as unknown as ApiResponse<MovieListResponseDto>;
-        expect(body.data.data.length).toBe(1);
-        expect(body.data.data[0]?.id).toBe(upcomingMovie.id);
+        const body = res.body as unknown as ApiResponse<
+          MovieResponseDto[],
+          PaginationMetaDto
+        >;
+        expect(body.data.length).toBe(1);
+        expect(body.data[0]?.id).toBe(upcomingMovie.id);
       });
 
       it("should filter movies by genreId (INV-3)", async () => {
@@ -189,11 +198,14 @@ describe("Catalog Module Integration - Movies", () => {
         );
 
         expect(res.status).toBe(200);
-        const body = res.body as unknown as ApiResponse<MovieListResponseDto>;
-        expect(body.data.data.length).toBe(1);
-        expect(body.data.data[0]?.id).toBe(movieAction.id);
-        expect(body.data.data[0]?.genres).toBeDefined();
-        expect(body.data.data[0]?.genres[0]?.id).toBe(genreAction.id);
+        const body = res.body as unknown as ApiResponse<
+          MovieResponseDto[],
+          PaginationMetaDto
+        >;
+        expect(body.data.length).toBe(1);
+        expect(body.data[0]?.id).toBe(movieAction.id);
+        expect(body.data[0]?.genres).toBeDefined();
+        expect(body.data[0]?.genres[0]?.id).toBe(genreAction.id);
       });
 
       it("should filter movies by rating (INV-3)", async () => {
@@ -206,9 +218,12 @@ describe("Catalog Module Integration - Movies", () => {
         const res = await request(getHttpServer()).get("/movies?rating=R");
 
         expect(res.status).toBe(200);
-        const body = res.body as unknown as ApiResponse<MovieListResponseDto>;
-        expect(body.data.data.length).toBe(1);
-        expect(body.data.data[0]?.id).toBe(movieR.id);
+        const body = res.body as unknown as ApiResponse<
+          MovieResponseDto[],
+          PaginationMetaDto
+        >;
+        expect(body.data.length).toBe(1);
+        expect(body.data[0]?.id).toBe(movieR.id);
       });
 
       it("should perform cross-language title search across all translations (INV-3)", async () => {
@@ -222,10 +237,13 @@ describe("Catalog Module Integration - Movies", () => {
         );
 
         expect(res.status).toBe(200);
-        const body = res.body as unknown as ApiResponse<MovieListResponseDto>;
-        expect(body.data.data.length).toBe(1);
-        expect(body.data.data[0]?.id).toBe(movie.id);
-        expect(body.data.data[0]?.title).toBe("Kỵ Sĩ Bóng Đêm");
+        const body = res.body as unknown as ApiResponse<
+          MovieResponseDto[],
+          PaginationMetaDto
+        >;
+        expect(body.data.length).toBe(1);
+        expect(body.data[0]?.id).toBe(movie.id);
+        expect(body.data[0]?.title).toBe("Kỵ Sĩ Bóng Đêm");
       });
 
       it("should sanitize SQL wildcards (% and _) in search string (INV-3)", async () => {
@@ -238,9 +256,12 @@ describe("Catalog Module Integration - Movies", () => {
         const res = await request(getHttpServer()).get("/movies?search=100%");
 
         expect(res.status).toBe(200);
-        const body = res.body as unknown as ApiResponse<MovieListResponseDto>;
-        expect(body.data.data.length).toBe(1);
-        expect(body.data.data[0]?.id).toBe(movie1.id);
+        const body = res.body as unknown as ApiResponse<
+          MovieResponseDto[],
+          PaginationMetaDto
+        >;
+        expect(body.data.length).toBe(1);
+        expect(body.data[0]?.id).toBe(movie1.id);
       });
 
       it("should return 200 OK with empty data array when no movies match criteria (INV-4)", async () => {
@@ -249,11 +270,14 @@ describe("Catalog Module Integration - Movies", () => {
         );
 
         expect(res.status).toBe(200);
-        const body = res.body as unknown as ApiResponse<MovieListResponseDto>;
+        const body = res.body as unknown as ApiResponse<
+          MovieResponseDto[],
+          PaginationMetaDto
+        >;
         expect(body.success).toBe(true);
-        expect(body.data.data).toEqual([]);
-        expect(body.data.meta.total).toBe(0);
-        expect(body.data.meta.totalPages).toBe(0);
+        expect(body.data).toEqual([]);
+        expect(body.meta?.total).toBe(0);
+        expect(body.meta?.totalPages).toBe(0);
       });
 
       it("should fall back deterministically to primary locale vi when requested en translation is missing (INV-2)", async () => {
@@ -269,10 +293,13 @@ describe("Catalog Module Integration - Movies", () => {
         const res = await request(getHttpServer()).get(`/movies?lang=en`);
 
         expect(res.status).toBe(200);
-        const body = res.body as unknown as ApiResponse<MovieListResponseDto>;
-        expect(body.data.data.length).toBe(1);
-        expect(body.data.data[0]?.title).toBe("Tiêu Đề Gốc Tiếng Việt");
-        expect(body.data.data[0]?.description).toBe("Mô tả tiếng Việt");
+        const body = res.body as unknown as ApiResponse<
+          MovieResponseDto[],
+          PaginationMetaDto
+        >;
+        expect(body.data.length).toBe(1);
+        expect(body.data[0]?.title).toBe("Tiêu Đề Gốc Tiếng Việt");
+        expect(body.data[0]?.description).toBe("Mô tả tiếng Việt");
       });
 
       it("should reject snake_case status value with 400 Bad Request", async () => {

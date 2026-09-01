@@ -54,7 +54,8 @@ describe("CinemasController", () => {
       expect(mockCinemasService.findCinemas).toHaveBeenCalledWith(query);
       expect(response).toEqual({
         success: true,
-        data: mockCinemaListResponse,
+        data: mockCinemaListResponse.data,
+        meta: mockCinemaListResponse.meta,
       });
     });
   });

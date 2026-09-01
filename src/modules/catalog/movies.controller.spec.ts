@@ -79,7 +79,8 @@ describe("MoviesController", () => {
       expect(mockMoviesService.findMovies).toHaveBeenCalledWith(query);
       expect(response).toEqual({
         success: true,
-        data: mockMovieListResponse,
+        data: mockMovieListResponse.data,
+        meta: mockMovieListResponse.meta,
       });
     });
   });

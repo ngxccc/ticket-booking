@@ -18,7 +18,10 @@ import { truncateAllTables } from "@/database/database.connection";
 import type { DrizzleDB } from "@/database/database.module";
 import { createCinema, createHall } from "../factories/cinema.factory";
 import type { ApiResponse } from "@/common/utils/api-response.util";
-import type { CinemaListResponseDto } from "@/modules/catalog/dto";
+import type {
+  CinemaResponseDto,
+  PaginationMetaDto,
+} from "@/modules/catalog/dto";
 import type { Rfc9457ErrorResponse } from "@/common/filters/global-exception.filter";
 
 describe("Catalog Module Integration - Cinemas", () => {
@@ -69,15 +72,18 @@ describe("Catalog Module Integration - Cinemas", () => {
           .query({ page: 1, limit: 10 })
           .expect(200);
 
-        const body = res.body as ApiResponse<CinemaListResponseDto>;
+        const body = res.body as ApiResponse<
+          CinemaResponseDto[],
+          PaginationMetaDto
+        >;
         expect(body.success).toBe(true);
-        expect(body.data.meta.total).toBe(2);
-        expect(body.data.meta.page).toBe(1);
-        expect(body.data.meta.limit).toBe(10);
-        expect(body.data.meta.totalPages).toBe(1);
+        expect(body.meta?.total).toBe(2);
+        expect(body.meta?.page).toBe(1);
+        expect(body.meta?.limit).toBe(10);
+        expect(body.meta?.totalPages).toBe(1);
 
-        const item1 = body.data.data.find((c) => c.id === cinema1.id);
-        const item2 = body.data.data.find((c) => c.id === cinema2.id);
+        const item1 = body.data.find((c) => c.id === cinema1.id);
+        const item2 = body.data.find((c) => c.id === cinema2.id);
 
         expect(item1).toBeDefined();
         expect(item1?.totalHalls).toBe(3);
@@ -100,10 +106,13 @@ describe("Catalog Module Integration - Cinemas", () => {
 
         const res = await request(getHttpServer()).get("/cinemas").expect(200);
 
-        const body = res.body as ApiResponse<CinemaListResponseDto>;
-        expect(body.data.data).toHaveLength(1);
-        expect(body.data.data[0]?.id).toBe(cinema.id);
-        expect(body.data.data[0]?.totalHalls).toBe(0);
+        const body = res.body as ApiResponse<
+          CinemaResponseDto[],
+          PaginationMetaDto
+        >;
+        expect(body.data).toHaveLength(1);
+        expect(body.data[0]?.id).toBe(cinema.id);
+        expect(body.data[0]?.totalHalls).toBe(0);
       });
     });
 
@@ -127,9 +136,12 @@ describe("Catalog Module Integration - Cinemas", () => {
           .query({ city: "Hồ Chí Minh" })
           .expect(200);
 
-        const body = res.body as ApiResponse<CinemaListResponseDto>;
-        expect(body.data.meta.total).toBe(1);
-        expect(body.data.data[0]?.city).toBe("Thành phố Hồ Chí Minh");
+        const body = res.body as ApiResponse<
+          CinemaResponseDto[],
+          PaginationMetaDto
+        >;
+        expect(body.meta?.total).toBe(1);
+        expect(body.data[0]?.city).toBe("Thành phố Hồ Chí Minh");
       });
 
       it("should filter cinemas by ward (case-insensitive substring match)", async () => {
@@ -151,9 +163,12 @@ describe("Catalog Module Integration - Cinemas", () => {
           .query({ ward: "Bến Nghé" })
           .expect(200);
 
-        const body = res.body as ApiResponse<CinemaListResponseDto>;
-        expect(body.data.meta.total).toBe(1);
-        expect(body.data.data[0]?.ward).toBe("Phường Bến Nghé");
+        const body = res.body as ApiResponse<
+          CinemaResponseDto[],
+          PaginationMetaDto
+        >;
+        expect(body.meta?.total).toBe(1);
+        expect(body.data[0]?.ward).toBe("Phường Bến Nghé");
       });
 
       it("should filter cinemas by search keyword matching cinema name or address", async () => {
@@ -175,18 +190,23 @@ describe("Catalog Module Integration - Cinemas", () => {
           .query({ search: "Cinestar" })
           .expect(200);
 
-        const bodyName = resName.body as ApiResponse<CinemaListResponseDto>;
-        expect(bodyName.data.meta.total).toBe(1);
-        expect(bodyName.data.data[0]?.name).toBe("Cinestar Quốc Thanh");
-
+        const bodyName = resName.body as ApiResponse<
+          CinemaResponseDto[],
+          PaginationMetaDto
+        >;
+        expect(bodyName.meta?.total).toBe(1);
+        expect(bodyName.data[0]?.name).toBe("Cinestar Quốc Thanh");
         const resAddr = await request(getHttpServer())
           .get("/cinemas")
           .query({ search: "Cao Thắng" })
           .expect(200);
 
-        const bodyAddr = resAddr.body as ApiResponse<CinemaListResponseDto>;
-        expect(bodyAddr.data.meta.total).toBe(1);
-        expect(bodyAddr.data.data[0]?.name).toBe("Mega GS Cao Thắng");
+        const bodyAddr = resAddr.body as ApiResponse<
+          CinemaResponseDto[],
+          PaginationMetaDto
+        >;
+        expect(bodyAddr.meta?.total).toBe(1);
+        expect(bodyAddr.data[0]?.name).toBe("Mega GS Cao Thắng");
       });
 
       it("should return empty list when no cinemas match the filters", async () => {
@@ -202,10 +222,13 @@ describe("Catalog Module Integration - Cinemas", () => {
           .query({ city: "Đà Nẵng" })
           .expect(200);
 
-        const body = res.body as ApiResponse<CinemaListResponseDto>;
-        expect(body.data.data).toHaveLength(0);
-        expect(body.data.meta.total).toBe(0);
-        expect(body.data.meta.totalPages).toBe(0);
+        const body = res.body as ApiResponse<
+          CinemaResponseDto[],
+          PaginationMetaDto
+        >;
+        expect(body.data).toHaveLength(0);
+        expect(body.meta?.total).toBe(0);
+        expect(body.meta?.totalPages).toBe(0);
       });
     });
 
@@ -232,11 +255,14 @@ describe("Catalog Module Integration - Cinemas", () => {
 
         const res = await request(getHttpServer()).get("/cinemas").expect(200);
 
-        const body = res.body as ApiResponse<CinemaListResponseDto>;
-        expect(body.data.data).toHaveLength(3);
-        expect(body.data.data[0]?.city).toBe("Hà Nội");
-        expect(body.data.data[1]?.ward).toBe("Phường 1");
-        expect(body.data.data[2]?.ward).toBe("Phường 2");
+        const body = res.body as ApiResponse<
+          CinemaResponseDto[],
+          PaginationMetaDto
+        >;
+        expect(body.data).toHaveLength(3);
+        expect(body.data[0]?.city).toBe("Hà Nội");
+        expect(body.data[1]?.ward).toBe("Phường 1");
+        expect(body.data[2]?.ward).toBe("Phường 2");
       });
     });
 

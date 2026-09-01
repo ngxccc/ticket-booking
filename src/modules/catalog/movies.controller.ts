@@ -13,6 +13,7 @@ import {
   ApiBadRequestResponseRfc9457,
   ApiNotFoundResponseRfc9457,
   ApiOkResponseGeneric,
+  ApiOkResponsePaginated,
   ApiTooManyRequestsResponseRfc9457,
 } from "@/common/decorators";
 import { apiSuccess, type ApiResponse } from "@/common/utils/api-response.util";
@@ -22,8 +23,8 @@ import {
   MovieDetailParamDto,
   MovieDetailQueryDto,
   MovieListQueryDto,
-  MovieListResponseDto,
   MovieResponseDto,
+  PaginationMetaDto,
 } from "./dto";
 
 @ApiTags(CATALOG_ROUTES.MOVIES)
@@ -38,14 +39,14 @@ export class MoviesController {
     summary:
       "Discover public movies with pagination, genre, status, and text search filters",
   })
-  @ApiOkResponseGeneric(MovieListResponseDto)
+  @ApiOkResponsePaginated(MovieResponseDto)
   @ApiBadRequestResponseRfc9457()
   @ApiTooManyRequestsResponseRfc9457()
   async getMovies(
     @Query() query: MovieListQueryDto,
-  ): Promise<ApiResponse<MovieListResponseDto>> {
-    const result = await this.moviesService.findMovies(query);
-    return apiSuccess(result);
+  ): Promise<ApiResponse<MovieResponseDto[], PaginationMetaDto>> {
+    const { data, meta } = await this.moviesService.findMovies(query);
+    return apiSuccess(data, meta);
   }
 
   @Get(CATALOG_ROUTES.DETAILS)
