@@ -53,7 +53,13 @@ export async function cleanupOrphanTestSchemas(pool: Pool): Promise<void> {
 let isGlobalEnvInitialized = false;
 
 export async function setupGlobalTestEnvironment(): Promise<void> {
-  if (!env.DB_URL || isGlobalEnvInitialized) return;
+  if (env.NODE_ENV === "production" || process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Safety Guard Violation: Test suite execution is strictly prohibited against production environment.",
+    );
+  }
+
+  if (env.NODE_ENV !== "test" || !env.DB_URL || isGlobalEnvInitialized) return;
 
   // Only execute database pre-flight checks if the test suite is an integration/e2e test under test/
   const isRunningIntegrationTest = process.argv.some(
