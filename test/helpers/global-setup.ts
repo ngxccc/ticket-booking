@@ -3,12 +3,13 @@ import "@nestjs/testing";
 import type { Pool } from "pg";
 import { env } from "@/env";
 import { TIME_IN_MS } from "@/common/constants/time.constant";
-import { migrate } from "drizzle-orm/node-postgres/migrator";
-import { join } from "path";
 import { Logger } from "@nestjs/common";
 import { spyOn } from "bun:test";
-import { createTestPool, dropTestSchema } from "./database.helper";
-import { createDrizzleClient } from "@/database/database.connection";
+import {
+  createTestPool,
+  dropTestSchema,
+  ensureTemplateSchemaMigrated,
+} from "./database.helper";
 
 // Suppress intentional NestJS log noise during unit test suites to keep terminal output clean.
 spyOn(Logger.prototype, "error").mockImplementation(() => undefined);
@@ -30,38 +31,19 @@ export async function cleanupOrphanTestSchemas(pool: Pool): Promise<void> {
 
   const now = Date.now();
   for (const row of result.rows) {
-    const parts = row.schema_name.split("_");
-    if (parts.length >= 3) {
-      const createdTimestamp = Number.parseInt(parts[1] ?? "0", 10);
+    const match = /^test_(\d+)_[a-f0-9_]+$/.exec(row.schema_name);
+    if (!match) continue;
 
-      // Age threshold protects active peer workers while allowing cleanup of stale schemas.
-      if (
-        !Number.isNaN(createdTimestamp) &&
-        now - createdTimestamp > ORPHAN_SCHEMA_MAX_AGE_MS
-      ) {
-        await dropTestSchema(pool, row.schema_name);
-      }
+    const rawTimestamp = match[1];
+    if (!rawTimestamp) continue;
+
+    const schemaTimestamp = parseInt(rawTimestamp, 10);
+    if (isNaN(schemaTimestamp)) continue;
+
+    if (now - schemaTimestamp > ORPHAN_SCHEMA_MAX_AGE_MS) {
+      await dropTestSchema(pool, row.schema_name);
     }
   }
-}
-
-/**
- * Pre-provisions and migrates a shared template schema once globally, enabling instantaneous server-side table cloning.
- *
- * @param adminPool - Active PostgreSQL connection pool
- */
-export async function ensureTemplateSchemaMigrated(
-  adminPool: Pool,
-): Promise<void> {
-  await adminPool.query(`CREATE SCHEMA IF NOT EXISTS "test_template";`);
-  const pool = createTestPool({
-    options: `-c search_path="test_template",public`,
-    max: 2,
-  });
-  const db = createDrizzleClient(pool);
-  const migrationsFolder = join(import.meta.dir, "../../drizzle");
-  await migrate(db, { migrationsFolder, migrationsSchema: "test_template" });
-  await pool.end().catch(() => undefined);
 }
 
 /**
@@ -71,7 +53,7 @@ export async function ensureTemplateSchemaMigrated(
 let isGlobalEnvInitialized = false;
 
 export async function setupGlobalTestEnvironment(): Promise<void> {
-  if (env.NODE_ENV !== "test" || !env.DB_URL || isGlobalEnvInitialized) return;
+  if (!env.DB_URL || isGlobalEnvInitialized) return;
 
   // Only execute database pre-flight checks if the test suite is an integration/e2e test under test/
   const isRunningIntegrationTest = process.argv.some(
@@ -96,9 +78,12 @@ export async function setupGlobalTestEnvironment(): Promise<void> {
     await ensureTemplateSchemaMigrated(pool);
 
     await cleanupOrphanTestSchemas(pool);
+  } catch {
+    // Fail-open gracefully if DB is temporarily unreachable in non-DB unit test environments
   } finally {
     await pool.end().catch(() => undefined);
   }
 }
 
 // Bunfig preload executes this file before worker suites spawn; top-level await guarantees pre-flight completion.
+await setupGlobalTestEnvironment();
