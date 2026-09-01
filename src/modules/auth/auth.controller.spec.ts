@@ -14,38 +14,32 @@ describe("AuthController", () => {
   let authService: AuthService;
 
   const mockAuthService = {
-    register: mock(() => Promise.resolve({ success: true, data: null })),
+    register: mock(() => Promise.resolve()),
     login: mock((dto: LoginDto) =>
       Promise.resolve({
-        success: true,
-        data: { email: dto.email },
+        accessToken: "mock_access_token",
+        refreshToken: "mock_refresh_token",
+        user: {
+          id: "mock_user_id",
+          email: dto.email,
+          fullName: "Test User",
+          role: "user" as const,
+        },
       }),
     ),
-    refreshToken: mock((dto: RefreshTokenDto) =>
+    refreshToken: mock((_dto: RefreshTokenDto) =>
       Promise.resolve({
-        success: true,
-        data: { token: dto.refreshToken },
+        accessToken: "mock_access_token_renewed",
+        refreshToken: "mock_refresh_token_renewed",
       }),
     ),
-    verifyEmail: mock((_token: string) =>
-      Promise.resolve({
-        success: true,
-        data: null,
-      }),
-    ),
-    logout: mock((_dto: RefreshTokenDto) =>
-      Promise.resolve({
-        success: true,
-        data: null,
-      }),
-    ),
-    forgotPassword: mock(() => Promise.resolve({ success: true, data: null })),
-    resetPassword: mock(() => Promise.resolve({ success: true, data: null })),
-    changePassword: mock(() => Promise.resolve({ success: true, data: null })),
-    logoutAll: mock(() => Promise.resolve({ success: true, data: null })),
-    resendVerificationEmail: mock(() =>
-      Promise.resolve({ success: true, data: null }),
-    ),
+    verifyEmail: mock((_token: string) => Promise.resolve()),
+    logout: mock((_dto: RefreshTokenDto) => Promise.resolve()),
+    forgotPassword: mock(() => Promise.resolve()),
+    resetPassword: mock(() => Promise.resolve()),
+    changePassword: mock(() => Promise.resolve()),
+    logoutAll: mock(() => Promise.resolve()),
+    resendVerificationEmail: mock(() => Promise.resolve()),
   };
 
   beforeEach(() => {
@@ -166,15 +160,27 @@ describe("AuthController", () => {
         ip: "1.2.3.4",
       } as unknown as Request;
 
-      await controller.login(dto, req);
+      const result = await controller.login(dto, req);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(authService.login).toHaveBeenCalledWith(dto, {
         deviceName: "TestBrowser/1.0",
         ipAddress: "1.2.3.4",
       });
+      expect(result).toEqual({
+        success: true,
+        data: {
+          accessToken: "mock_access_token",
+          refreshToken: "mock_refresh_token",
+          user: {
+            id: "mock_user_id",
+            email: "test@example.com",
+            fullName: "Test User",
+            role: "user",
+          },
+        },
+      });
     });
   });
-
   describe("refresh", () => {
     it("should extract client metadata from req and call authService.refreshToken", async () => {
       const dto = { refreshToken: "some_refresh_token" };
@@ -183,15 +189,21 @@ describe("AuthController", () => {
         ip: "5.6.7.8",
       } as unknown as Request;
 
-      await controller.refresh(dto, req);
+      const result = await controller.refresh(dto, req);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(authService.refreshToken).toHaveBeenCalledWith(dto, {
         deviceName: "TestBrowser/1.0",
         ipAddress: "5.6.7.8",
       });
+      expect(result).toEqual({
+        success: true,
+        data: {
+          accessToken: "mock_access_token_renewed",
+          refreshToken: "mock_refresh_token_renewed",
+        },
+      });
     });
   });
-
   describe("changePassword", () => {
     it("should call authService.changePassword with userId and dto", async () => {
       const dto = {

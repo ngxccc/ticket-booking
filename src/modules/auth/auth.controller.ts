@@ -22,7 +22,7 @@ import {
   ApiConflictResponseRfc9457,
   ApiInternalServerErrorResponseRfc9457,
 } from "@/common/decorators";
-import type { ApiResponse } from "@/common/utils/api-response.util";
+import { apiSuccess, type ApiResponse } from "@/common/utils/api-response.util";
 import { AUTH_ROUTES } from "./auth.routes";
 import { AuthService } from "./auth.service";
 import {
@@ -54,8 +54,9 @@ export class AuthController {
   @ApiBadRequestResponseRfc9457()
   @ApiConflictResponseRfc9457()
   @ApiInternalServerErrorResponseRfc9457()
-  register(@Body() dto: RegisterDto): Promise<ApiResponse<null>> {
-    return this.authService.register(dto);
+  async register(@Body() dto: RegisterDto): Promise<ApiResponse<null>> {
+    await this.authService.register(dto);
+    return apiSuccess(null);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -68,8 +69,9 @@ export class AuthController {
   @ApiOkResponseGeneric()
   @ApiBadRequestResponseRfc9457()
   @ApiInternalServerErrorResponseRfc9457()
-  verifyEmail(@Body() dto: VerifyEmailDto): Promise<ApiResponse<null>> {
-    return this.authService.verifyEmail(dto.token);
+  async verifyEmail(@Body() dto: VerifyEmailDto): Promise<ApiResponse<null>> {
+    await this.authService.verifyEmail(dto.token);
+    return apiSuccess(null);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -85,10 +87,11 @@ export class AuthController {
   @ApiOkResponseGeneric()
   @ApiBadRequestResponseRfc9457()
   @ApiInternalServerErrorResponseRfc9457()
-  resendVerification(
+  async resendVerification(
     @Body() dto: ResendVerificationDto,
   ): Promise<ApiResponse<null>> {
-    return this.authService.resendVerificationEmail(dto);
+    await this.authService.resendVerificationEmail(dto);
+    return apiSuccess(null);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -101,12 +104,13 @@ export class AuthController {
   @ApiOkResponseGeneric(LoginResponseDto)
   @ApiBadRequestResponseRfc9457()
   @ApiInternalServerErrorResponseRfc9457()
-  login(
+  async login(
     @Body() dto: LoginDto,
     @Req() req: Request,
   ): Promise<ApiResponse<LoginResponseDto>> {
     const metadata = extractClientMetadata(req);
-    return this.authService.login(dto, metadata);
+    const result = await this.authService.login(dto, metadata);
+    return apiSuccess(result);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -123,12 +127,13 @@ export class AuthController {
   @ApiBadRequestResponseRfc9457()
   @ApiUnauthorizedResponseRfc9457()
   @ApiInternalServerErrorResponseRfc9457()
-  refresh(
+  async refresh(
     @Body() dto: RefreshTokenDto,
     @Req() req: Request,
   ): Promise<ApiResponse<RefreshResponseDto>> {
     const metadata = extractClientMetadata(req);
-    return this.authService.refreshToken(dto, metadata);
+    const result = await this.authService.refreshToken(dto, metadata);
+    return apiSuccess(result);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -141,8 +146,9 @@ export class AuthController {
   @ApiOkResponseGeneric()
   @ApiBadRequestResponseRfc9457()
   @ApiInternalServerErrorResponseRfc9457()
-  logout(@Body() dto: RefreshTokenDto): Promise<ApiResponse<null>> {
-    return this.authService.logout(dto);
+  async logout(@Body() dto: RefreshTokenDto): Promise<ApiResponse<null>> {
+    await this.authService.logout(dto);
+    return apiSuccess(null);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -160,8 +166,11 @@ export class AuthController {
   @ApiOkResponseGeneric()
   @ApiUnauthorizedResponseRfc9457()
   @ApiInternalServerErrorResponseRfc9457()
-  logoutAll(@CurrentUser("sub") userId: string): Promise<ApiResponse<null>> {
-    return this.authService.logoutAll(userId);
+  async logoutAll(
+    @CurrentUser("sub") userId: string,
+  ): Promise<ApiResponse<null>> {
+    await this.authService.logoutAll(userId);
+    return apiSuccess(null);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -177,8 +186,11 @@ export class AuthController {
   @ApiOkResponseGeneric()
   @ApiBadRequestResponseRfc9457()
   @ApiInternalServerErrorResponseRfc9457()
-  forgotPassword(@Body() dto: ForgotPasswordDto): Promise<ApiResponse<null>> {
-    return this.authService.forgotPassword(dto);
+  async forgotPassword(
+    @Body() dto: ForgotPasswordDto,
+  ): Promise<ApiResponse<null>> {
+    await this.authService.forgotPassword(dto);
+    return apiSuccess(null);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -194,8 +206,11 @@ export class AuthController {
   @ApiOkResponseGeneric()
   @ApiBadRequestResponseRfc9457()
   @ApiInternalServerErrorResponseRfc9457()
-  resetPassword(@Body() dto: ResetPasswordDto): Promise<ApiResponse<null>> {
-    return this.authService.resetPassword(dto);
+  async resetPassword(
+    @Body() dto: ResetPasswordDto,
+  ): Promise<ApiResponse<null>> {
+    await this.authService.resetPassword(dto);
+    return apiSuccess(null);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -214,10 +229,11 @@ export class AuthController {
   @ApiBadRequestResponseRfc9457()
   @ApiUnauthorizedResponseRfc9457()
   @ApiInternalServerErrorResponseRfc9457()
-  changePassword(
+  async changePassword(
     @CurrentUser("sub") userId: string,
     @Body() dto: ChangePasswordDto,
   ): Promise<ApiResponse<null>> {
-    return this.authService.changePassword(userId, dto);
+    await this.authService.changePassword(userId, dto);
+    return apiSuccess(null);
   }
 }

@@ -12,6 +12,8 @@ import {
 } from "@/database/database.module";
 import {
   LoginDto,
+  LoginResponseDto,
+  RefreshResponseDto,
   RefreshTokenDto,
   RegisterDto,
   ForgotPasswordDto,
@@ -24,7 +26,6 @@ import { OUTBOX_EVENT_TYPE } from "@/common/constants/event.constant";
 import { PG_ERROR_CODE } from "@/common/constants/error.constant";
 import { isPostgresErrorCode } from "@/common/utils/error.util";
 import { TIME_IN_MS } from "@/common/constants/time.constant";
-import { apiSuccess, type ApiResponse } from "@/common/utils/api-response.util";
 import type { ClientMetadata } from "@/common/utils/client-info.util";
 import {
   comparePassword,
@@ -87,7 +88,7 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async register(dto: RegisterDto): Promise<ApiResponse<null>> {
+  async register(dto: RegisterDto): Promise<void> {
     const [existingUser] = await this.db
       .select({ id: users.id })
       .from(users)
@@ -139,10 +140,10 @@ export class AuthService {
       }
       throw error;
     }
-    return apiSuccess(null);
+    return;
   }
 
-  async verifyEmail(token: string): Promise<ApiResponse<null>> {
+  async verifyEmail(token: string): Promise<void> {
     const [user] = await this.db
       .select({
         id: users.id,
@@ -169,12 +170,10 @@ export class AuthService {
       })
       .where(eq(users.id, user.id));
 
-    return apiSuccess(null);
+    return;
   }
 
-  async resendVerificationEmail(
-    dto: ResendVerificationDto,
-  ): Promise<ApiResponse<null>> {
+  async resendVerificationEmail(dto: ResendVerificationDto): Promise<void> {
     const TOKEN_TTL_MS = TIME_IN_MS.DAY; // 24 hours
     const RESEND_COOLDOWN_MS = TIME_IN_MS.MINUTE; // 1 minute
 
@@ -227,10 +226,13 @@ export class AuthService {
       });
     });
 
-    return apiSuccess(null);
+    return;
   }
 
-  async login(dto: LoginDto, metadata?: ClientMetadata) {
+  async login(
+    dto: LoginDto,
+    metadata?: ClientMetadata,
+  ): Promise<LoginResponseDto> {
     const [user] = await this.db
       .select({
         id: users.id,
@@ -271,7 +273,7 @@ export class AuthService {
       metadata,
     );
 
-    return apiSuccess({
+    return {
       accessToken,
       refreshToken,
       user: {
@@ -280,10 +282,13 @@ export class AuthService {
         fullName: user.fullName,
         role: user.role,
       },
-    });
+    };
   }
 
-  async refreshToken(dto: RefreshTokenDto, metadata?: ClientMetadata) {
+  async refreshToken(
+    dto: RefreshTokenDto,
+    metadata?: ClientMetadata,
+  ): Promise<RefreshResponseDto> {
     const hashedIncoming = sha256(dto.refreshToken);
 
     const [deletedToken] = await this.db
@@ -332,10 +337,10 @@ export class AuthService {
       metadata,
     );
 
-    return apiSuccess({ accessToken, refreshToken });
+    return { accessToken, refreshToken };
   }
 
-  async logout(dto: RefreshTokenDto): Promise<ApiResponse<null>> {
+  async logout(dto: RefreshTokenDto): Promise<void> {
     const hashedIncoming = sha256(dto.refreshToken);
 
     const [deletedToken] = await this.db
@@ -358,10 +363,10 @@ export class AuthService {
       );
     }
 
-    return apiSuccess(null);
+    return;
   }
 
-  async logoutAll(userId: string): Promise<ApiResponse<null>> {
+  async logoutAll(userId: string): Promise<void> {
     if (!userId) {
       this.throwException(
         "auth.TOKEN_INVALID_OR_EXPIRED",
@@ -371,10 +376,10 @@ export class AuthService {
 
     await this.db.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
 
-    return apiSuccess(null);
+    return;
   }
 
-  async forgotPassword(dto: ForgotPasswordDto): Promise<ApiResponse<null>> {
+  async forgotPassword(dto: ForgotPasswordDto): Promise<void> {
     const [user] = await this.db
       .select({
         id: users.id,
@@ -387,7 +392,7 @@ export class AuthService {
 
     // WHY: Prevention of User Enumeration attacks. Return success generic message without exposing if email exists.
     if (user?.status !== "active") {
-      return apiSuccess(null);
+      return;
     }
 
     const resetToken = randomBytes(32).toString("hex");
@@ -413,10 +418,10 @@ export class AuthService {
       });
     });
 
-    return apiSuccess(null);
+    return;
   }
 
-  async resetPassword(dto: ResetPasswordDto): Promise<ApiResponse<null>> {
+  async resetPassword(dto: ResetPasswordDto): Promise<void> {
     const [user] = await this.db
       .select({
         id: users.id,
@@ -450,13 +455,10 @@ export class AuthService {
       await tx.delete(refreshTokens).where(eq(refreshTokens.userId, user.id));
     });
 
-    return apiSuccess(null);
+    return;
   }
 
-  async changePassword(
-    userId: string,
-    dto: ChangePasswordDto,
-  ): Promise<ApiResponse<null>> {
+  async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
     const [user] = await this.db
       .select({ id: users.id, passwordHash: users.passwordHash })
       .from(users)
@@ -503,6 +505,6 @@ export class AuthService {
       await tx.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
     });
 
-    return apiSuccess(null);
+    return;
   }
 }

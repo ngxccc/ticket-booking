@@ -58,11 +58,7 @@ describe("AuthService", () => {
     it("should successfully register a new user and return success-data JSON", async () => {
       mockDb.setSelectResult([]);
 
-      const result = await service.register(registerDto);
-      expect(result).toEqual({
-        success: true,
-        data: null,
-      });
+      await service.register(registerDto);
 
       expect(mockDb.select).toHaveBeenCalled();
       expect(mockDb.insert).toHaveBeenCalled();
@@ -140,11 +136,7 @@ describe("AuthService", () => {
         },
       ]);
 
-      const result = await service.verifyEmail(validToken);
-      expect(result).toEqual({
-        success: true,
-        data: null,
-      });
+      await service.verifyEmail(validToken);
 
       expect(mockDb.select).toHaveBeenCalled();
       expect(mockDb.update).toHaveBeenCalled();
@@ -214,11 +206,9 @@ describe("AuthService", () => {
         },
       ]);
 
-      const result = await service.resendVerificationEmail({
+      await service.resendVerificationEmail({
         email: "unverified@example.com",
       });
-
-      expect(result).toEqual({ success: true, data: null });
       expect(mockDb.select).toHaveBeenCalled();
       expect(mockDb.transaction).toHaveBeenCalled();
     });
@@ -235,11 +225,9 @@ describe("AuthService", () => {
         },
       ]);
 
-      const result = await service.resendVerificationEmail({
+      await service.resendVerificationEmail({
         email: "unverified@example.com",
       });
-
-      expect(result).toEqual({ success: true, data: null });
       expect(mockDb.select).toHaveBeenCalled();
       expect(mockDb.mockUpdateSet).not.toHaveBeenCalled();
       expect(mockDb.mockInsertValues).not.toHaveBeenCalled();
@@ -254,11 +242,9 @@ describe("AuthService", () => {
         },
       ]);
 
-      const result = await service.resendVerificationEmail({
+      await service.resendVerificationEmail({
         email: "verified@example.com",
       });
-
-      expect(result).toEqual({ success: true, data: null });
       expect(mockDb.select).toHaveBeenCalled();
       expect(mockDb.mockUpdateSet).not.toHaveBeenCalled();
       expect(mockDb.mockInsertValues).not.toHaveBeenCalled();
@@ -273,11 +259,9 @@ describe("AuthService", () => {
         },
       ]);
 
-      const result = await service.resendVerificationEmail({
+      await service.resendVerificationEmail({
         email: "suspended@example.com",
       });
-
-      expect(result).toEqual({ success: true, data: null });
       expect(mockDb.select).toHaveBeenCalled();
       expect(mockDb.mockUpdateSet).not.toHaveBeenCalled();
       expect(mockDb.mockInsertValues).not.toHaveBeenCalled();
@@ -286,11 +270,9 @@ describe("AuthService", () => {
     it("should return success(null) silently without error if user is not found (anti-enumeration)", async () => {
       mockDb.setSelectResult([]);
 
-      const result = await service.resendVerificationEmail({
+      await service.resendVerificationEmail({
         email: "nonexistent@example.com",
       });
-
-      expect(result).toEqual({ success: true, data: null });
       expect(mockDb.select).toHaveBeenCalled();
       expect(mockDb.mockUpdateSet).not.toHaveBeenCalled();
       expect(mockDb.mockInsertValues).not.toHaveBeenCalled();
@@ -316,11 +298,9 @@ describe("AuthService", () => {
         password: "Password123",
       });
 
-      expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
-      expect(result.data.accessToken).toBe("mock_access_token");
-      expect(result.data.refreshToken).toBeDefined();
-      expect(result.data.user).toEqual({
+      expect(result.accessToken).toBe("mock_access_token");
+      expect(result.refreshToken).toBeDefined();
+      expect(result.user).toEqual({
         id: "user-uuid",
         email: "test@example.com",
         fullName: "Test User",
@@ -430,10 +410,8 @@ describe("AuthService", () => {
         refreshToken: "valid_refresh_token",
       });
 
-      expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
-      expect(result.data.accessToken).toBe("mock_access_token");
-      expect(result.data.refreshToken).toBeDefined();
+      expect(result.accessToken).toBe("mock_access_token");
+      expect(result.refreshToken).toBeDefined();
       expect(mockDb.delete).toHaveBeenCalled();
       expect(mockDb.insert).toHaveBeenCalled();
     });
@@ -468,12 +446,9 @@ describe("AuthService", () => {
         },
       ]);
 
-      const result = await service.logout({
+      await service.logout({
         refreshToken: "valid_refresh_token",
       });
-
-      expect(result.success).toBe(true);
-      expect(result.data).toBeNull();
       expect(mockDb.delete).toHaveBeenCalled();
     });
 
@@ -498,10 +473,7 @@ describe("AuthService", () => {
 
   describe("logoutAll", () => {
     it("should successfully delete all refresh tokens for user", async () => {
-      const result = await service.logoutAll("user-uuid-123");
-
-      expect(result.success).toBe(true);
-      expect(result.data).toBeNull();
+      await service.logoutAll("user-uuid-123");
       expect(mockDb.delete).toHaveBeenCalled();
     });
 
@@ -520,10 +492,9 @@ describe("AuthService", () => {
   describe("forgotPassword", () => {
     it("should return success generic response if user is not found", async () => {
       mockDb.setSelectResult([]);
-      const result = await service.forgotPassword({
+      await service.forgotPassword({
         email: "notfound@example.com",
       });
-      expect(result).toEqual({ success: true, data: null });
       expect(mockDb.update).not.toHaveBeenCalled();
     });
 
@@ -535,10 +506,9 @@ describe("AuthService", () => {
           status: "pending_verification",
         },
       ]);
-      const result = await service.forgotPassword({
+      await service.forgotPassword({
         email: "pending@example.com",
       });
-      expect(result).toEqual({ success: true, data: null });
       expect(mockDb.update).not.toHaveBeenCalled();
     });
 
@@ -546,10 +516,9 @@ describe("AuthService", () => {
       mockDb.setSelectResult([
         { id: "user-id", fullName: "Test User", status: "active" },
       ]);
-      const result = await service.forgotPassword({
+      await service.forgotPassword({
         email: "active@example.com",
       });
-      expect(result).toEqual({ success: true, data: null });
       expect(mockDb.update).toHaveBeenCalled();
       expect(mockDb.insert).toHaveBeenCalled();
     });
@@ -587,12 +556,11 @@ describe("AuthService", () => {
           resetPasswordExpiresAt: new Date(Date.now() + 100000),
         },
       ]);
-      const result = await service.resetPassword({
+      await service.resetPassword({
         token: "valid-token",
         password: "NewPassword123",
         confirmPassword: "NewPassword123",
       });
-      expect(result).toEqual({ success: true, data: null });
       expect(mockDb.update).toHaveBeenCalled();
       expect(mockDb.delete).toHaveBeenCalled();
     });
@@ -653,12 +621,10 @@ describe("AuthService", () => {
         { id: "user-id", passwordHash: hashedOldPassword },
       ]);
 
-      const result = await service.changePassword("user-id", {
+      await service.changePassword("user-id", {
         currentPassword: "OldPassword123!",
         newPassword: "NewPassword456!",
       });
-
-      expect(result).toEqual({ success: true, data: null });
       expect(mockDb.update).toHaveBeenCalled();
       expect(mockDb.delete).toHaveBeenCalled();
     });
