@@ -176,8 +176,10 @@ bun run db:migrate       # Apply pending migrations
 bun run db:push          # Push schema directly to database (dev mode)
 bun run db:seed          # Seed 3-tier idempotent development fixtures
 bun run db:seed:reset    # Reset tables and re-seed fixtures (Blocked in production)
+bun run db:seed:clean    # Truncate all tables without re-seeding (Blocked in production)
 bun run db:studio        # Launch Drizzle Studio web GUI
 bun run db:baseline      # Verify database baseline across environments
+
 # Testing & Benchmarking
 bun test                 # Run unit tests
 bun run test:watch       # Run unit tests in watch mode
