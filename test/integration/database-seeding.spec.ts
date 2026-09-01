@@ -300,6 +300,20 @@ describe("Database Seeding Engine Integration", () => {
       },
       { timeout: 20000 },
     );
+
+    it("should seamlessly seed multi-scope targets (e.g. genres,cinemas)", async () => {
+      const summary = await seedDatabase({
+        db: context.db,
+        scope: ["genres", "cinemas"],
+      });
+
+      expect(summary.errors).toHaveLength(0);
+      expect(summary.genres).toBe(MASTER_GENRES.length);
+      expect(summary.seatTypes).toBe(0);
+      expect(summary.users).toBe(0);
+      expect(summary.cinemas).toBe(SEED_CINEMAS_DATA.length);
+      expect(summary.movies).toBe(0);
+    });
   });
 
   describe("Tier 3: Dynamic Schedule & Preallocated Seats Engine", () => {
