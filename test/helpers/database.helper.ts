@@ -75,6 +75,12 @@ export async function createWorkerTestDatabase(
   existingAdminPool?: Pool,
   customSchemaName?: string,
 ): Promise<TestDatabaseContext> {
+  if (env.NODE_ENV === "production" || process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Safety Guard Violation: Automated test database provisioning is strictly prohibited against production environment.",
+    );
+  }
+
   const schemaName = customSchemaName ?? generateWorkerSchemaName();
   const adminPool = existingAdminPool ?? createTestPool();
   const shouldCloseAdminPool = !existingAdminPool;
