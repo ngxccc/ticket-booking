@@ -1,10 +1,11 @@
 import { parseArgs } from "node:util";
 import type { Pool } from "pg";
-import type { DrizzleDB } from "@/database/database.module";
 import {
   createDatabasePool,
   createDrizzleClient,
-} from "@/database/database.connection";
+  truncateAllTables,
+} from "../database.connection";
+import type { DrizzleDB } from "../database.module";
 import {
   SEED_SCOPES,
   normalizeSeedScopes,
@@ -27,6 +28,11 @@ function parseCliArgs() {
       reset: {
         type: "boolean",
         short: "r",
+        default: false,
+      },
+      clean: {
+        type: "boolean",
+        short: "c",
         default: false,
       },
       help: {
@@ -58,6 +64,7 @@ function parseCliArgs() {
   return {
     scopes: normalizedScopes,
     reset: Boolean(values.reset),
+    clean: Boolean(values.clean),
   };
 }
 
@@ -77,6 +84,7 @@ function printHelp(): void {
                         Supports single scope or comma-separated scopes:
                         ${SEED_SCOPES.join(", ")}
   -r, --reset           Truncate existing data before seeding (Strictly blocked in production)
+  -c, --clean           Truncate all application data without re-seeding (Blocked in production)
   -h, --help            Display this help message
 
 \x1b[1mEXAMPLES:\x1b[0m
@@ -85,6 +93,7 @@ function printHelp(): void {
   $ bun run db:seed --scope=genres,seat-types,users
   $ bun run db:seed --scope=cinemas,movies
   $ bun run db:seed --reset
+  $ bun run db:seed --clean
 `);
 }
 
@@ -104,11 +113,22 @@ async function main(): Promise<void> {
   const args = parseCliArgs();
   const { pool, db } = createCliDatabaseConnection();
 
-  console.log(
-    `\n\x1b[1m\x1b[34m[SEED]\x1b[0m Starting database seeding (scope: \x1b[33m${args.scopes.join(", ")}\x1b[0m, reset: \x1b[33m${String(args.reset)}\x1b[0m)...`,
-  );
-
   try {
+    if (args.clean) {
+      console.log(
+        `\n\x1b[1m\x1b[34m[CLEAN]\x1b[0m Truncating all application database tables...`,
+      );
+      await truncateAllTables(db);
+      console.log(
+        `\n\x1b[1m\x1b[32m[SUCCESS]\x1b[0m All application database tables truncated and cleaned successfully.\n`,
+      );
+      return;
+    }
+
+    console.log(
+      `\n\x1b[1m\x1b[34m[SEED]\x1b[0m Starting database seeding (scope: \x1b[33m${args.scopes.join(", ")}\x1b[0m, reset: \x1b[33m${String(args.reset)}\x1b[0m)...`,
+    );
+
     const summary = await seedDatabase({
       db,
       scope: args.scopes,
@@ -130,19 +150,16 @@ async function main(): Promise<void> {
       "Shows (Tier 3)": { Count: summary.shows },
       "Show Seats (Tier 3)": { Count: summary.showSeats },
     });
-    console.log();
   } catch (error) {
     console.error(
-      `\n\x1b[1m\x1b[31m[FAILURE]\x1b[0m Database seeding failed:`,
-      error instanceof Error ? error.message : error,
+      `\n\x1b[1m\x1b[31m[FAILURE]\x1b[0m Database seeding failed: ${error instanceof Error ? error.message : String(error)}\n`,
     );
     process.exit(1);
   } finally {
-    await pool.end().catch(() => undefined);
+    await pool.end();
   }
 }
 
-// Execute when run directly as CLI entrypoint
 if (import.meta.main) {
   void main();
 }

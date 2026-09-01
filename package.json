@@ -32,6 +32,7 @@
     "db:push": "sh -c 'if [ $# -eq 0 ]; then doppler run --preserve-env=\"true\" -- drizzle-kit push --config drizzle.config.ts; echo \"\"; else for e in \"$@\"; do echo \"\"; echo \"[DB Push] Running for config: $e\"; doppler run --preserve-env=\"true\" -c \"$e\" -- drizzle-kit push --config drizzle.config.ts || exit 1; echo \"\"; done; fi' _",
     "db:seed": "doppler run --preserve-env=\"true\" -- bun src/database/seeds/index.ts",
     "db:seed:reset": "doppler run --preserve-env=\"true\" -- bun src/database/seeds/index.ts --reset",
+    "db:seed:clean": "doppler run --preserve-env=\"true\" -- bun src/database/seeds/index.ts --clean",
     "db:studio": "doppler run -- drizzle-kit studio --config drizzle.config.ts",
     "i18n:generate": "nestjs-i18n -p ./src/i18n/ -o ./src/generated/i18n.generated.ts",
     "openapi:generate": "doppler run -c stg -- bun scripts/generate-openapi-types.ts",
