@@ -5,6 +5,7 @@ import type {
   Hall,
   Movie,
   SeatType,
+  Show,
   User,
 } from "@/database/schemas";
 import type { SeedScope } from "../constants/seed.constant";
@@ -79,4 +80,17 @@ export interface Tier2SeedResult {
   seatsCount: number;
   movies: SeededMovieRef[];
   movieTranslationsCount: number;
+}
+
+export type SeededShowRef = Pick<
+  Show,
+  "id" | "movieId" | "hallId" | "startTime" | "endTime" | "basePrice"
+>;
+
+/**
+ * Result payload produced by Tier 3 Schedule seeder.
+ */
+export interface Tier3SeedResult {
+  shows: SeededShowRef[];
+  showSeatsCount: number;
 }

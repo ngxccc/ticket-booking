@@ -8,6 +8,7 @@ import {
   movieTranslations,
   seats,
 } from "@/database/schemas";
+import { SHOWS_CONSTANTS } from "@/modules/shows/shows.constants";
 import { SEED_CINEMAS_DATA } from "../data/cinemas.data";
 import { SEED_MOVIES_DATA } from "../data/movies.data";
 import { isScopeActive, type SeedScope } from "../constants/seed.constant";
@@ -168,7 +169,7 @@ export async function seedCinemasAndHalls(
 }
 
 /**
- * Seeds the procedural 8x10 physical seats grid for all specified halls in a single bulk batch.
+ * Seeds the procedural 8x10 physical seats grid for all specified halls in chunked batches.
  *
  * @param db - Drizzle database client instance
  * @param hallList - Target halls to populate with seats
@@ -191,10 +192,12 @@ export async function seedHallSeats(
     generateProceduralSeatGrid(hall.id, seatTypeMap),
   );
 
-  if (allSeats.length > 0) {
+  const chunkSize = SHOWS_CONSTANTS.SEAT_PREALLOCATION_CHUNK_SIZE;
+  for (let i = 0; i < allSeats.length; i += chunkSize) {
+    const chunk = allSeats.slice(i, i + chunkSize);
     await db
       .insert(seats)
-      .values(allSeats)
+      .values(chunk)
       .onConflictDoNothing({
         target: [seats.hallId, seats.seatNumber],
       });

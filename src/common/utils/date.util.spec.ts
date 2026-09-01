@@ -5,6 +5,7 @@ import {
   getPastDate,
   minutesToMs,
   daysToMs,
+  getTimezoneDateParts,
 } from "./date.util";
 import { TIME_IN_MS } from "@/common/constants/time.constant";
 
@@ -80,6 +81,37 @@ describe("Date Utilities", () => {
     it("should return milliseconds when converting days", () => {
       expect(daysToMs(3)).toBe(3 * 24 * 60 * 60 * 1000);
       expect(daysToMs(0)).toBe(0);
+    });
+  });
+
+  describe("getTimezoneDateParts", () => {
+    it("should correctly extract numerical date parts in Asia/Ho_Chi_Minh timezone", () => {
+      // 2026-09-01T02:00:00Z -> 2026-09-01 09:00:00 UTC+7
+      const utcDate = new Date("2026-09-01T02:00:00Z");
+      const parts = getTimezoneDateParts(utcDate, "Asia/Ho_Chi_Minh");
+
+      expect(parts.year).toBe(2026);
+      expect(parts.month).toBe(9);
+      expect(parts.day).toBe(1);
+    });
+
+    it("should handle late night UTC rollover to next calendar day in UTC+7", () => {
+      // 2026-08-31T20:00:00Z -> 2026-09-01 03:00:00 UTC+7
+      const utcDate = new Date("2026-08-31T20:00:00Z");
+      const parts = getTimezoneDateParts(utcDate, "Asia/Ho_Chi_Minh");
+
+      expect(parts.year).toBe(2026);
+      expect(parts.month).toBe(9);
+      expect(parts.day).toBe(1);
+    });
+
+    it("should default to current date and Asia/Ho_Chi_Minh timezone when called with no arguments", () => {
+      const parts = getTimezoneDateParts();
+      expect(parts.year).toBeGreaterThanOrEqual(2024);
+      expect(parts.month).toBeGreaterThanOrEqual(1);
+      expect(parts.month).toBeLessThanOrEqual(12);
+      expect(parts.day).toBeGreaterThanOrEqual(1);
+      expect(parts.day).toBeLessThanOrEqual(31);
     });
   });
 });
