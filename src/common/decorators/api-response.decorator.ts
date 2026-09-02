@@ -23,13 +23,14 @@ export class PaginatedApiResponseDto<T> {
 
   data!: T[];
 
-  @ApiProperty({ type: () => PaginationMetaDto })
+  @ApiProperty({ type: PaginationMetaDto })
   meta!: PaginationMetaDto;
 }
 
 const createApiResponseGeneric = (
   responseDecorator: typeof ApiOkResponse,
   model?: Type,
+  options?: { isArray?: boolean },
 ) => {
   if (!model) {
     return applyDecorators(
@@ -53,6 +54,16 @@ const createApiResponseGeneric = (
     );
   }
 
+  const isArray = options?.isArray ?? false;
+  const dataSchema = isArray
+    ? {
+        type: "array",
+        items: { $ref: getSchemaPath(model) },
+      }
+    : {
+        $ref: getSchemaPath(model),
+      };
+
   return applyDecorators(
     ApiExtraModels(ApiResponseDto, model),
     responseDecorator({
@@ -61,9 +72,7 @@ const createApiResponseGeneric = (
           { $ref: getSchemaPath(ApiResponseDto) },
           {
             properties: {
-              data: {
-                $ref: getSchemaPath(model),
-              },
+              data: dataSchema,
             },
           },
         ],
@@ -72,11 +81,15 @@ const createApiResponseGeneric = (
   );
 };
 
-export const ApiOkResponseGeneric = (model?: Type) =>
-  createApiResponseGeneric(ApiOkResponse, model);
+export const ApiOkResponseGeneric = (
+  model?: Type,
+  options?: { isArray?: boolean },
+) => createApiResponseGeneric(ApiOkResponse, model, options);
 
-export const ApiCreatedResponseGeneric = (model?: Type) =>
-  createApiResponseGeneric(ApiCreatedResponse, model);
+export const ApiCreatedResponseGeneric = (
+  model?: Type,
+  options?: { isArray?: boolean },
+) => createApiResponseGeneric(ApiCreatedResponse, model, options);
 
 const createApiPaginatedResponse = (
   responseDecorator: typeof ApiOkResponse,

@@ -124,3 +124,29 @@ export function getFutureTimezoneDate(
   const futureDate = new Date(Date.now() + days * TIME_IN_MS.DAY);
   return formatTimezoneDate(futureDate, timeZone);
 }
+
+/**
+ * Calculates the exact UTC Date range [startUtc, endUtc] corresponding to a full calendar day in a target IANA timezone.
+ *
+ * @param dateStr ISO YYYY-MM-DD calendar date string
+ * @param timeZone Target IANA timezone identifier (defaults to "Asia/Ho_Chi_Minh")
+ * @returns Object containing startUtc (00:00:00.000 local) and endUtc (23:59:59.999 local)
+ */
+export function getTimezoneDayRange(
+  dateStr: string,
+  timeZone = "Asia/Ho_Chi_Minh",
+): { startUtc: Date; endUtc: Date } {
+  if (timeZone === "Asia/Ho_Chi_Minh") {
+    const startUtc = new Date(`${dateStr}T00:00:00.000+07:00`);
+    const endUtc = new Date(`${dateStr}T23:59:59.999+07:00`);
+    return { startUtc, endUtc };
+  }
+
+  const parts = dateStr.split("-").map(Number);
+  const year = parts[0] ?? 1970;
+  const month = parts[1] ?? 1;
+  const day = parts[2] ?? 1;
+  const startUtc = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+  const endUtc = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
+  return { startUtc, endUtc };
+}
