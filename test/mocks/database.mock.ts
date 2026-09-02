@@ -3,7 +3,18 @@ import { mock } from "bun:test";
 export function createMockDb() {
   let selectResult: unknown[] = [];
   let selectResultsQueue: unknown[][] = [];
-  const mockInsertValues = mock(() => Promise.resolve({}));
+  const mockInsertReturning = mock(() => {
+    if (selectResultsQueue.length > 0) {
+      const res = selectResultsQueue.shift();
+      return Promise.resolve(res ?? selectResult);
+    }
+    return Promise.resolve(selectResult);
+  });
+  const mockInsertValues = mock(() =>
+    Object.assign(Promise.resolve({}), {
+      returning: mockInsertReturning,
+    }),
+  );
   const mockUpdateWhere = mock(() => Promise.resolve({}));
   const mockUpdateSet = mock(() => ({
     where: mockUpdateWhere,

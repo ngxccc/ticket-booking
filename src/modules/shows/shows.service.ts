@@ -12,15 +12,29 @@ import {
   DATABASE_CONNECTION,
   type DrizzleDB,
 } from "@/database/database.module";
-import { CreateShowDto } from "./dto/create-show.dto";
-import { ShowResponseDto } from "./dto/show-response.dto";
-import { halls, movies, seats, shows, showSeats } from "@/database/schemas";
-import { eq } from "drizzle-orm";
+import {
+  CreateShowDto,
+  ShowResponseDto,
+  CreateShowBatchDto,
+  BatchShowResponseDto,
+  ShowScheduleQueryDto,
+  ShowScheduleItemDto,
+} from "./dto";
+import {
+  cinemas,
+  halls,
+  movies,
+  movieTranslations,
+  seats,
+  shows,
+  showSeats,
+} from "@/database/schemas";
+import { aliasedTable, and, asc, eq, gte, lte, sql } from "drizzle-orm";
 import { isPostgresErrorCode } from "@/common/utils/error.util";
 import { PG_ERROR_CODE } from "@/common/constants/error.constant";
-import type { BatchShowResponseDto, CreateShowBatchDto } from "./dto";
 import { SHOWS_CONSTANTS } from "./shows.constants";
 import { TIME_IN_MS } from "@/common/constants/time.constant";
+import { getTimezoneDayRange } from "@/common/utils/date.util";
 
 @Injectable()
 export class ShowsService {
@@ -35,10 +49,6 @@ export class ShowsService {
    *
    * @param dto Single show configuration containing movie, hall, start time, and base price
    * @returns Created show details including calculated end time and total seat count
-   *
-   * @invariant INV-1 (Schedule Collision & Cleaning Buffer): Enforces 15m cleaning buffer between shows via PostgreSQL GiST constraint
-   * @invariant INV-2 (Lead Time Guard): Rejects shows scheduled earlier than now() + SHOW_CREATION_MIN_LEAD_MINUTES
-   * @invariant INV-3 (Physical Seat Pre-allocation): Bulk pre-allocates all hall seats as available in the same transaction
    */
   async createShow(dto: CreateShowDto): Promise<ShowResponseDto> {
     const [[movie], [hall]] = await Promise.all([
@@ -144,11 +154,6 @@ export class ShowsService {
    *
    * @param dto Batch configuration containing movie, hall, date span, and daily time slots
    * @returns Summary object containing createdCount and array of created show IDs
-   *
-   * @invariant INV-1 (Schedule Collision & Cleaning Buffer): Enforces 15m cleaning buffer between shows via 1D timeline & PostgreSQL GiST constraint
-   * @invariant INV-2 (Lead Time Guard): Rejects shows scheduled earlier than now() + SHOW_CREATION_MIN_LEAD_MINUTES
-   * @invariant INV-3 (Physical Seat Pre-allocation): Chunked bulk pre-allocates hall seats in 1,000-row chunks
-   * @invariant INV-4 (All-or-Nothing Batch Atomicity): Entire batch rolls back cleanly if any single slot collides
    */
   async createShowBatch(
     dto: CreateShowBatchDto,
@@ -244,9 +249,6 @@ export class ShowsService {
    * @param dto Batch configuration containing date span and daily time slots
    * @param durationMinutes Movie duration in minutes
    * @returns Array of validated, chronologically sorted show time slots with occupied intervals
-   *
-   * @invariant INV-1 (Schedule Collision & Cleaning Buffer): Enforces 15m cleaning buffer between slots
-   * @invariant INV-2 (Lead Time Guard): Rejects slots scheduled earlier than now() + SHOW_CREATION_MIN_LEAD_MINUTES
    */
   expandAndValidateTimeline(
     dto: CreateShowBatchDto,
@@ -347,5 +349,119 @@ export class ShowsService {
     }
 
     return slots;
+  }
+
+  /**
+   * Discovers public showtimes filtered by movie, cinema, and date with real-time non-locking seat availability calculation.
+   *
+   * @param query Validated show schedule query filter parameters
+   * @returns Flat list of showtime schedule items with embedded movie, cinema, and hall metadata
+   */
+  async findShows(query: ShowScheduleQueryDto): Promise<ShowScheduleItemDto[]> {
+    const { startUtc, endUtc } = getTimezoneDayRange(
+      query.date,
+      SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+    );
+
+    // Effective start time: exclude shows that started in the past for today's queries (INV-3)
+    const now = new Date();
+    const effectiveStart = startUtc.getTime() > now.getTime() ? startUtc : now;
+
+    // If effectiveStart exceeds end of target date (e.g. late night query for today with no remaining shows), return empty array fast
+    if (effectiveStart.getTime() > endUtc.getTime()) {
+      return [];
+    }
+
+    const requestedTrans = aliasedTable(movieTranslations, "requested_trans");
+    const fallbackTrans = aliasedTable(movieTranslations, "fallback_trans");
+
+    const conditions = [
+      gte(shows.startTime, effectiveStart),
+      lte(shows.startTime, endUtc),
+    ];
+
+    if (query.movieId) {
+      conditions.push(eq(shows.movieId, query.movieId));
+    }
+
+    if (query.cinemaId) {
+      conditions.push(eq(cinemas.id, query.cinemaId));
+    }
+
+    const rows = await this.db
+      .select({
+        id: shows.id,
+        movieId: shows.movieId,
+        hallId: shows.hallId,
+        cinemaId: cinemas.id,
+        startTime: shows.startTime,
+        endTime: shows.endTime,
+        basePrice: shows.basePrice,
+        movieTitle: sql<string>`COALESCE(${requestedTrans.title}, ${fallbackTrans.title}, '')`,
+        moviePosterUrl: movies.posterUrl,
+        movieDurationMinutes: movies.durationMinutes,
+        movieRating: movies.rating,
+        cinemaName: cinemas.name,
+        cinemaCity: cinemas.city,
+        cinemaStreetAddress: cinemas.streetAddress,
+        hallName: halls.name,
+        totalSeats: sql<number>`cast(count(${showSeats.id}) as int)`,
+        availableSeats: sql<number>`cast(count(case when ${showSeats.status} = 'available' or (${showSeats.status} = 'reserved' and ${showSeats.lockedUntil} < NOW()) then 1 end) as int)`,
+      })
+      .from(shows)
+      .innerJoin(movies, eq(shows.movieId, movies.id))
+      .leftJoin(
+        requestedTrans,
+        and(
+          eq(requestedTrans.movieId, movies.id),
+          eq(requestedTrans.languageCode, query.lang),
+        ),
+      )
+      .leftJoin(
+        fallbackTrans,
+        and(
+          eq(fallbackTrans.movieId, movies.id),
+          eq(fallbackTrans.languageCode, "vi"),
+        ),
+      )
+      .innerJoin(halls, eq(shows.hallId, halls.id))
+      .innerJoin(cinemas, eq(halls.cinemaId, cinemas.id))
+      .leftJoin(showSeats, eq(shows.id, showSeats.showId))
+      .where(and(...conditions))
+      .groupBy(
+        shows.id,
+        movies.id,
+        requestedTrans.title,
+        fallbackTrans.title,
+        cinemas.id,
+        halls.id,
+      )
+      .orderBy(asc(shows.startTime), asc(shows.id));
+
+    return rows.map((row) => ({
+      id: row.id,
+      startTime: row.startTime.toISOString(),
+      endTime: row.endTime.toISOString(),
+      basePrice: row.basePrice,
+      availableSeats: row.availableSeats,
+      totalSeats: row.totalSeats,
+      movie: {
+        id: row.movieId,
+        title: row.movieTitle,
+        posterUrl: row.moviePosterUrl,
+        durationMinutes: row.movieDurationMinutes,
+        rating: row.movieRating,
+      },
+      cinema: {
+        id: row.cinemaId,
+        name: row.cinemaName,
+        city: row.cinemaCity,
+        streetAddress: row.cinemaStreetAddress,
+      },
+      hall: {
+        id: row.hallId,
+        name: row.hallName,
+      },
+    }));
   }
 }

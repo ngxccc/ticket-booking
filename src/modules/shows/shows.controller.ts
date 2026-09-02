@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
@@ -12,6 +14,7 @@ import { JwtAuthGuard } from "@/common/guards/jwt-auth.guard";
 import { RolesGuard } from "@/common/guards/roles.guard";
 import { Roles } from "@/common/decorators/roles.decorator";
 import {
+  ApiOkResponseGeneric,
   ApiCreatedResponseGeneric,
   ApiBadRequestResponseRfc9457,
   ApiUnauthorizedResponseRfc9457,
@@ -28,6 +31,8 @@ import {
   ShowResponseDto,
   CreateShowBatchDto,
   BatchShowResponseDto,
+  ShowScheduleQueryDto,
+  ShowScheduleItemDto,
 } from "./dto";
 
 @ApiTags(SHOWS_ROUTES.BASE)
@@ -35,6 +40,23 @@ import {
 @UseGuards(CustomThrottlerGuard)
 export class ShowsController {
   constructor(private readonly showsService: ShowsService) {}
+
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Discover showtime schedule by movie, cinema, and date",
+    description:
+      "Public endpoint to query available movie showtimes filtered by date, optional movie ID, and optional cinema ID with real-time seat availability.",
+  })
+  @ApiOkResponseGeneric(ShowScheduleItemDto, { isArray: true })
+  @ApiBadRequestResponseRfc9457()
+  @ApiTooManyRequestsResponseRfc9457()
+  async getShows(
+    @Query() query: ShowScheduleQueryDto,
+  ): Promise<ApiResponse<ShowScheduleItemDto[]>> {
+    const showsList = await this.showsService.findShows(query);
+    return apiSuccess(showsList);
+  }
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
