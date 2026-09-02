@@ -32,7 +32,18 @@ async function bootstrap() {
     .setOpenAPIVersion("3.1.0")
     .addTag("auth", "Authentication, session management, and password recovery")
     .addTag("users", "User profile retrieval and management")
-    .addTag("shows", "Movie showtime scheduling and seat pre-allocation")
+    .addTag(
+      "movies",
+      "Public movie catalog discovery, details, and localization",
+    )
+    .addTag(
+      "cinemas",
+      "Cinema complexes, screening halls, and locations exploration",
+    )
+    .addTag(
+      "shows",
+      "Movie showtime scheduling, discovery, and seat pre-allocation",
+    )
     .addTag(
       "bookings",
       "Seat reservation, Redlock concurrency, and booking lifecycle",

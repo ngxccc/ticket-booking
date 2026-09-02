@@ -59,6 +59,8 @@ export type I18nTranslations = {
         "MAX_SHOWS_EXCEEDED": string;
         "PAST_SHOW_SLOT": string;
         "INTRA_BATCH_COLLISION": string;
+        "DATE_PAST": string;
+        "DATE_HORIZON_EXCEEDED": string;
     };
     "users": {
         "USER_NOT_FOUND": string;
@@ -83,6 +85,7 @@ export type I18nTranslations = {
         "isInt": string;
         "isPositive": string;
         "isIn": string;
+        "isDate": string;
     };
 };
 /* prettier-ignore */

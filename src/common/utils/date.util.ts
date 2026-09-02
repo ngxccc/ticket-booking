@@ -94,3 +94,33 @@ export function getTimezoneDateParts(
 
   return { year, month, day };
 }
+
+/**
+ * Formats a Date instance as a YYYY-MM-DD calendar date string in a specified target IANA timezone.
+ *
+ * @param date Source Date instance (defaults to new Date())
+ * @param timeZone Target IANA timezone identifier (defaults to "Asia/Ho_Chi_Minh")
+ * @returns Formatted YYYY-MM-DD calendar date string
+ */
+export function formatTimezoneDate(
+  date: Date = new Date(),
+  timeZone = "Asia/Ho_Chi_Minh",
+): string {
+  const { year, month, day } = getTimezoneDateParts(date, timeZone);
+  return `${String(year)}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+/**
+ * Calculates a future calendar date string (YYYY-MM-DD) within an allowed forward day horizon in a target timezone.
+ *
+ * @param days Number of forward calendar days to add
+ * @param timeZone Target IANA timezone identifier (defaults to "Asia/Ho_Chi_Minh")
+ * @returns Formatted YYYY-MM-DD calendar date string
+ */
+export function getFutureTimezoneDate(
+  days: number,
+  timeZone = "Asia/Ho_Chi_Minh",
+): string {
+  const futureDate = new Date(Date.now() + days * TIME_IN_MS.DAY);
+  return formatTimezoneDate(futureDate, timeZone);
+}
