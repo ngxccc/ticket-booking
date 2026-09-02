@@ -8,5 +8,7 @@
   "MAX_DAYS_EXCEEDED": "Date range cannot exceed {maxDays} days",
   "MAX_SHOWS_EXCEEDED": "Batch request cannot generate more than {maxShows} shows",
   "PAST_SHOW_SLOT": "Showtime must start at least {minLeadTime} minutes in the future",
-  "INTRA_BATCH_COLLISION": "Schedule collision detected within requested batch slots"
+  "INTRA_BATCH_COLLISION": "Schedule collision detected within requested batch slots",
+  "DATE_PAST": "Show date must be today or a future date",
+  "DATE_HORIZON_EXCEEDED": "Show date cannot exceed {maxDays} days in the future"
 }

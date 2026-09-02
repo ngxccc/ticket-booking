@@ -27,6 +27,14 @@ All commit messages MUST follow the format: `<type>(<scope>): <summary>`
 
 ---
 
+## 2.1. Issue Linking & Closing Protocol
+
+- **Atomic Commit Messages**:
+  - Specific Sub-Issue / Child Ticket: Use `Resolves: #<child_id>` or `Closes: #<child_id>` in the commit footer.
+  - Parent Epic / Feature Issue: Use `Ref: #<parent_id>` to link without prematurely closing the epic.
+- **Pull Request Descriptions**:
+  - Declare `Resolves #<child_id>` and `Closes #<parent_id>` under `## Linked Issues` for automated GitHub tracking and auto-closure on merge.
+
 ## 3. Adaptive 3-Tier PR Matrix
 
 | Tier                    | Scope & Risk                                                                    | Requirements                                                         |
