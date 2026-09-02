@@ -26,7 +26,7 @@ import {
   createAuthenticatedUser,
 } from "../helpers/auth.helper";
 import type { DrizzleDB } from "@/database/database.module";
-import { shows, showSeats } from "@/database/schemas";
+import { shows, showSeats, movieTranslations, seats } from "@/database/schemas";
 import {
   createCinema,
   createHall,
@@ -38,7 +38,14 @@ import type { components } from "../generated/api-schema";
 import type {
   ShowResponseDto,
   BatchShowResponseDto,
+  ShowScheduleItemDto,
 } from "@/modules/shows/dto";
+import {
+  formatTimezoneDate,
+  getFutureTimezoneDate,
+} from "@/common/utils/date.util";
+import { SHOWS_CONSTANTS } from "@/modules/shows/shows.constants";
+import type { Rfc9457ErrorResponse } from "@/common/filters/global-exception.filter";
 
 type SingleShowApiResponse = components["schemas"]["ApiResponseDto"] & {
   data: ShowResponseDto;
@@ -48,6 +55,10 @@ type BatchShowApiResponse = components["schemas"]["ApiResponseDto"] & {
   data: BatchShowResponseDto;
 };
 
+interface ScheduleDiscoveryApiResponse {
+  success: boolean;
+  data: ShowScheduleItemDto[];
+}
 describe("Shows Module Integration", () => {
   let setup: TestAppSetup;
   let app: INestApplication;
@@ -199,7 +210,11 @@ describe("Shows Module Integration", () => {
   describe("POST /shows", () => {
     describe("when creating show with valid parameters", () => {
       it("should create a show and bulk pre-allocate available seats (201 Created) when input is valid", async () => {
-        const startTime = "2026-09-02T10:00:00.000Z";
+        const futureDate = getFutureTimezoneDate(
+          2,
+          SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+        );
+        const startTime = `${futureDate}T10:00:00.000Z`;
         const basePrice = 100000;
 
         const res = await request(getHttpServer())
@@ -223,9 +238,8 @@ describe("Shows Module Integration", () => {
         expect(body.data.basePrice).toBe(basePrice);
         expect(body.data.totalSeats).toBe(SEAT_COUNT);
 
-        expect(body.data.startTime).toBe("2026-09-02T10:00:00.000Z");
-        expect(body.data.endTime).toBe("2026-09-02T12:00:00.000Z");
-
+        expect(body.data.startTime).toBe(`${futureDate}T10:00:00.000Z`);
+        expect(body.data.endTime).toBe(`${futureDate}T12:00:00.000Z`);
         const dbShows = await db
           .select({ id: shows.id })
           .from(shows)
@@ -579,6 +593,371 @@ describe("Shows Module Integration", () => {
           .from(shows)
           .where(eq(shows.hallId, seededHall2Id));
         expect(hall2Shows).toHaveLength(1);
+      });
+    });
+  });
+
+  describe("GET /shows", () => {
+    const todayStr = formatTimezoneDate(
+      new Date(),
+      SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+    );
+    const futureDateStr = getFutureTimezoneDate(
+      2,
+      SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+    );
+
+    describe("when querying with default parameters", () => {
+      it("should return 200 OK with future shows scheduled for today in Vietnam timezone when query is empty", async () => {
+        const futureStartTime = new Date(Date.now() + 2 * TIME_IN_MS.HOUR);
+        const futureEndTime = new Date(
+          futureStartTime.getTime() + 120 * TIME_IN_MS.MINUTE,
+        );
+
+        const [show] = await db
+          .insert(shows)
+          .values({
+            movieId: seededMovieId,
+            hallId: seededHallId,
+            startTime: futureStartTime,
+            endTime: futureEndTime,
+            basePrice: 100000,
+          })
+          .returning({ id: shows.id });
+        const showId = show?.id ?? "";
+
+        const res = await request(getHttpServer()).get("/shows");
+
+        expect(res.status).toBe(200);
+        const body = res.body as ScheduleDiscoveryApiResponse;
+        expect(body.success).toBe(true);
+        expect(body.data.length).toBeGreaterThanOrEqual(1);
+
+        const foundShow = body.data.find((s) => s.id === showId);
+        expect(foundShow).toBeDefined();
+        expect(foundShow?.movie.id).toBe(seededMovieId);
+        expect(foundShow?.cinema.id).toBe(seededCinemaId);
+        expect(foundShow?.hall.id).toBe(seededHallId);
+      });
+    });
+
+    describe("when filtering by movie and cinema", () => {
+      it("should filter shows accurately by movieId, cinemaId, and their combination", async () => {
+        const otherMovie = await MovieMother.standard(db);
+        const otherCinema = await createCinema(db, {
+          name: "BHD Star Bitexco",
+          streetAddress: "2 Hai Trieu",
+        });
+        const otherHall = await createHall(db, {
+          cinemaId: otherCinema.id,
+          name: "Hall BHD 1",
+          totalSeats: 10,
+        });
+
+        const showDate = `${futureDateStr}T14:00:00+07:00`;
+        const showStartTime = new Date(showDate);
+        const showEndTime = new Date(
+          showStartTime.getTime() + 120 * TIME_IN_MS.MINUTE,
+        );
+
+        // Show 1: seededMovie at seededCinema (hall1)
+        const [s1] = await db
+          .insert(shows)
+          .values({
+            movieId: seededMovieId,
+            hallId: seededHallId,
+            startTime: showStartTime,
+            endTime: showEndTime,
+            basePrice: 100000,
+          })
+          .returning({ id: shows.id });
+        const s1Id = s1?.id ?? "";
+
+        // Show 2: otherMovie at seededCinema (hall1, 3 hours later)
+        const s2Start = new Date(showStartTime.getTime() + 3 * TIME_IN_MS.HOUR);
+        const s2End = new Date(s2Start.getTime() + 120 * TIME_IN_MS.MINUTE);
+        const [s2] = await db
+          .insert(shows)
+          .values({
+            movieId: otherMovie.id,
+            hallId: seededHallId,
+            startTime: s2Start,
+            endTime: s2End,
+            basePrice: 110000,
+          })
+          .returning({ id: shows.id });
+        const s2Id = s2?.id ?? "";
+
+        // Show 3: seededMovie at otherCinema (otherHall)
+        const [s3] = await db
+          .insert(shows)
+          .values({
+            movieId: seededMovieId,
+            hallId: otherHall.id,
+            startTime: showStartTime,
+            endTime: showEndTime,
+            basePrice: 90000,
+          })
+          .returning({ id: shows.id });
+        const s3Id = s3?.id ?? "";
+
+        // 1. Filter by movieId (seededMovie) -> should return Show 1 and Show 3
+        const movieRes = await request(getHttpServer())
+          .get("/shows")
+          .query({ date: futureDateStr, movieId: seededMovieId });
+        expect(movieRes.status).toBe(200);
+        const movieBody = movieRes.body as ScheduleDiscoveryApiResponse;
+        const movieShowIds = movieBody.data.map((s) => s.id);
+        expect(movieShowIds).toContain(s1Id);
+        expect(movieShowIds).toContain(s3Id);
+        expect(movieShowIds).not.toContain(s2Id);
+
+        // 2. Filter by cinemaId (seededCinema) -> should return Show 1 and Show 2
+        const cinemaRes = await request(getHttpServer())
+          .get("/shows")
+          .query({ date: futureDateStr, cinemaId: seededCinemaId });
+        expect(cinemaRes.status).toBe(200);
+        const cinemaBody = cinemaRes.body as ScheduleDiscoveryApiResponse;
+        const cinemaShowIds = cinemaBody.data.map((s) => s.id);
+        expect(cinemaShowIds).toContain(s1Id);
+        expect(cinemaShowIds).toContain(s2Id);
+        expect(cinemaShowIds).not.toContain(s3Id);
+
+        // 3. Filter by both movieId & cinemaId -> should return ONLY Show 1
+        const combinedRes = await request(getHttpServer()).get("/shows").query({
+          date: futureDateStr,
+          movieId: seededMovieId,
+          cinemaId: seededCinemaId,
+        });
+        expect(combinedRes.status).toBe(200);
+        const combinedBody = combinedRes.body as ScheduleDiscoveryApiResponse;
+        expect(combinedBody.data).toHaveLength(1);
+        expect(combinedBody.data[0]?.id).toBe(s1Id);
+
+        // 4. Filter with non-existent valid UUIDv7 -> returns empty array
+        const emptyRes = await request(getHttpServer())
+          .get("/shows")
+          .query({ date: futureDateStr, movieId: uuidv7() });
+        expect(emptyRes.status).toBe(200);
+        expect((emptyRes.body as ScheduleDiscoveryApiResponse).data).toEqual(
+          [],
+        );
+      });
+    });
+
+    describe("when calculating real-time seat availability", () => {
+      it("should accurately count available seats under mixed seat states and expired locks", async () => {
+        const showStartTime = new Date(`${futureDateStr}T10:00:00+07:00`);
+        const showEndTime = new Date(
+          showStartTime.getTime() + 120 * TIME_IN_MS.MINUTE,
+        );
+
+        const [show] = await db
+          .insert(shows)
+          .values({
+            movieId: seededMovieId,
+            hallId: seededHallId,
+            startTime: showStartTime,
+            endTime: showEndTime,
+            basePrice: 100000,
+          })
+          .returning({ id: shows.id });
+        const showId = show?.id ?? "";
+
+        const hallSeats = await db
+          .select({ id: seats.id })
+          .from(seats)
+          .where(eq(seats.hallId, seededHallId));
+
+        expect(hallSeats.length).toBeGreaterThanOrEqual(4);
+        const seat0Id = hallSeats[0]?.id ?? "";
+        const seat1Id = hallSeats[1]?.id ?? "";
+        const seat2Id = hallSeats[2]?.id ?? "";
+        const seat3Id = hallSeats[3]?.id ?? "";
+
+        // Seed 4 seat states in show_seats:
+        // Seat 0: available
+        // Seat 1: booked
+        // Seat 2: reserved (active lock: now + 10m)
+        // Seat 3: reserved (expired lock: now - 5m)
+        await db.insert(showSeats).values([
+          {
+            showId,
+            seatId: seat0Id,
+            status: "available",
+          },
+          {
+            showId,
+            seatId: seat1Id,
+            status: "booked",
+          },
+          {
+            showId,
+            seatId: seat2Id,
+            status: "reserved",
+            lockedUntil: new Date(Date.now() + 10 * TIME_IN_MS.MINUTE),
+          },
+          {
+            showId,
+            seatId: seat3Id,
+            status: "reserved",
+            lockedUntil: new Date(Date.now() - 5 * TIME_IN_MS.MINUTE),
+          },
+        ]);
+
+        const res = await request(getHttpServer())
+          .get("/shows")
+          .query({ date: futureDateStr, movieId: seededMovieId });
+
+        expect(res.status).toBe(200);
+        const body = res.body as ScheduleDiscoveryApiResponse;
+        const targetShow = body.data.find((s) => s.id === showId);
+        expect(targetShow).toBeDefined();
+        expect(targetShow?.totalSeats).toBe(4);
+        // availableSeats = 1 (available) + 1 (expired lock) = 2
+        expect(targetShow?.availableSeats).toBe(2);
+      });
+
+      it("should retain sold-out shows with availableSeats = 0 in schedule list", async () => {
+        const showStartTime = new Date(`${futureDateStr}T16:00:00+07:00`);
+        const showEndTime = new Date(
+          showStartTime.getTime() + 120 * TIME_IN_MS.MINUTE,
+        );
+
+        const [show] = await db
+          .insert(shows)
+          .values({
+            movieId: seededMovieId,
+            hallId: seededHallId,
+            startTime: showStartTime,
+            endTime: showEndTime,
+            basePrice: 100000,
+          })
+          .returning({ id: shows.id });
+        const showId = show?.id ?? "";
+
+        const hallSeats = await db
+          .select({ id: seats.id })
+          .from(seats)
+          .where(eq(seats.hallId, seededHallId));
+
+        const seat0Id = hallSeats[0]?.id ?? "";
+        const seat1Id = hallSeats[1]?.id ?? "";
+
+        await db.insert(showSeats).values([
+          {
+            showId,
+            seatId: seat0Id,
+            status: "booked",
+          },
+          {
+            showId,
+            seatId: seat1Id,
+            status: "booked",
+          },
+        ]);
+
+        const res = await request(getHttpServer())
+          .get("/shows")
+          .query({ date: futureDateStr, movieId: seededMovieId });
+
+        expect(res.status).toBe(200);
+        const body = res.body as ScheduleDiscoveryApiResponse;
+        const targetShow = body.data.find((s) => s.id === showId);
+        expect(targetShow).toBeDefined();
+        expect(targetShow?.totalSeats).toBe(2);
+        expect(targetShow?.availableSeats).toBe(0);
+      });
+    });
+
+    describe("when localizing movie metadata", () => {
+      it("should return English title when lang=en and fallback to Vietnamese when English is absent", async () => {
+        const movieWithEn = await MovieMother.standard(db);
+        await db
+          .insert(movieTranslations)
+          .values({
+            movieId: movieWithEn.id,
+            languageCode: "en",
+            title: "Dune: Part Two (English)",
+            description: "English synopsis",
+          })
+          .onConflictDoUpdate({
+            target: [movieTranslations.movieId, movieTranslations.languageCode],
+            set: { title: "Dune: Part Two (English)" },
+          });
+
+        const showStartTime = new Date(`${futureDateStr}T18:00:00+07:00`);
+        const showEndTime = new Date(
+          showStartTime.getTime() + 120 * TIME_IN_MS.MINUTE,
+        );
+
+        const [show] = await db
+          .insert(shows)
+          .values({
+            movieId: movieWithEn.id,
+            hallId: seededHallId,
+            startTime: showStartTime,
+            endTime: showEndTime,
+            basePrice: 100000,
+          })
+          .returning({ id: shows.id });
+        const showId = show?.id ?? "";
+
+        // Query with lang=en
+        const enRes = await request(getHttpServer())
+          .get("/shows")
+          .query({ date: futureDateStr, movieId: movieWithEn.id, lang: "en" });
+
+        expect(enRes.status).toBe(200);
+        const enBody = enRes.body as ScheduleDiscoveryApiResponse;
+        const enShow = enBody.data.find((s) => s.id === showId);
+        expect(enShow?.movie.title).toBe("Dune: Part Two (English)");
+      });
+    });
+
+    describe("when validating input constraints and horizons", () => {
+      it("should return 400 Bad Request when date is in the past", async () => {
+        const yesterday = new Date(Date.now() - TIME_IN_MS.DAY);
+        const pastDateStr = formatTimezoneDate(
+          yesterday,
+          SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+        );
+
+        const res = await request(getHttpServer())
+          .get("/shows")
+          .query({ date: pastDateStr });
+
+        expect(res.status).toBe(400);
+        const body = res.body as unknown as Rfc9457ErrorResponse;
+        expect(body.title).toBe("Bad Request");
+      });
+      it("should return 400 Bad Request when date exceeds 14-day horizon", async () => {
+        const farFutureDateStr = getFutureTimezoneDate(
+          15,
+          SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+        );
+
+        const res = await request(getHttpServer())
+          .get("/shows")
+          .query({ date: farFutureDateStr });
+
+        expect(res.status).toBe(400);
+      });
+
+      it("should return 400 Bad Request when movieId is not a valid UUIDv7", async () => {
+        const res = await request(getHttpServer())
+          .get("/shows")
+          .query({ movieId: "not-a-uuid" });
+
+        expect(res.status).toBe(400);
+      });
+
+      it("should return 400 Bad Request when extraneous query parameters are passed", async () => {
+        const res = await request(getHttpServer())
+          .get("/shows")
+          .query({ date: todayStr, unexpectedKey: "attack_payload" });
+
+        expect(res.status).toBe(400);
       });
     });
   });
