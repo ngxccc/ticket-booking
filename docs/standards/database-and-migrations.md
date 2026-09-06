@@ -8,7 +8,8 @@
   - Entity primary keys: UUIDv7 generated via `primaryKeyUuid` (`uuid().defaultRandom().primaryKey()`).
   - Associative / Join tables: Composite primary keys (`primaryKey({ columns: [table.movieId, table.genreId] })`).
 - **Timestamps**:
-  - Every base entity MUST include `created_at` and `updated_at` timestamps with timezone (`timestamp({ withTimezone: true, mode: "date" }).defaultNow()`).
+  - Base entities extending `fullEntity` define `createdAt` and `updatedAt` with `.$onUpdate(() => new Date())`.
+  - Never manually pass `updatedAt: new Date()` in update statements; Drizzle executes the hook automatically on query generation.
 
 ---
 
@@ -22,33 +23,44 @@
 
 ---
 
-## 3. Query Optimization: YAGNI Selective Projections & Selective Returning
+## 3. Query Optimization: Projection Strategy
 
-- **PROHIBITION**: Never execute `SELECT *` (`.select()`) or unbounded `.returning()` across any layer of the application (API services, seeders, background jobs, or CLI tools).
-- **MANDATORY**:
-  1. **Explicit Selective Projections**: Explicitly project only required columns using Drizzle `.select({ col1: table.col1, ... })` to maximize PostgreSQL Index-Only Scans and prevent unneeded serialization of heavy or sensitive columns (e.g. `passwordHash`, `verificationToken`).
-  2. **Explicit Selective Returning**: When mutating records with `.returning()`, always specify the exact return payload shape (e.g. `.returning({ id: table.id, name: table.name })`). Never emit bare `.returning()`.
+In Drizzle ORM, `.select().from(table)` and `.returning()` expand to the schema's explicit column list (not SQL `*`). Tailor projection depth to data sensitivity and query intent:
+
+### A. Existence & State Guards (Index-Only Scans)
+
+When checking record existence, ownership, or status transitions, project minimal columns to enable PostgreSQL Index-Only Scans without reading the heap:
 
 ```ts
-// GOOD (Selective Projection, leverages Index-Only Scan)
+// Fast: index-only scan on primary key
 const [show] = await db
   .select({ id: shows.id, status: shows.status })
   .from(shows)
   .where(eq(shows.id, showId))
   .limit(1);
-
-// GOOD (Selective Returning on Mutation)
-const [newCinema] = await db
-  .insert(cinemas)
-  .values(cinemaData)
-  .returning({ id: cinemas.id, name: cinemas.name });
-
-// BANNED (Fetches unneeded columns, bypasses index-only scan optimization)
-const [show] = await db.select().from(shows).where(eq(shows.id, showId));
-
-// BANNED (Returns entire raw row including timestamps and internal metadata)
-const [newCinema] = await db.insert(cinemas).values(cinemaData).returning();
 ```
+
+### B. Sensitive & Heavy Column Masking
+
+When querying tables containing secrets (`users`), omit sensitive columns:
+
+```ts
+// Omit sensitive credentials from user queries
+const {
+  passwordHash,
+  verificationToken,
+  resetPasswordToken,
+  ...safeUserColumns
+} = getTableColumns(users);
+const [user] = await db
+  .select(safeUserColumns)
+  .from(users)
+  .where(eq(users.id, id));
+```
+
+### C. Full Entity Operations
+
+For standard scalar tables without secrets or heavy blobs (`cinemas`, `genres`), bare `.select().from(table)` and `.returning()` are idiomatic and maintainable. Avoid handcoding 15+ column projection objects when every field is consumed.
 
 ---
 
