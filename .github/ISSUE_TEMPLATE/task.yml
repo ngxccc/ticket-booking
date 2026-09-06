@@ -1,14 +1,14 @@
 name: "Technical Task / Maintenance"
 description: "Propose code refactoring, test suite enhancement, performance tuning, or maintenance chore"
 title: "<type>(<area>): <summary>"
-labels: ["status:triage"]
+labels: ["type:refactor"]
 body:
   - type: textarea
     id: goal
     attributes:
       label: "Task Goal & Motivation"
       description: "Why is this refactoring needed? What technical debt does it address?"
-      placeholder: "Adopt Test Factory pattern, eliminate duplicate queries..."
+      placeholder: "Eliminate test shortcuts in production code, adopt relational batching..."
     validations:
       required: true
   - type: dropdown
@@ -20,6 +20,24 @@ body:
         - "type:test (Adding/updating test coverage)"
         - "type:perf (Performance optimization)"
         - "type:chore (Build, dependencies, or tooling)"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: "Affected Subsystem Area"
+      options:
+        - "area:auth"
+        - "area:products"
+        - "area:orders"
+        - "area:quotes"
+        - "area:payments"
+        - "area:warehouse"
+        - "area:leads"
+        - "area:cart"
+        - "area:api"
+        - "area:db"
+        - "area:infra"
     validations:
       required: true
   - type: textarea
@@ -45,7 +63,7 @@ body:
       label: "Dependencies & Execution Order"
       description: "Specify if this task is blocked by or blocks other issues"
       placeholder: |
-        - **Blocked by**: #82
-        - **Blocks**: #84
+        - **Blocked by**: #12
+        - **Blocks**: #15
     validations:
       required: false

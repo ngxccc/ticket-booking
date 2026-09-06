@@ -1,7 +1,7 @@
 name: "Sub-Issue / Tracer-Bullet Task"
 description: "Create a child ticket decomposing a parent Epic/Feature"
 title: "<type>(<area>): <summary>"
-labels: ["status:triage"]
+labels: []
 body:
   - type: textarea
     id: parent
@@ -36,7 +36,7 @@ body:
     attributes:
       label: "Dependencies & Execution Order"
       placeholder: |
-        - **Blocked by**: #82 (Foundation)
-        - **Blocks**: #84 (Next Slice)
+        - **Blocked by**: #12 (Foundation)
+        - **Blocks**: #15 (Next Slice)
     validations:
       required: false
