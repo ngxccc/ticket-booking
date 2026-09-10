@@ -27,7 +27,7 @@ permissions:
 
 jobs:
   trivy:
-    name: Trivy (Vuln, Config, Secret)
+    name: Trivy
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -60,7 +60,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ["javascript-typescript"]
+        language: ["javascript-typescript", "actions"]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
