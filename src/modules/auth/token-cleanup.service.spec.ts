@@ -60,18 +60,26 @@ describe("TokenCleanupService", () => {
     });
 
     it("should catch and log database errors gracefully when database delete fails", async () => {
-      const errorSpy = spyOn(
-        (service as unknown as { logger: { error: () => void } }).logger,
-        "error",
-      ).mockImplementation(() => undefined);
+      const errorMock = mock(() => undefined);
+      Object.defineProperty(service, "logger", {
+        value: {
+          error: errorMock,
+          debug: () => undefined,
+          log: () => undefined,
+        },
+        configurable: true,
+      });
 
       mockDb.delete.mockImplementationOnce(() => {
         throw new Error("Database connection dropped");
       });
 
       await service.cleanupTokens();
-      expect(errorSpy).toHaveBeenCalledTimes(1);
-      errorSpy.mockRestore();
+      expect(errorMock).toHaveBeenCalledTimes(1);
+      expect(errorMock).toHaveBeenCalledWith(
+        "Error occurred during expired token cleanup",
+        expect.any(Error),
+      );
     });
   });
 });
