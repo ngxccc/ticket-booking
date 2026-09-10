@@ -257,13 +257,18 @@ describe("Shows Module Integration", () => {
 
     describe("when validating schedule collisions", () => {
       it("should reject schedule collision (409 Conflict) when showtime overlaps existing show with 15m cleaning buffer", async () => {
+        const futureDate = getFutureTimezoneDate(
+          3,
+          SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+        );
+
         await request(getHttpServer())
           .post("/shows")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: seededMovieId,
             hallId: seededHallId,
-            startTime: "2026-09-03T10:00:00.000Z",
+            startTime: `${futureDate}T10:00:00.000Z`,
             basePrice: 100000,
           });
 
@@ -273,7 +278,7 @@ describe("Shows Module Integration", () => {
           .send({
             movieId: seededMovieId,
             hallId: seededHallId,
-            startTime: "2026-09-03T11:00:00.000Z",
+            startTime: `${futureDate}T11:00:00.000Z`,
             basePrice: 100000,
           });
         expect(resOverlap.status).toBe(409);
@@ -284,7 +289,7 @@ describe("Shows Module Integration", () => {
           .send({
             movieId: seededMovieId,
             hallId: seededHallId,
-            startTime: "2026-09-03T12:10:00.000Z",
+            startTime: `${futureDate}T12:10:00.000Z`,
             basePrice: 100000,
           });
         expect(resBuffer.status).toBe(409);
@@ -387,13 +392,18 @@ describe("Shows Module Integration", () => {
           totalSeats: 0,
         });
 
+        const futureDate = getFutureTimezoneDate(
+          4,
+          SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+        );
+
         const res = await request(getHttpServer())
           .post("/shows")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: seededMovieId,
             hallId: emptyHall.id,
-            startTime: "2026-09-09T15:00:00.000Z",
+            startTime: `${futureDate}T15:00:00.000Z`,
             basePrice: 100000,
           });
 
@@ -401,13 +411,18 @@ describe("Shows Module Integration", () => {
       });
 
       it("should allow show creation at the exact 15-minute buffer boundary (ADV-1: 201 Created)", async () => {
+        const futureDate = getFutureTimezoneDate(
+          5,
+          SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+        );
+
         const res1 = await request(getHttpServer())
           .post("/shows")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: seededMovieId,
             hallId: seededHallId,
-            startTime: "2026-09-10T10:00:00.000Z",
+            startTime: `${futureDate}T10:00:00.000Z`,
             basePrice: 100000,
           });
         expect(res1.status).toBe(201);
@@ -418,7 +433,7 @@ describe("Shows Module Integration", () => {
           .send({
             movieId: seededMovieId,
             hallId: seededHallId,
-            startTime: "2026-09-10T12:15:00.000Z",
+            startTime: `${futureDate}T12:15:00.000Z`,
             basePrice: 100000,
           });
         expect(resExact.status).toBe(201);
