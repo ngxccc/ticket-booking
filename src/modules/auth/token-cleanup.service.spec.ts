@@ -65,11 +65,8 @@ describe("TokenCleanupService", () => {
         "error",
       ).mockImplementation(() => undefined);
 
-      Object.defineProperty(mockDb, "delete", {
-        value: mock(() => {
-          throw new Error("Database connection dropped");
-        }),
-        configurable: true,
+      mockDb.delete.mockImplementationOnce(() => {
+        throw new Error("Database connection dropped");
       });
 
       await service.cleanupTokens();
