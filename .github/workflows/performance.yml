@@ -8,6 +8,9 @@ on:
         required: false
         default: "2000"
         type: string
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -16,6 +19,8 @@ jobs:
   performance:
     name: K6 Concurrency Stress & Invariant Verification
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     environment: staging
     env:
       DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN_STAGING }}
