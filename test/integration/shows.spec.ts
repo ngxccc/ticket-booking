@@ -43,6 +43,7 @@ import type {
 import {
   formatTimezoneDate,
   getFutureTimezoneDate,
+  getTimezoneDayRange,
 } from "@/common/utils/date.util";
 import { SHOWS_CONSTANTS } from "@/modules/shows/shows.constants";
 import type { Rfc9457ErrorResponse } from "@/common/filters/global-exception.filter";
@@ -624,7 +625,17 @@ describe("Shows Module Integration", () => {
 
     describe("when querying with default parameters", () => {
       it("should return 200 OK with future shows scheduled for today in Vietnam timezone when query is empty", async () => {
-        const futureStartTime = new Date(Date.now() + 2 * TIME_IN_MS.HOUR);
+        const { endUtc } = getTimezoneDayRange(
+          todayStr,
+          SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+        );
+
+        const now = Date.now();
+        const futureStartTime = new Date(
+          now < endUtc.getTime()
+            ? Math.floor((now + endUtc.getTime()) / 2)
+            : now + 30 * TIME_IN_MS.MINUTE,
+        );
         const futureEndTime = new Date(
           futureStartTime.getTime() + 120 * TIME_IN_MS.MINUTE,
         );
