@@ -32,12 +32,11 @@ USER bun
 # Copy dependencies and build artifacts from previous stages
 COPY --chown=bun:bun --from=prod-install /usr/src/app/node_modules ./node_modules
 COPY --chown=bun:bun --from=builder /usr/src/app/dist ./dist
-COPY --chown=bun:bun package.json ./
+COPY --chown=bun:bun package.json bunfig.toml ./
+COPY --chown=bun:bun tsconfig.prod.json ./tsconfig.json
 
 EXPOSE 3000
 
-# Healthcheck using wget (available in Alpine)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --spider -q http://localhost:3000/ || exit 1
-
 CMD ["bun", "dist/main.js"]

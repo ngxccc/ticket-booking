@@ -10,6 +10,8 @@
     "check": "bun run check-types && bun run lint",
     "dev": "doppler run -- nest start --watch --exec bun",
     "dev:stg": "doppler run -c stg -- nest start --watch --exec bun",
+    "docker:build": "docker build -f docker/Dockerfile -t ghcr.io/ngxccc/ticket-booking:latest .",
+    "docker:push": "docker push ghcr.io/ngxccc/ticket-booking:latest",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"eslint.config.ts\" \"drizzle.config.ts\"",
     "lint": "eslint . --fix --cache --cache-location .eslintcache",
     "start": "doppler run -- bun dist/main.js",
