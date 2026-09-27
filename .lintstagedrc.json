@@ -1,4 +1,4 @@
 {
-  "*.ts": ["oxfmt --write", "oxlint --fix"],
+  "*.ts": ["oxfmt --write", "oxlint --type-aware --fix"],
   "*.{json,yml,yaml,md}": ["oxfmt --write"]
 }
