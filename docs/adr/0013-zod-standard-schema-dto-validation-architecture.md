@@ -64,8 +64,11 @@ We decided to establish a Schema-First DTO Validation and Sanitization Architect
      - `zPhoneNumber()`: 10-digit Vietnamese phone number regex validation.
      - `zUuidV7()`: RFC 9562 UUIDv7 format validation.
      - `zBooleanString()` / `zNumericString()`: Safe query-param coercion preventing Boolean `"false"` truthy pitfalls.
-7. **OpenAPI 3.1 & Scalar Reference Bridge**:
-   - DTO classes for Swagger/Scalar generation wrap Zod schemas via `createZodDto()` (from `nestjs-zod` or Standard Schema OpenAPI bridge), preserving `bun run openapi:generate` and `test/generated/api-schema.d.ts` contracts.
+7. **OpenAPI 3.1 & Scalar Reference Bridge (`nestjs-zod` + `createZodDto`)**:
+   - DTO classes for Swagger/Scalar generation wrap Zod schemas via `createZodDto()` (`src/common/dto/create-zod-dto.util.ts`), preserving automated OpenAPI 3.1 schema registration.
+   - All DTO schemas decorate fields with `.meta({ description, example })` metadata, populating clean, human-readable documentation directly on the Scalar reference UI (`/api/docs`).
+8. **Single-Constraint Schema Synthesis (`.refine()`)**:
+   - Multi-assertion validation primitives (such as password complexity in `zPassword()`) utilize Zod `.refine()` predicates rather than chained `.regex()` calls. This eliminates redundant JSON Schema `allOf` composite wrappers and ensures clean, single-line parameter documentation in Scalar UI without sacrificing runtime security.
 
 ---
 
