@@ -1,4 +1,5 @@
 {
+  "SHOWTIME_NOT_FOUND": "Showtime not found",
   "MOVIE_NOT_FOUND": "Movie not found",
   "HALL_NOT_FOUND": "Hall not found",
   "NO_SEATS_CONFIGURED": "No seats configured in this hall",

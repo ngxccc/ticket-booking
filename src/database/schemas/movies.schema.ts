@@ -51,7 +51,7 @@ export const movieTranslations = snakeCase.table(
       .references(() => movies.id, { onDelete: "cascade" }),
     languageCode: varchar({ length: 10 }).notNull(),
     title: varchar({ length: 255 }).notNull(),
-    description: text(),
+    description: text().default("").notNull(),
     ...baseTimestamps,
   },
   (table) => [

@@ -1,49 +1,48 @@
+import { HttpException, Inject, Injectable } from "@nestjs/common";
 import {
-  BadRequestException,
-  ConflictException,
-  HttpException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
-import { I18nService } from "nestjs-i18n";
-import type { I18nTranslations } from "@/generated/i18n.generated";
+  I18nBadRequestException,
+  I18nConflictException,
+  I18nInternalServerErrorException,
+  I18nNotFoundException,
+} from "@/common/exceptions";
 import {
   DATABASE_CONNECTION,
   type DrizzleDB,
 } from "@/database/database.module";
-import {
+import type {
   CreateShowDto,
   ShowResponseDto,
   CreateShowBatchDto,
   BatchShowResponseDto,
   ShowScheduleQueryDto,
   ShowScheduleItemDto,
+  ShowSeatsResponseDtoType,
+  ShowSeatItemDtoType,
 } from "./dto";
 import {
   cinemas,
   halls,
   movies,
-  movieTranslations,
   seats,
   shows,
   showSeats,
+  seatTypes,
+  type ShowSeatStatus,
 } from "@/database/schemas";
-import { aliasedTable, and, asc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, asc, eq, gte, lte, sql } from "drizzle-orm";
 import { isPostgresErrorCode } from "@/common/utils/error.util";
 import { PG_ERROR_CODE } from "@/common/constants/error.constant";
 import { SHOWS_CONSTANTS } from "./shows.constants";
 import { TIME_IN_MS } from "@/common/constants/time.constant";
 import { getTimezoneDayRange } from "@/common/utils/date.util";
+import { localizedMovieTitle } from "@/common/utils/movie-translation.util";
 
 @Injectable()
 export class ShowsService {
   constructor(
     @Inject(DATABASE_CONNECTION)
     private readonly db: DrizzleDB,
-    private readonly i18n: I18nService<I18nTranslations>,
   ) {}
-
   /**
    * Creates a single showtime and bulk pre-allocates all physical hall seats as available.
    *
@@ -63,10 +62,10 @@ export class ShowsService {
     ]);
 
     if (!movie) {
-      throw new NotFoundException(this.i18n.t("shows.MOVIE_NOT_FOUND"));
+      throw new I18nNotFoundException("shows.MOVIE_NOT_FOUND");
     }
     if (!hall) {
-      throw new NotFoundException(this.i18n.t("shows.HALL_NOT_FOUND"));
+      throw new I18nNotFoundException("shows.HALL_NOT_FOUND");
     }
 
     const startTime = new Date(dto.startTime);
@@ -74,11 +73,10 @@ export class ShowsService {
       Date.now() + SHOWS_CONSTANTS.MIN_LEAD_TIME_MINUTES * TIME_IN_MS.MINUTE;
 
     if (startTime.getTime() < minAllowedStartTime) {
-      throw new BadRequestException(
-        this.i18n.t("shows.PAST_SHOW_SLOT", {
-          args: { minLeadTime: SHOWS_CONSTANTS.MIN_LEAD_TIME_MINUTES },
-        }),
-      );
+      throw new I18nBadRequestException({
+        message: "shows.PAST_SHOW_SLOT",
+        args: { minLeadTime: SHOWS_CONSTANTS.MIN_LEAD_TIME_MINUTES },
+      });
     }
 
     const endTime = new Date(
@@ -93,9 +91,7 @@ export class ShowsService {
           .where(eq(seats.hallId, dto.hallId));
 
         if (!hallSeats.length) {
-          throw new BadRequestException(
-            this.i18n.t("shows.NO_SEATS_CONFIGURED"),
-          );
+          throw new I18nBadRequestException("shows.NO_SEATS_CONFIGURED");
         }
 
         const [newShow] = await tx
@@ -117,7 +113,9 @@ export class ShowsService {
           });
 
         if (!newShow) {
-          throw new Error(this.i18n.t("shows.CREATE_SHOW_FAILED"));
+          throw new I18nInternalServerErrorException(
+            "shows.CREATE_SHOW_FAILED",
+          );
         }
 
         await tx.insert(showSeats).values(
@@ -142,7 +140,7 @@ export class ShowsService {
       if (error instanceof HttpException) throw error;
 
       if (isPostgresErrorCode(error, PG_ERROR_CODE.EXCLUSION_VIOLATION)) {
-        throw new ConflictException(this.i18n.t("shows.SCHEDULE_COLLISION"));
+        throw new I18nConflictException("shows.SCHEDULE_COLLISION");
       }
 
       throw error;
@@ -170,11 +168,11 @@ export class ShowsService {
     ]);
 
     if (!movie) {
-      throw new NotFoundException(this.i18n.t("shows.MOVIE_NOT_FOUND"));
+      throw new I18nNotFoundException("shows.MOVIE_NOT_FOUND");
     }
 
     if (!hall) {
-      throw new NotFoundException(this.i18n.t("shows.HALL_NOT_FOUND"));
+      throw new I18nNotFoundException("shows.HALL_NOT_FOUND");
     }
 
     const slots = this.expandAndValidateTimeline(dto, movie.durationMinutes);
@@ -187,9 +185,7 @@ export class ShowsService {
           .where(eq(seats.hallId, dto.hallId));
 
         if (!hallSeats.length) {
-          throw new BadRequestException(
-            this.i18n.t("shows.NO_SEATS_CONFIGURED"),
-          );
+          throw new I18nBadRequestException("shows.NO_SEATS_CONFIGURED");
         }
 
         const createdShows = await tx
@@ -236,7 +232,7 @@ export class ShowsService {
 
       // WHY: Postgres error 23P01 indicates GiST exclusion constraint collision, mapped to HTTP 409 Conflict.
       if (isPostgresErrorCode(error, PG_ERROR_CODE.EXCLUSION_VIOLATION)) {
-        throw new ConflictException(this.i18n.t("shows.SCHEDULE_COLLISION"));
+        throw new I18nConflictException("shows.SCHEDULE_COLLISION");
       }
 
       throw error;
@@ -259,14 +255,14 @@ export class ShowsService {
     const [eYear, eMonth, eDay] = dto.endDate.split("-").map(Number);
 
     if (!sYear || !sMonth || !sDay || !eYear || !eMonth || !eDay) {
-      throw new BadRequestException(this.i18n.t("shows.INVALID_DATE_RANGE"));
+      throw new I18nBadRequestException("shows.INVALID_DATE_RANGE");
     }
 
     const startUtc = new Date(Date.UTC(sYear, sMonth - 1, sDay));
     const endUtc = new Date(Date.UTC(eYear, eMonth - 1, eDay));
 
     if (startUtc.getTime() > endUtc.getTime()) {
-      throw new BadRequestException(this.i18n.t("shows.INVALID_DATE_RANGE"));
+      throw new I18nBadRequestException("shows.INVALID_DATE_RANGE");
     }
 
     const diffDays =
@@ -274,20 +270,18 @@ export class ShowsService {
 
     // WHY: Hard guardrails (max 30 days, max 100 shows) prevent memory exhaustion and long-running DB transaction locks.
     if (diffDays > SHOWS_CONSTANTS.MAX_BATCH_DAYS) {
-      throw new BadRequestException(
-        this.i18n.t("shows.MAX_DAYS_EXCEEDED", {
-          args: { maxDays: SHOWS_CONSTANTS.MAX_BATCH_DAYS },
-        }),
-      );
+      throw new I18nBadRequestException({
+        message: "shows.MAX_DAYS_EXCEEDED",
+        args: { maxDays: SHOWS_CONSTANTS.MAX_BATCH_DAYS },
+      });
     }
 
     const totalExpectedShows = diffDays * dto.timeSlots.length;
     if (totalExpectedShows > SHOWS_CONSTANTS.MAX_BATCH_SHOWS) {
-      throw new BadRequestException(
-        this.i18n.t("shows.MAX_SHOWS_EXCEEDED", {
-          args: { maxShows: SHOWS_CONSTANTS.MAX_BATCH_SHOWS },
-        }),
-      );
+      throw new I18nBadRequestException({
+        message: "shows.MAX_SHOWS_EXCEEDED",
+        args: { maxShows: SHOWS_CONSTANTS.MAX_BATCH_SHOWS },
+      });
     }
 
     const slots: { startTime: Date; endTime: Date; occupiedEnd: Date }[] = [];
@@ -308,11 +302,10 @@ export class ShowsService {
         );
 
         if (slotStartTime.getTime() < minAllowedStartTime) {
-          throw new BadRequestException(
-            this.i18n.t("shows.PAST_SHOW_SLOT", {
-              args: { minLeadTime: SHOWS_CONSTANTS.MIN_LEAD_TIME_MINUTES },
-            }),
-          );
+          throw new I18nBadRequestException({
+            message: "shows.PAST_SHOW_SLOT",
+            args: { minLeadTime: SHOWS_CONSTANTS.MIN_LEAD_TIME_MINUTES },
+          });
         }
 
         const slotEndTime = new Date(
@@ -342,9 +335,7 @@ export class ShowsService {
         currentSlot &&
         nextSlot.startTime.getTime() < currentSlot.occupiedEnd.getTime()
       ) {
-        throw new BadRequestException(
-          this.i18n.t("shows.INTRA_BATCH_COLLISION"),
-        );
+        throw new I18nBadRequestException("shows.INTRA_BATCH_COLLISION");
       }
     }
 
@@ -372,9 +363,6 @@ export class ShowsService {
       return [];
     }
 
-    const requestedTrans = aliasedTable(movieTranslations, "requested_trans");
-    const fallbackTrans = aliasedTable(movieTranslations, "fallback_trans");
-
     const conditions = [
       gte(shows.startTime, effectiveStart),
       lte(shows.startTime, endUtc),
@@ -397,7 +385,7 @@ export class ShowsService {
         startTime: shows.startTime,
         endTime: shows.endTime,
         basePrice: shows.basePrice,
-        movieTitle: sql<string>`COALESCE(${requestedTrans.title}, ${fallbackTrans.title}, '')`,
+        movieTitle: localizedMovieTitle(query.lang),
         moviePosterUrl: movies.posterUrl,
         movieDurationMinutes: movies.durationMinutes,
         movieRating: movies.rating,
@@ -410,32 +398,11 @@ export class ShowsService {
       })
       .from(shows)
       .innerJoin(movies, eq(shows.movieId, movies.id))
-      .leftJoin(
-        requestedTrans,
-        and(
-          eq(requestedTrans.movieId, movies.id),
-          eq(requestedTrans.languageCode, query.lang),
-        ),
-      )
-      .leftJoin(
-        fallbackTrans,
-        and(
-          eq(fallbackTrans.movieId, movies.id),
-          eq(fallbackTrans.languageCode, "vi"),
-        ),
-      )
       .innerJoin(halls, eq(shows.hallId, halls.id))
       .innerJoin(cinemas, eq(halls.cinemaId, cinemas.id))
       .leftJoin(showSeats, eq(shows.id, showSeats.showId))
       .where(and(...conditions))
-      .groupBy(
-        shows.id,
-        movies.id,
-        requestedTrans.title,
-        fallbackTrans.title,
-        cinemas.id,
-        halls.id,
-      )
+      .groupBy(shows.id, movies.id, cinemas.id, halls.id)
       .orderBy(asc(shows.startTime), asc(shows.id));
 
     return rows.map((row) => ({
@@ -463,5 +430,122 @@ export class ShowsService {
         name: row.hallName,
       },
     }));
+  }
+
+  /**
+   * Retrieves complete seating chart layout matrix, dimensions, pricing calculation,
+   * and live seat availability status for a specific showtime.
+   *
+   * @param showId Valid UUIDv7 identifier of the scheduled showtime
+   * @returns Complete seating chart envelope matching ShowSeatsResponseDtoType
+   * @throws NotFoundException with shows.SHOWTIME_NOT_FOUND if showId does not exist
+   */
+  async getShowSeats(
+    showId: string,
+    lang = "vi",
+  ): Promise<ShowSeatsResponseDtoType> {
+    const computedStatus = sql<ShowSeatStatus>`
+      CASE
+        WHEN ${showSeats.status} = 'reserved' AND ${showSeats.lockedUntil} < NOW() THEN 'available'
+        ELSE ${showSeats.status}
+      END
+    `.as("computed_status");
+
+    const showSeatRows = await this.db
+      .select({
+        // show metadata
+        showId: shows.id,
+        basePrice: shows.basePrice,
+        startTime: shows.startTime,
+        endTime: shows.endTime,
+        movieId: movies.id,
+        movieTitle: localizedMovieTitle(lang),
+        cinemaId: cinemas.id,
+        cinemaName: cinemas.name,
+        hallId: halls.id,
+        hallName: halls.name,
+
+        // seat details
+        seatId: seats.id,
+        row: seats.row,
+        number: seats.number,
+        seatNumber: seats.seatNumber,
+        seatTypeId: seatTypes.id,
+        seatTypeName: seatTypes.name,
+        priceMultiplier: seatTypes.priceMultiplier,
+
+        status: computedStatus,
+        lockedUntil: showSeats.lockedUntil,
+      })
+      .from(shows)
+      .innerJoin(movies, eq(shows.movieId, movies.id))
+      .innerJoin(halls, eq(shows.hallId, halls.id))
+      .innerJoin(cinemas, eq(halls.cinemaId, cinemas.id))
+      .innerJoin(showSeats, eq(shows.id, showSeats.showId))
+      .innerJoin(seats, eq(showSeats.seatId, seats.id))
+      .innerJoin(seatTypes, eq(seats.seatTypeId, seatTypes.id))
+      .where(eq(shows.id, showId))
+      .orderBy(asc(seats.row), asc(seats.number));
+
+    const firstRow = showSeatRows[0];
+    if (showSeatRows.length === 0 || !firstRow) {
+      throw new I18nNotFoundException("shows.SHOWTIME_NOT_FOUND");
+    }
+
+    const totalRows = new Set(showSeatRows.map((r) => r.row)).size;
+    const totalCols = Math.max(...showSeatRows.map((r) => r.number));
+
+    let available = 0;
+    let reserved = 0;
+    let booked = 0;
+
+    const seatsPayload: ShowSeatItemDtoType[] = showSeatRows.map((r) => {
+      if (r.status === "available") available++;
+      else if (r.status === "reserved") reserved++;
+      else booked++;
+
+      const finalPrice = Math.round(
+        firstRow.basePrice * Number(r.priceMultiplier),
+      );
+
+      return {
+        id: r.seatId,
+        row: r.row,
+        number: r.number,
+        seatNumber: r.seatNumber,
+        type: {
+          id: r.seatTypeId,
+          name: r.seatTypeName,
+          priceMultiplier: r.priceMultiplier,
+        },
+        finalPrice,
+        status: r.status,
+        lockedUntil: r.lockedUntil,
+      };
+    });
+
+    return {
+      showId: firstRow.showId,
+      movieId: firstRow.movieId,
+      movieTitle: firstRow.movieTitle,
+      cinemaId: firstRow.cinemaId,
+      cinemaName: firstRow.cinemaName,
+      hallId: firstRow.hallId,
+      hallName: firstRow.hallName,
+      startTime: firstRow.startTime,
+      endTime: firstRow.endTime,
+      basePrice: firstRow.basePrice,
+      dimensions: {
+        totalRows,
+        totalCols,
+      },
+      summary: {
+        total: showSeatRows.length,
+        available,
+        reserved,
+        booked,
+      },
+      seats: seatsPayload,
+    };
   }
 }
