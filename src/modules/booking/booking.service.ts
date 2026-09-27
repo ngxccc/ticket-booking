@@ -1,17 +1,15 @@
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import {
-  BadRequestException,
-  ConflictException,
-  GoneException,
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from "@nestjs/common";
+  I18nBadRequestException,
+  I18nConflictException,
+  I18nGoneException,
+  I18nNotFoundException,
+} from "@/common/exceptions";
 import { InjectQueue } from "@nestjs/bullmq";
-import { Queue } from "bullmq";
+import type { Queue } from "bullmq";
 import { eq, inArray, and, sql } from "drizzle-orm";
-import { ReserveSeatsDto } from "./dto/reserve-seats.dto";
-import {
+import type { ReserveSeatsDto } from "./dto/reserve-seats.dto";
+import type {
   ConfirmBookingDto,
   ConfirmBookingResponseDto,
 } from "./dto/confirm-booking.dto";
@@ -27,12 +25,11 @@ import {
   payments,
   outboxEvents,
 } from "../../database/schemas";
-import { RedlockService } from "../../common/services/redlock.service";
+import type { RedlockService } from "../../common/services/redlock.service";
 import { randomBytes } from "node:crypto";
 import { getExpiryDate } from "@/common/utils/date.util";
 import { generatePayOSOrderCode } from "@/common/utils/payos-crypto.util";
-import { I18nService } from "nestjs-i18n";
-import type { I18nTranslations } from "@/generated/i18n.generated";
+
 import { QUEUE_NAMES } from "@/common/constants/queue.constants";
 import {
   LOG_EVENTS,
@@ -50,7 +47,6 @@ export class BookingService {
     private readonly redlockService: RedlockService,
     @InjectQueue(QUEUE_NAMES.BOOKING)
     private readonly bookingQueue: Queue,
-    private readonly i18n: I18nService<I18nTranslations>,
   ) {}
 
   async reserveSeats(
@@ -59,9 +55,7 @@ export class BookingService {
     idempotencyKey?: string,
   ) {
     if (dto.seatIds.length === 0) {
-      throw new NotFoundException(
-        this.i18n.t("booking.SEAT_NOT_BELONG_TO_SHOWTIME"),
-      );
+      throw new I18nNotFoundException("booking.SEAT_NOT_BELONG_TO_SHOWTIME");
     }
 
     const sortedSeatIds = [...dto.seatIds].sort();
@@ -89,7 +83,7 @@ export class BookingService {
     try {
       lock = await this.redlockService.acquireLock(lockResources, 2000);
     } catch {
-      throw new ConflictException(this.i18n.t("booking.SEATS_ALREADY_LOCKED"));
+      throw new I18nConflictException("booking.SEATS_ALREADY_LOCKED");
     }
 
     try {
@@ -108,9 +102,7 @@ export class BookingService {
           .where(eq(shows.id, dto.showId));
 
         if (!show) {
-          throw new NotFoundException(
-            this.i18n.t("booking.SHOWTIME_NOT_FOUND"),
-          );
+          throw new I18nNotFoundException("booking.SHOWTIME_NOT_FOUND");
         }
 
         // Fetch show seats with FOR UPDATE lock
@@ -131,8 +123,8 @@ export class BookingService {
           .for("update");
 
         if (selectedSeats.length !== sortedSeatIds.length) {
-          throw new NotFoundException(
-            this.i18n.t("booking.SEAT_NOT_BELONG_TO_SHOWTIME"),
+          throw new I18nNotFoundException(
+            "booking.SEAT_NOT_BELONG_TO_SHOWTIME",
           );
         }
 
@@ -150,9 +142,7 @@ export class BookingService {
         });
 
         if (unavailable) {
-          throw new ConflictException(
-            this.i18n.t("booking.SEATS_NOT_AVAILABLE"),
-          );
+          throw new I18nConflictException("booking.SEATS_NOT_AVAILABLE");
         }
 
         // Update show seats status to reserved
@@ -192,7 +182,7 @@ export class BookingService {
           });
 
         if (!booking) {
-          throw new ConflictException(this.i18n.t("booking.BOOKING_FAILED"));
+          throw new I18nConflictException("booking.BOOKING_FAILED");
         }
 
         // Create tickets
@@ -289,7 +279,7 @@ export class BookingService {
         .for("update");
       // INV-5: Anti-Enumeration Defense (Return 404 instead of 403 on missing or unauthorized booking)
       if (!booking) {
-        throw new NotFoundException(this.i18n.t("booking.BOOKING_NOT_FOUND"));
+        throw new I18nNotFoundException("booking.BOOKING_NOT_FOUND");
       }
 
       // Check if already confirmed (Idempotent 200 OK)
@@ -340,7 +330,7 @@ export class BookingService {
             .set({ status: "expired" })
             .where(eq(bookings.id, booking.id));
         }
-        throw new GoneException(this.i18n.t("booking.BOOKING_EXPIRED"));
+        throw new I18nGoneException("booking.BOOKING_EXPIRED");
       }
 
       // Check unique transactionId constraint first (EDGE-3)
@@ -352,9 +342,7 @@ export class BookingService {
         .where(eq(payments.transactionId, dto.transactionId));
 
       if (existingTx) {
-        throw new ConflictException(
-          this.i18n.t("booking.DUPLICATE_TRANSACTION"),
-        );
+        throw new I18nConflictException("booking.DUPLICATE_TRANSACTION");
       }
 
       // EDGE-1 & INV-3: Amount Matching Safeguard
@@ -367,9 +355,7 @@ export class BookingService {
           amount: dto.amount,
           status: "requires_refund",
         });
-        throw new BadRequestException(
-          this.i18n.t("booking.PAYMENT_AMOUNT_MISMATCH"),
-        );
+        throw new I18nBadRequestException("booking.PAYMENT_AMOUNT_MISMATCH");
       }
 
       // Insert Completed Payment Record
@@ -388,9 +374,7 @@ export class BookingService {
         });
 
       if (!payment) {
-        throw new BadRequestException(
-          this.i18n.t("booking.RECORD_PAYMENT_FAILED"),
-        );
+        throw new I18nBadRequestException("booking.RECORD_PAYMENT_FAILED");
       }
 
       // Update Booking Status to Confirmed & Store PayOS order_code

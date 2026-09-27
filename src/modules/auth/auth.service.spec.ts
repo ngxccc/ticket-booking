@@ -2,14 +2,13 @@ import { AuthService } from "./auth.service";
 import type { DrizzleDB } from "@/database/database.module";
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import {
-  BadRequestException,
-  ConflictException,
-  UnauthorizedException,
-} from "@nestjs/common";
+  I18nBadRequestException,
+  I18nConflictException,
+  I18nUnauthorizedException,
+} from "@/common/exceptions";
 import type { JwtService } from "@nestjs/jwt";
 import type { RegisterDto } from "./dto";
-import type { I18nService } from "nestjs-i18n";
-import { createMockDb, createMockI18nService } from "../../../test/mocks";
+import { createMockDb } from "../../../test/mocks";
 import { hashPassword } from "@/common/utils/crypto.util";
 import { OUTBOX_EVENT_TYPE } from "@/common/constants/event.constant";
 import { PG_ERROR_CODE } from "@/common/constants/error.constant";
@@ -17,7 +16,6 @@ import { PG_ERROR_CODE } from "@/common/constants/error.constant";
 describe("AuthService", () => {
   let service: AuthService;
   const mockDb = createMockDb();
-  const mockI18nService = createMockI18nService();
   const mockJwtService = {
     signAsync: mock(() => Promise.resolve("mock_access_token")),
     verifyAsync: mock(() =>
@@ -31,12 +29,10 @@ describe("AuthService", () => {
 
   beforeEach(() => {
     mockDb.clearAll();
-    mockI18nService.clearAll();
     mockJwtService.clearAll();
 
     service = new AuthService(
       mockDb as unknown as DrizzleDB,
-      mockI18nService as unknown as I18nService,
       mockJwtService as unknown as JwtService,
     );
   });
@@ -89,8 +85,8 @@ describe("AuthService", () => {
         await service.register(registerDto);
       } catch (err) {
         thrown = true;
-        expect(err).toBeInstanceOf(ConflictException);
-        expect((err as ConflictException).message).toBe(
+        expect(err).toBeInstanceOf(I18nConflictException);
+        expect((err as I18nConflictException).message).toBe(
           "auth.EMAIL_ALREADY_EXISTS",
         );
       }
@@ -113,8 +109,8 @@ describe("AuthService", () => {
         await service.register(registerDto);
       } catch (err) {
         thrown = true;
-        expect(err).toBeInstanceOf(ConflictException);
-        expect((err as ConflictException).message).toBe(
+        expect(err).toBeInstanceOf(I18nConflictException);
+        expect((err as I18nConflictException).message).toBe(
           "auth.EMAIL_ALREADY_EXISTS",
         );
       }
@@ -157,8 +153,8 @@ describe("AuthService", () => {
         await service.verifyEmail("invalid-token");
       } catch (err) {
         thrown = true;
-        expect(err).toBeInstanceOf(BadRequestException);
-        expect((err as BadRequestException).message).toBe(
+        expect(err).toBeInstanceOf(I18nBadRequestException);
+        expect((err as I18nBadRequestException).message).toBe(
           "auth.VERIFICATION_TOKEN_INVALID",
         );
       }
@@ -184,8 +180,8 @@ describe("AuthService", () => {
         await service.verifyEmail(validToken);
       } catch (err) {
         thrown = true;
-        expect(err).toBeInstanceOf(BadRequestException);
-        expect((err as BadRequestException).message).toBe(
+        expect(err).toBeInstanceOf(I18nBadRequestException);
+        expect((err as I18nBadRequestException).message).toBe(
           "auth.VERIFICATION_TOKEN_EXPIRED",
         );
       }
@@ -320,8 +316,8 @@ describe("AuthService", () => {
         });
       } catch (err) {
         thrown = true;
-        expect(err).toBeInstanceOf(BadRequestException);
-        expect((err as BadRequestException).message).toBe(
+        expect(err).toBeInstanceOf(I18nBadRequestException);
+        expect((err as I18nBadRequestException).message).toBe(
           "auth.INVALID_CREDENTIALS",
         );
       }
@@ -347,8 +343,8 @@ describe("AuthService", () => {
         });
       } catch (err) {
         thrown = true;
-        expect(err).toBeInstanceOf(BadRequestException);
-        expect((err as BadRequestException).message).toBe(
+        expect(err).toBeInstanceOf(I18nBadRequestException);
+        expect((err as I18nBadRequestException).message).toBe(
           "auth.INVALID_CREDENTIALS",
         );
       }
@@ -374,8 +370,8 @@ describe("AuthService", () => {
         });
       } catch (err) {
         thrown = true;
-        expect(err).toBeInstanceOf(BadRequestException);
-        expect((err as BadRequestException).message).toBe(
+        expect(err).toBeInstanceOf(I18nBadRequestException);
+        expect((err as I18nBadRequestException).message).toBe(
           "auth.EMAIL_NOT_VERIFIED",
         );
       }
@@ -426,8 +422,8 @@ describe("AuthService", () => {
         });
       } catch (err) {
         thrown = true;
-        expect(err).toBeInstanceOf(UnauthorizedException);
-        expect((err as UnauthorizedException).message).toBe(
+        expect(err).toBeInstanceOf(I18nUnauthorizedException);
+        expect((err as I18nUnauthorizedException).message).toBe(
           "auth.TOKEN_INVALID_OR_EXPIRED",
         );
       }
@@ -462,8 +458,8 @@ describe("AuthService", () => {
         });
       } catch (err) {
         thrown = true;
-        expect(err).toBeInstanceOf(UnauthorizedException);
-        expect((err as UnauthorizedException).message).toBe(
+        expect(err).toBeInstanceOf(I18nUnauthorizedException);
+        expect((err as I18nUnauthorizedException).message).toBe(
           "auth.TOKEN_INVALID_OR_EXPIRED",
         );
       }
@@ -483,7 +479,7 @@ describe("AuthService", () => {
         await service.logoutAll("");
       } catch (err) {
         thrown = true;
-        expect(err).toBeInstanceOf(UnauthorizedException);
+        expect(err).toBeInstanceOf(I18nUnauthorizedException);
       }
       expect(thrown).toBe(true);
     });
@@ -533,7 +529,7 @@ describe("AuthService", () => {
           password: "NewPassword123",
           confirmPassword: "NewPassword123",
         }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(I18nBadRequestException);
     });
 
     it("should throw BadRequestException if token is expired", () => {
@@ -546,7 +542,7 @@ describe("AuthService", () => {
           password: "NewPassword123",
           confirmPassword: "NewPassword123",
         }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(I18nBadRequestException);
     });
 
     it("should reset password, clear token, and delete active refresh tokens", async () => {
@@ -574,7 +570,7 @@ describe("AuthService", () => {
           currentPassword: "OldPassword123!",
           newPassword: "NewPassword456!",
         }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(I18nBadRequestException);
     });
 
     it("should throw BadRequestException if OAuth user has no passwordHash", () => {
@@ -584,7 +580,7 @@ describe("AuthService", () => {
           currentPassword: "OldPassword123!",
           newPassword: "NewPassword456!",
         }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(I18nBadRequestException);
     });
 
     it("should throw UnauthorizedException if currentPassword is invalid", async () => {
@@ -598,7 +594,7 @@ describe("AuthService", () => {
           currentPassword: "WrongOldPassword123!",
           newPassword: "NewPassword456!",
         }),
-      ).rejects.toThrow(UnauthorizedException);
+      ).rejects.toThrow(I18nUnauthorizedException);
     });
 
     it("should throw BadRequestException if newPassword is identical to currentPassword", async () => {
@@ -612,7 +608,7 @@ describe("AuthService", () => {
           currentPassword: "SamePassword123!",
           newPassword: "SamePassword123!",
         }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(I18nBadRequestException);
     });
 
     it("should change password and delete refresh tokens on success", async () => {

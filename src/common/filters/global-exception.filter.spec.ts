@@ -9,6 +9,10 @@ import {
 } from "@nestjs/common";
 import type { I18nService } from "nestjs-i18n";
 import { GlobalExceptionFilter } from "./global-exception.filter";
+import {
+  I18nNotFoundException,
+  I18nBadRequestException,
+} from "@/common/exceptions";
 
 describe("GlobalExceptionFilter", () => {
   let filter: GlobalExceptionFilter;
@@ -133,6 +137,63 @@ describe("GlobalExceptionFilter", () => {
     });
   });
 
+  describe("when handling custom I18nExceptions", () => {
+    it("should dynamically resolve I18nPath key using I18nService", () => {
+      const translateMock = mock().mockReturnValue("Không tìm thấy suất chiếu");
+      const mockI18n = {
+        translate: translateMock,
+      } as unknown as I18nService;
+
+      const i18nFilter = new GlobalExceptionFilter(mockI18n);
+      const exception = new I18nNotFoundException("shows.SHOWTIME_NOT_FOUND");
+
+      i18nFilter.catch(exception, mockArgumentsHost);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
+      expect(translateMock).toHaveBeenCalledWith("shows.SHOWTIME_NOT_FOUND", {
+        lang: undefined,
+        args: undefined,
+      });
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 404,
+          title: "Not Found",
+          detail: "Không tìm thấy suất chiếu",
+        }),
+      );
+    });
+
+    it("should pass explicit args to I18nService when I18nExceptionPayload is used", () => {
+      const translateMock = mock().mockReturnValue(
+        "Suất chiếu phải bắt đầu sau thời điểm hiện tại ít nhất 15 phút",
+      );
+      const mockI18n = {
+        translate: translateMock,
+      } as unknown as I18nService;
+
+      const i18nFilter = new GlobalExceptionFilter(mockI18n);
+      const exception = new I18nBadRequestException({
+        message: "shows.PAST_SHOW_SLOT",
+        args: { minLeadTime: 15 },
+      });
+
+      i18nFilter.catch(exception, mockArgumentsHost);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
+      expect(translateMock).toHaveBeenCalledWith("shows.PAST_SHOW_SLOT", {
+        lang: undefined,
+        args: { minLeadTime: 15 },
+      });
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 400,
+          title: "Bad Request",
+          detail:
+            "Suất chiếu phải bắt đầu sau thời điểm hiện tại ít nhất 15 phút",
+        }),
+      );
+    });
+  });
   describe("when handling unhandled database and system errors", () => {
     it("should sanitize unhandled Error to HTTP 500 without leaking stack traces", () => {
       const exception = new Error(

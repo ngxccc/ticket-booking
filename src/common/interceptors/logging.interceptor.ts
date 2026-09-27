@@ -1,4 +1,4 @@
-import { SentryService } from "../services/sentry.service";
+import type { SentryService } from "../services/sentry.service";
 import { SENTRY_BREADCRUMB_CATEGORY } from "@/common/constants/sentry.constant";
 import {
   Injectable,

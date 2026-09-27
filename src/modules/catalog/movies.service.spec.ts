@@ -1,22 +1,16 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { NotFoundException } from "@nestjs/common";
+import { I18nNotFoundException } from "@/common/exceptions";
 import { MoviesService } from "./movies.service";
 import type { DrizzleDB } from "@/database/database.module";
-import type { I18nService } from "nestjs-i18n";
-import { createMockDb, createMockI18nService } from "../../../test/mocks";
+import { createMockDb } from "../../../test/mocks";
 
 describe("MoviesService (Unit)", () => {
   let service: MoviesService;
   const mockDb = createMockDb();
-  const mockI18nService = createMockI18nService();
 
   beforeEach(() => {
     mockDb.clearAll();
-    mockI18nService.clearAll();
-    service = new MoviesService(
-      mockDb as unknown as DrizzleDB,
-      mockI18nService as unknown as I18nService,
-    );
+    service = new MoviesService(mockDb as unknown as DrizzleDB);
   });
 
   describe("findMovies", () => {
@@ -85,12 +79,12 @@ describe("MoviesService (Unit)", () => {
   });
 
   describe("findMovieById", () => {
-    it("should throw NotFoundException when movie does not exist", () => {
+    it("should throw I18nNotFoundException when movie does not exist", () => {
       mockDb.setSelectResult([]);
 
       expect(
         service.findMovieById("018f3a5e-7a2e-7b56-b74c-419b4eb14b9a"),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(I18nNotFoundException);
     });
 
     it("should return movie details with localized title and genres", async () => {

@@ -1,11 +1,9 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { I18nService } from "nestjs-i18n";
-import type { I18nTranslations } from "@/generated/i18n.generated";
 import {
   DATABASE_CONNECTION,
   type DrizzleDB,
 } from "@/database/database.module";
-import { CinemaListResponseDto, type CinemaListQueryDto } from "./dto";
+import type { CinemaListResponseDto, CinemaListQueryDto } from "./dto";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { cinemas, halls } from "@/database/schemas";
 import { cinemaFilters } from "./filters";
@@ -18,9 +16,7 @@ export class CinemasService {
   constructor(
     @Inject(DATABASE_CONNECTION)
     public readonly db: DrizzleDB,
-    public readonly i18n: I18nService<I18nTranslations>,
   ) {}
-
   /**
    * Discovers cinema venues with city, ward, and name search filters.
    *

@@ -8,7 +8,7 @@ import type {
   ExtractTablesFromSchema,
   ExtractTablesWithRelations,
 } from "drizzle-orm";
-import * as schema from "./schemas";
+import type * as schema from "./schemas";
 import { createDatabasePool, createDrizzleClient } from "./database.connection";
 
 export const DATABASE_CONNECTION = "DATABASE_CONNECTION";

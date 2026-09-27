@@ -1,6 +1,5 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { I18nService } from "nestjs-i18n";
-import type { I18nTranslations } from "@/generated/i18n.generated";
+import { Inject, Injectable } from "@nestjs/common";
+import { I18nNotFoundException } from "@/common/exceptions";
 import {
   DATABASE_CONNECTION,
   type DrizzleDB,
@@ -28,9 +27,7 @@ export class MoviesService {
   constructor(
     @Inject(DATABASE_CONNECTION)
     public readonly db: DrizzleDB,
-    private readonly i18n: I18nService<I18nTranslations>,
   ) {}
-
   /**
    * Discovers public movies with pagination, schedule status, genre, and localized translations.
    *
@@ -170,9 +167,10 @@ export class MoviesService {
       .limit(1);
 
     if (!movie) {
-      throw new NotFoundException(
-        this.i18n.t("catalog.MOVIE_NOT_FOUND", { args: { id } }),
-      );
+      throw new I18nNotFoundException({
+        message: "catalog.MOVIE_NOT_FOUND",
+        args: { id },
+      });
     }
 
     const [translations, genreRows] = await Promise.all([

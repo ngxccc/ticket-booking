@@ -13,7 +13,7 @@ import {
 } from "@/common/decorators";
 import { apiSuccess, type ApiResponse } from "@/common/utils/api-response.util";
 import { USERS_ROUTES } from "./users.routes";
-import { UsersService } from "./users.service";
+import type { UsersService } from "./users.service";
 import { UserResponseDto } from "./dto/user-response.dto";
 
 @ApiTags(USERS_ROUTES.BASE)

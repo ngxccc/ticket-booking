@@ -18,14 +18,14 @@ import {
 } from "@/common/decorators";
 import { apiSuccess, type ApiResponse } from "@/common/utils/api-response.util";
 import { CATALOG_ROUTES } from "./catalog.routes";
-import { MoviesService } from "./movies.service";
-import {
+import type { MoviesService } from "./movies.service";
+import type {
   MovieDetailParamDto,
   MovieDetailQueryDto,
   MovieListQueryDto,
-  MovieResponseDto,
   PaginationMetaDto,
 } from "./dto";
+import { MovieResponseDto } from "./dto";
 
 @ApiTags(CATALOG_ROUTES.MOVIES)
 @Controller({ path: CATALOG_ROUTES.MOVIES, version: "1" })
