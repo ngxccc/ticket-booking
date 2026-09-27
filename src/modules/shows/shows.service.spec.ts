@@ -1,14 +1,13 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { v7 as uuidv7 } from "uuid";
 import {
-  BadRequestException,
-  ConflictException,
-  NotFoundException,
-} from "@nestjs/common";
+  I18nBadRequestException,
+  I18nConflictException,
+  I18nNotFoundException,
+} from "@/common/exceptions";
 import { ShowsService } from "./shows.service";
 import type { DrizzleDB } from "@/database/database.module";
-import type { I18nService } from "nestjs-i18n";
-import { createMockDb, createMockI18nService } from "../../../test/mocks";
+import { createMockDb } from "../../../test/mocks";
 import {
   formatTimezoneDate,
   getFutureTimezoneDate,
@@ -20,15 +19,10 @@ import type { CreateShowBatchDto, CreateShowDto } from "./dto";
 describe("ShowsService", () => {
   let service: ShowsService;
   const mockDb = createMockDb();
-  const mockI18nService = createMockI18nService();
 
   beforeEach(() => {
     mockDb.clearAll();
-    mockI18nService.clearAll();
-    service = new ShowsService(
-      mockDb as unknown as DrizzleDB,
-      mockI18nService as unknown as I18nService,
-    );
+    service = new ShowsService(mockDb as unknown as DrizzleDB);
   });
 
   describe("findShows", () => {
@@ -215,24 +209,28 @@ describe("ShowsService", () => {
     });
 
     describe("when referenced entities do not exist", () => {
-      it("should throw NotFoundException when movie is not found", () => {
+      it("should throw I18nNotFoundException when movie is not found", () => {
         mockDb.setSelectResultsQueue([[], [{ id: validHallId }]]);
 
-        expect(service.createShow(validDto)).rejects.toThrow(NotFoundException);
+        expect(service.createShow(validDto)).rejects.toThrow(
+          I18nNotFoundException,
+        );
       });
 
-      it("should throw NotFoundException when hall is not found", () => {
+      it("should throw I18nNotFoundException when hall is not found", () => {
         mockDb.setSelectResultsQueue([
           [{ id: validMovieId, durationMinutes: 120 }],
           [],
         ]);
 
-        expect(service.createShow(validDto)).rejects.toThrow(NotFoundException);
+        expect(service.createShow(validDto)).rejects.toThrow(
+          I18nNotFoundException,
+        );
       });
     });
 
     describe("when lead time or seat prerequisites fail", () => {
-      it("should throw BadRequestException when start time is in the past or violates lead time", () => {
+      it("should throw I18nBadRequestException when start time is in the past or violates lead time", () => {
         const pastDto: CreateShowDto = {
           movieId: validMovieId,
           hallId: validHallId,
@@ -245,11 +243,11 @@ describe("ShowsService", () => {
         ]);
 
         expect(service.createShow(pastDto)).rejects.toThrow(
-          BadRequestException,
+          I18nBadRequestException,
         );
       });
 
-      it("should throw BadRequestException when hall has no physical seats configured", () => {
+      it("should throw I18nBadRequestException when hall has no physical seats configured", () => {
         mockDb.setSelectResultsQueue([
           [{ id: validMovieId, durationMinutes: 120 }],
           [{ id: validHallId }],
@@ -257,13 +255,13 @@ describe("ShowsService", () => {
         ]);
 
         expect(service.createShow(validDto)).rejects.toThrow(
-          BadRequestException,
+          I18nBadRequestException,
         );
       });
     });
 
     describe("when database raises conflict or generic errors", () => {
-      it("should throw ConflictException when exclusion constraint collision occurs", () => {
+      it("should throw I18nConflictException when exclusion constraint collision occurs", () => {
         mockDb.setSelectResultsQueue([
           [{ id: validMovieId, durationMinutes: 120 }],
           [{ id: validHallId }],
@@ -277,7 +275,9 @@ describe("ShowsService", () => {
           throw pgCollisionError;
         });
 
-        expect(service.createShow(validDto)).rejects.toThrow(ConflictException);
+        expect(service.createShow(validDto)).rejects.toThrow(
+          I18nConflictException,
+        );
       });
     });
   });
@@ -322,28 +322,28 @@ describe("ShowsService", () => {
     });
 
     describe("when referenced entities do not exist", () => {
-      it("should throw NotFoundException when movie is not found", () => {
+      it("should throw I18nNotFoundException when movie is not found", () => {
         mockDb.setSelectResultsQueue([[], [{ id: validHallId }]]);
 
         expect(service.createShowBatch(validBatchDto)).rejects.toThrow(
-          NotFoundException,
+          I18nNotFoundException,
         );
       });
 
-      it("should throw NotFoundException when hall is not found", () => {
+      it("should throw I18nNotFoundException when hall is not found", () => {
         mockDb.setSelectResultsQueue([
           [{ id: validMovieId, durationMinutes: 120 }],
           [],
         ]);
 
         expect(service.createShowBatch(validBatchDto)).rejects.toThrow(
-          NotFoundException,
+          I18nNotFoundException,
         );
       });
     });
 
     describe("when database raises conflict error", () => {
-      it("should throw ConflictException when PostgreSQL returns 23P01 exclusion violation", () => {
+      it("should throw I18nConflictException when PostgreSQL returns 23P01 exclusion violation", () => {
         mockDb.setSelectResultsQueue([
           [{ id: validMovieId, durationMinutes: 120 }],
           [{ id: validHallId }],
@@ -358,7 +358,7 @@ describe("ShowsService", () => {
         });
 
         expect(service.createShowBatch(validBatchDto)).rejects.toThrow(
-          ConflictException,
+          I18nConflictException,
         );
       });
     });
@@ -395,7 +395,7 @@ describe("ShowsService", () => {
     });
 
     describe("when date parameters or ranges are malformed", () => {
-      it("should throw BadRequestException when date range components are invalid", () => {
+      it("should throw I18nBadRequestException when date range components are invalid", () => {
         const dto = {
           movieId: uuidv7(),
           hallId: uuidv7(),
@@ -406,11 +406,11 @@ describe("ShowsService", () => {
         };
 
         expect(() => service.expandAndValidateTimeline(dto, 120)).toThrow(
-          BadRequestException,
+          I18nBadRequestException,
         );
       });
 
-      it("should throw BadRequestException when start date is after end date", () => {
+      it("should throw I18nBadRequestException when start date is after end date", () => {
         const dto: CreateShowBatchDto = {
           movieId: uuidv7(),
           hallId: uuidv7(),
@@ -421,11 +421,11 @@ describe("ShowsService", () => {
         };
 
         expect(() => service.expandAndValidateTimeline(dto, 120)).toThrow(
-          BadRequestException,
+          I18nBadRequestException,
         );
       });
 
-      it("should throw BadRequestException when date range exceeds max batch days", () => {
+      it("should throw I18nBadRequestException when date range exceeds max batch days", () => {
         const farFutureDate = getFutureTimezoneDate(
           35,
           SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
@@ -440,11 +440,11 @@ describe("ShowsService", () => {
         };
 
         expect(() => service.expandAndValidateTimeline(dto, 120)).toThrow(
-          BadRequestException,
+          I18nBadRequestException,
         );
       });
 
-      it("should throw BadRequestException when total expected shows exceed max allowed shows", () => {
+      it("should throw I18nBadRequestException when total expected shows exceed max allowed shows", () => {
         const farFutureDate = getFutureTimezoneDate(
           25,
           SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
@@ -459,13 +459,13 @@ describe("ShowsService", () => {
         };
 
         expect(() => service.expandAndValidateTimeline(dto, 60)).toThrow(
-          BadRequestException,
+          I18nBadRequestException,
         );
       });
     });
 
     describe("when time slot overlap or lead time is violated", () => {
-      it("should throw BadRequestException when time slots collide intra-batch within cleaning buffer", () => {
+      it("should throw I18nBadRequestException when time slots collide intra-batch within cleaning buffer", () => {
         const dto: CreateShowBatchDto = {
           movieId: uuidv7(),
           hallId: uuidv7(),
@@ -476,8 +476,121 @@ describe("ShowsService", () => {
         };
 
         expect(() => service.expandAndValidateTimeline(dto, 120)).toThrow(
-          BadRequestException,
+          I18nBadRequestException,
         );
+      });
+    });
+  });
+
+  describe("getShowSeats", () => {
+    const validShowId = uuidv7();
+
+    describe("when showtime does not exist or has no seats", () => {
+      it("should throw I18nNotFoundException with shows.SHOWTIME_NOT_FOUND when query returns empty", () => {
+        mockDb.setSelectResult([]);
+
+        expect(service.getShowSeats(validShowId)).rejects.toThrow(
+          I18nNotFoundException,
+        );
+      });
+    });
+
+    describe("when showtime exists with configured seats", () => {
+      it("should compute seating chart matrix, dimensions, summary, and itemized final prices", async () => {
+        const mockShowTime = new Date("2026-10-01T10:00:00.000Z");
+        const mockEndTime = new Date("2026-10-01T12:00:00.000Z");
+
+        const mockRows = [
+          {
+            showId: validShowId,
+            basePrice: 100000,
+            startTime: mockShowTime,
+            endTime: mockEndTime,
+            movieId: uuidv7(),
+            movieTitle: "Lật Mặt 7",
+            cinemaId: uuidv7(),
+            cinemaName: "CGV Landmark 81",
+            hallId: uuidv7(),
+            hallName: "Cinema 01",
+            seatId: uuidv7(),
+            row: "A",
+            number: 1,
+            seatNumber: "A1",
+            seatTypeId: uuidv7(),
+            seatTypeName: "Standard",
+            priceMultiplier: "1.00",
+            status: "available",
+            lockedUntil: null,
+          },
+          {
+            showId: validShowId,
+            basePrice: 100000,
+            startTime: mockShowTime,
+            endTime: mockEndTime,
+            movieId: uuidv7(),
+            movieTitle: "Lật Mặt 7",
+            cinemaId: uuidv7(),
+            cinemaName: "CGV Landmark 81",
+            hallId: uuidv7(),
+            hallName: "Cinema 01",
+            seatId: uuidv7(),
+            row: "B",
+            number: 2,
+            seatNumber: "B2",
+            seatTypeId: uuidv7(),
+            seatTypeName: "VIP",
+            priceMultiplier: "1.20",
+            status: "reserved",
+            lockedUntil: new Date(Date.now() + 600000),
+          },
+          {
+            showId: validShowId,
+            basePrice: 100000,
+            startTime: mockShowTime,
+            endTime: mockEndTime,
+            movieId: uuidv7(),
+            movieTitle: "Lật Mặt 7",
+            cinemaId: uuidv7(),
+            cinemaName: "CGV Landmark 81",
+            hallId: uuidv7(),
+            hallName: "Cinema 01",
+            seatId: uuidv7(),
+            row: "B",
+            number: 1,
+            seatNumber: "B1",
+            seatTypeId: uuidv7(),
+            seatTypeName: "VIP",
+            priceMultiplier: "1.20",
+            status: "booked",
+            lockedUntil: null,
+          },
+        ];
+
+        mockDb.setSelectResult(mockRows);
+
+        const result = await service.getShowSeats(validShowId, "vi");
+
+        expect(result.showId).toBe(validShowId);
+        expect(result.movieTitle).toBe("Lật Mặt 7");
+        expect(result.cinemaName).toBe("CGV Landmark 81");
+        expect(result.hallName).toBe("Cinema 01");
+        expect(result.basePrice).toBe(100000);
+
+        // Dimensions
+        expect(result.dimensions.totalRows).toBe(2); // "A", "B"
+        expect(result.dimensions.totalCols).toBe(2); // max col 2
+
+        // Summary
+        expect(result.summary.total).toBe(3);
+        expect(result.summary.available).toBe(1);
+        expect(result.summary.reserved).toBe(1);
+        expect(result.summary.booked).toBe(1);
+
+        // Seats list
+        expect(result.seats).toHaveLength(3);
+        expect(result.seats[0]?.finalPrice).toBe(100000);
+        expect(result.seats[1]?.finalPrice).toBe(120000); // 100000 * 1.20
+        expect(result.seats[1]?.type.name).toBe("VIP");
       });
     });
   });
