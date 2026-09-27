@@ -1,5 +1,5 @@
-import { ApiProperty } from "@nestjs/swagger";
 import { z } from "zod";
+import { createZodDto } from "@/common/dto";
 import { zEmail } from "@/common/schemas/zod-primitives";
 
 /**
@@ -7,21 +7,17 @@ import { zEmail } from "@/common/schemas/zod-primitives";
  */
 export const forgotPasswordSchema = z
   .object({
-    email: zEmail(),
+    email: zEmail().meta({
+      description: "Email address associated with account",
+      example: "user@example.com",
+    }),
   })
   .strict();
-
 export type ForgotPasswordDtoType = z.infer<typeof forgotPasswordSchema>;
 
 /**
  * Data Transfer Object for forgot password request.
  */
-export class ForgotPasswordDto implements ForgotPasswordDtoType {
+export class ForgotPasswordDto extends createZodDto(forgotPasswordSchema) {
   public static readonly zodSchema = forgotPasswordSchema;
-
-  @ApiProperty({
-    example: "user@example.com",
-    description: "Email address associated with account",
-  })
-  public email!: string;
 }

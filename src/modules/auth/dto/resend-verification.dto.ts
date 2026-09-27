@@ -1,5 +1,5 @@
-import { ApiProperty } from "@nestjs/swagger";
 import { z } from "zod";
+import { createZodDto } from "@/common/dto";
 import { zEmail } from "@/common/schemas/zod-primitives";
 
 /**
@@ -7,10 +7,12 @@ import { zEmail } from "@/common/schemas/zod-primitives";
  */
 export const resendVerificationSchema = z
   .object({
-    email: zEmail(),
+    email: zEmail().meta({
+      description: "Email address awaiting verification",
+      example: "user@example.com",
+    }),
   })
   .strict();
-
 export type ResendVerificationDtoType = z.infer<
   typeof resendVerificationSchema
 >;
@@ -18,12 +20,8 @@ export type ResendVerificationDtoType = z.infer<
 /**
  * Data Transfer Object for resending verification email.
  */
-export class ResendVerificationDto implements ResendVerificationDtoType {
+export class ResendVerificationDto extends createZodDto(
+  resendVerificationSchema,
+) {
   public static readonly zodSchema = resendVerificationSchema;
-
-  @ApiProperty({
-    example: "user@example.com",
-    description: "Email address awaiting verification",
-  })
-  public email!: string;
 }

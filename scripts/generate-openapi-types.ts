@@ -3,21 +3,12 @@ process.env["SKIP_ENV_VALIDATION"] = "true";
 
 async function generate() {
   const { NestFactory } = await import("@nestjs/core");
-  const { DocumentBuilder, SwaggerModule } = await import("@nestjs/swagger");
   const { AppModule } = await import("../src/app.module");
+  const { createOpenApiDocument } =
+    await import("../src/common/config/openapi.config");
 
   const app = await NestFactory.create(AppModule, { logger: false });
-
-  const config = new DocumentBuilder()
-    .setTitle("Ticket Booking API")
-    .setDescription("The API specification for the Ticket Booking System")
-    .setVersion("1.0.0")
-    .setOpenAPIVersion("3.1.0")
-    .addBearerAuth()
-    .build();
-
-  const document = SwaggerModule.createDocument(app, config);
-  await app.close();
+  const document = createOpenApiDocument(app);
 
   const openapiTSModule = await import("openapi-typescript");
   const openapiTS = openapiTSModule.default;

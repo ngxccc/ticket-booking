@@ -101,7 +101,7 @@ export class ZodValidationPipe implements PipeTransform {
   }
 
   /**
-   * Transforms Zod error issues into RFC 9457 invalidParams list.
+   * Transforms Zod error issues into RFC 9457 invalidParams list with automatic i18n token resolution.
    */
   private formatZodErrors(error: ZodError): { name: string; reason: string }[] {
     const params: { name: string; reason: string }[] = [];
@@ -126,10 +126,97 @@ export class ZodValidationPipe implements PipeTransform {
       const fieldPath = formatZodIssuePath(issue.path);
       params.push({
         name: fieldPath || "payload",
-        reason: issue.message || "Invalid value",
+        reason: this.resolveIssueReason(issue),
       });
     }
 
     return params;
+  }
+
+  /**
+   * Resolves raw Zod issue into encoded i18n translation token.
+   */
+  private resolveIssueReason(issue: ZodError["issues"][number]): string {
+    if (issue.message.includes("|")) {
+      return issue.message;
+    }
+
+    switch (issue.code) {
+      case "invalid_type": {
+        const issueObj = issue as unknown as {
+          received?: string;
+          expected?: string;
+        };
+        if (issueObj.received === "undefined" || issueObj.received === "null") {
+          return i18nZodMsg("validation.isNotEmpty");
+        }
+        if (issueObj.expected === "string") {
+          return i18nZodMsg("validation.isString");
+        }
+        if (issueObj.expected === "number") {
+          return i18nZodMsg("validation.isInt");
+        }
+        if (issueObj.expected === "boolean") {
+          return i18nZodMsg("validation.isBoolean");
+        }
+        return i18nZodMsg("common.INVALID_INPUT");
+      }
+      case "too_small": {
+        const issueObj = issue as unknown as {
+          type?: string;
+          minimum?: number;
+        };
+        if (issueObj.type === "string") {
+          return i18nZodMsg("validation.minLength", {
+            "0": issueObj.minimum ?? 0,
+          });
+        }
+        if (issueObj.type === "number") {
+          return i18nZodMsg("validation.isPositive");
+        }
+        if (issueObj.type === "array") {
+          return i18nZodMsg("validation.isNotEmpty");
+        }
+        return i18nZodMsg("common.INVALID_INPUT");
+      }
+      case "too_big": {
+        const issueObj = issue as unknown as { maximum?: number };
+        return i18nZodMsg("validation.maxLength", {
+          "0": issueObj.maximum ?? Infinity,
+        });
+      }
+      case "invalid_format": {
+        const issueObj = issue as unknown as { format?: string };
+        if (issueObj.format === "email") {
+          return i18nZodMsg("validation.isEmail");
+        }
+        if (issueObj.format === "uuid") {
+          return i18nZodMsg("validation.isUuid");
+        }
+        if (
+          issueObj.format === "datetime" ||
+          issueObj.format === "date" ||
+          issueObj.format === "iso_date" ||
+          issueObj.format === "iso_datetime"
+        ) {
+          return i18nZodMsg("validation.isDate");
+        }
+        if (issueObj.format === "regex") {
+          return i18nZodMsg("validation.matches");
+        }
+        return i18nZodMsg("common.INVALID_INPUT");
+      }
+      case "invalid_value": {
+        const issueObj = issue as unknown as { values?: unknown[] };
+        if (Array.isArray(issueObj.values)) {
+          return i18nZodMsg("validation.isIn", {
+            "0": issueObj.values.join(", "),
+          });
+        }
+        return i18nZodMsg("common.INVALID_INPUT");
+      }
+      default:
+        return issue.message || i18nZodMsg("common.INVALID_INPUT");
+    }
   }
 }
