@@ -25,7 +25,7 @@ import {
 import { apiSuccess, type ApiResponse } from "@/common/utils/api-response.util";
 import { AUTH_ROUTES } from "./auth.routes";
 import { AuthService } from "./auth.service";
-import type {
+import {
   LoginDto,
   RefreshTokenDto,
   RegisterDto,
@@ -34,8 +34,9 @@ import type {
   ResetPasswordDto,
   ResendVerificationDto,
   ChangePasswordDto,
+  LoginResponseDto,
+  RefreshResponseDto,
 } from "./dto";
-import { LoginResponseDto, RefreshResponseDto } from "./dto";
 
 @UseGuards(CustomThrottlerGuard)
 @Controller({ path: AUTH_ROUTES.BASE, version: "1" })

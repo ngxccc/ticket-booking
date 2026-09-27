@@ -16,8 +16,11 @@ import {
 import { apiSuccess, type ApiResponse } from "@/common/utils/api-response.util";
 import { CATALOG_ROUTES } from "./catalog.routes";
 import { CinemasService } from "./cinemas.service";
-import type { CinemaListQueryDto, PaginationMetaDto } from "./dto";
-import { CinemaResponseDto } from "./dto";
+import {
+  CinemaListQueryDto,
+  type PaginationMetaDto,
+  CinemaResponseDto,
+} from "./dto";
 
 @ApiTags(CATALOG_ROUTES.CINEMAS)
 @Controller({ path: CATALOG_ROUTES.CINEMAS, version: "1" })

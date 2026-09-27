@@ -19,13 +19,13 @@ import {
 import { apiSuccess, type ApiResponse } from "@/common/utils/api-response.util";
 import { CATALOG_ROUTES } from "./catalog.routes";
 import { MoviesService } from "./movies.service";
-import type {
+import {
   MovieDetailParamDto,
   MovieDetailQueryDto,
   MovieListQueryDto,
-  PaginationMetaDto,
+  type PaginationMetaDto,
+  MovieResponseDto,
 } from "./dto";
-import { MovieResponseDto } from "./dto";
 
 @ApiTags(CATALOG_ROUTES.MOVIES)
 @Controller({ path: CATALOG_ROUTES.MOVIES, version: "1" })

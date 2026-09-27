@@ -31,10 +31,14 @@ import {
 } from "../../common/utils/api-response.util";
 import { BOOKING_ROUTES } from "./booking.routes";
 import { BookingService } from "./booking.service";
-import type { ReserveSeatsDto } from "./dto/reserve-seats.dto";
-import { ReserveSeatsResponseDto } from "./dto/reserve-seats.dto";
-import type { ConfirmBookingDto } from "./dto/confirm-booking.dto";
-import { ConfirmBookingResponseDto } from "./dto/confirm-booking.dto";
+import {
+  ReserveSeatsDto,
+  ReserveSeatsResponseDto,
+} from "./dto/reserve-seats.dto";
+import {
+  ConfirmBookingDto,
+  ConfirmBookingResponseDto,
+} from "./dto/confirm-booking.dto";
 
 import { HTTP_HEADERS } from "@/common/constants/header.constants";
 
