@@ -2,7 +2,7 @@ import eslintJs from "@eslint/js";
 import { configs as tseslint } from "typescript-eslint";
 import { importX } from "eslint-plugin-import-x";
 import globals from "globals";
-import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
+import oxlint from "eslint-plugin-oxlint";
 import { defineConfig, globalIgnores } from "eslint/config";
 
 export default defineConfig(
@@ -89,6 +89,5 @@ export default defineConfig(
       "import-x/core-modules": ["bun:test"],
     },
   },
-
-  eslintPluginPrettierRecommended,
+  ...oxlint.configs["flat/recommended"],
 );

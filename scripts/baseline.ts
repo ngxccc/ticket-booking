@@ -55,7 +55,7 @@ async function forceBaseline() {
   const migrationFoldersAfterGen = entriesAfterGen
     .filter((dirent) => dirent.isDirectory() && /^\d{14}/.test(dirent.name))
     .map((dirent) => dirent.name)
-    .sort((a, b) => a.localeCompare(b));
+    .toSorted((a, b) => a.localeCompare(b));
 
   const latestMigrationName = migrationFoldersAfterGen.at(-1);
 

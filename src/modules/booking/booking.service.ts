@@ -58,7 +58,7 @@ export class BookingService {
       throw new I18nNotFoundException("booking.SEAT_NOT_BELONG_TO_SHOWTIME");
     }
 
-    const sortedSeatIds = [...dto.seatIds].sort();
+    const sortedSeatIds = dto.seatIds.toSorted();
     const redis = this.redlockService.getRedisClient();
 
     // 1. Idempotency Check

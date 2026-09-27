@@ -56,12 +56,12 @@ async function generate() {
   }
 
   // 3. Generate TypeScript interfaces for args
-  const sortedEntries = [...placeholdersMap.entries()].sort(([a], [b]) =>
+  const sortedEntries = [...placeholdersMap.entries()].toSorted(([a], [b]) =>
     a.localeCompare(b),
   );
 
   const argsMapEntries = sortedEntries.map(([key, paramsSet]) => {
-    const params = [...paramsSet].sort();
+    const params = [...paramsSet].toSorted();
     const fields = params
       .map((p) => {
         const fieldName = p.includes(".") ? `"${p}"` : p;

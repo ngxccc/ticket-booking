@@ -325,10 +325,12 @@ export class ShowsService {
     }
 
     // WHY: Sorting timeline chronologically allows O(N) intra-batch overlap detection before opening a DB transaction.
-    slots.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
-    for (let i = 0; i < slots.length; ++i) {
-      const currentSlot = slots[i];
-      const nextSlot = slots[i + 1];
+    const sortedSlots = slots.toSorted(
+      (a, b) => a.startTime.getTime() - b.startTime.getTime(),
+    );
+    for (let i = 0; i < sortedSlots.length; ++i) {
+      const currentSlot = sortedSlots[i];
+      const nextSlot = sortedSlots[i + 1];
 
       if (
         nextSlot &&
