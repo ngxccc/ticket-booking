@@ -18,7 +18,7 @@ import {
 } from "@/common/decorators";
 import { apiSuccess, type ApiResponse } from "@/common/utils/api-response.util";
 import { CATALOG_ROUTES } from "./catalog.routes";
-import type { MoviesService } from "./movies.service";
+import { MoviesService } from "./movies.service";
 import type {
   MovieDetailParamDto,
   MovieDetailQueryDto,

@@ -4,7 +4,7 @@ import {
   ForbiddenException,
   Injectable,
 } from "@nestjs/common";
-import type { Reflector } from "@nestjs/core";
+import { Reflector } from "@nestjs/core";
 import { ROLES_KEY } from "@/common/decorators/roles.decorator";
 import type { JwtPayload } from "@/common/decorators/current-user.decorator";
 import type { Request } from "express";

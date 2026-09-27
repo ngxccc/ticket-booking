@@ -25,7 +25,7 @@ import {
   payments,
   outboxEvents,
 } from "../../database/schemas";
-import type { RedlockService } from "../../common/services/redlock.service";
+import { RedlockService } from "../../common/services/redlock.service";
 import { randomBytes } from "node:crypto";
 import { getExpiryDate } from "@/common/utils/date.util";
 import { generatePayOSOrderCode } from "@/common/utils/payos-crypto.util";

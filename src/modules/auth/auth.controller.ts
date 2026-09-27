@@ -24,7 +24,7 @@ import {
 } from "@/common/decorators";
 import { apiSuccess, type ApiResponse } from "@/common/utils/api-response.util";
 import { AUTH_ROUTES } from "./auth.routes";
-import type { AuthService } from "./auth.service";
+import { AuthService } from "./auth.service";
 import type {
   LoginDto,
   RefreshTokenDto,

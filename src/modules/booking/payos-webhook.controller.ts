@@ -13,7 +13,7 @@ import {
   PayOSWebhookDto,
   PayOSWebhookResponseDto,
 } from "./dto/payos-webhook.dto";
-import type { ConfigService } from "@nestjs/config";
+import { ConfigService } from "@nestjs/config";
 
 import {
   isPayOSTimestampValid,

@@ -28,7 +28,7 @@ import {
 } from "@/common/utils/crypto.util";
 import { randomBytes } from "node:crypto";
 import { getExpiryDate } from "@/common/utils/date.util";
-import type { JwtService } from "@nestjs/jwt";
+import { JwtService } from "@nestjs/jwt";
 import { env } from "@/env";
 import {
   I18nBadRequestException,

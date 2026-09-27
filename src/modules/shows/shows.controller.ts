@@ -28,10 +28,10 @@ import { apiSuccess, type ApiResponse } from "@/common/utils/api-response.util";
 import { SHOWS_ROUTES } from "./shows.routes";
 import { ShowsService } from "./shows.service";
 import {
-  type CreateShowDto,
-  type CreateShowBatchDto,
-  type ShowScheduleQueryDto,
-  type ShowSeatsParamDto,
+  CreateShowDto,
+  CreateShowBatchDto,
+  ShowScheduleQueryDto,
+  ShowSeatsParamDto,
   ShowResponseDto,
   BatchShowResponseDto,
   ShowScheduleItemDto,

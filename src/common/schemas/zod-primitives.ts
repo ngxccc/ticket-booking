@@ -179,44 +179,78 @@ export function zNumericString(options?: {
  *
  * @returns Zod Date schema with OpenAPI string date-time representation
  */
-export function zDate() {
-  const schema = z.date();
-  (
-    schema as unknown as {
-      _zod: {
-        processJSONSchema?: (
-          ctx: unknown,
-          json: Record<string, unknown>,
-        ) => void;
-      };
-    }
-  )._zod.processJSONSchema = (_ctx, json) => {
+function attachDateJsonSchema<T extends z.ZodDate | z.ZodType>(
+  schema: T,
+  metaOptions?: { description?: string; example?: string },
+): T {
+  const target = schema as unknown as {
+    _zod: {
+      processJSONSchema?: (ctx: unknown, json: Record<string, unknown>) => void;
+    };
+    clone: (...args: unknown[]) => T;
+    meta: (newMeta: Record<string, unknown>) => T;
+  };
+
+  target._zod.processJSONSchema = (_ctx, json) => {
     json["type"] = "string";
     json["format"] = "date-time";
+    if (metaOptions?.description) json["description"] = metaOptions.description;
+    if (metaOptions?.example) json["example"] = metaOptions.example;
   };
+
+  const origClone = target.clone;
+  target.clone = function (...args: unknown[]) {
+    const cloned = origClone.apply(this, args);
+    return attachDateJsonSchema(cloned, metaOptions);
+  };
+
+  const origMeta = target.meta;
+  target.meta = function (newMeta: Record<string, unknown>) {
+    const result = origMeta.call(this, newMeta);
+    return attachDateJsonSchema(result, {
+      ...metaOptions,
+      description:
+        typeof newMeta["description"] === "string"
+          ? newMeta["description"]
+          : metaOptions?.description,
+      example:
+        typeof newMeta["example"] === "string"
+          ? newMeta["example"]
+          : metaOptions?.example,
+    });
+  };
+
   return schema;
+}
+
+/**
+ * Builds a Date schema that represents an ISO 8601 date-time string in OpenAPI/JSON Schema
+ * while inferring as a JavaScript Date instance in TypeScript.
+ *
+ * Preserves OpenAPI schema metadata even after `.meta()` or `.nullable()` transformations.
+ *
+ * @param metaOptions Optional description and example documentation
+ * @returns Zod Date schema with OpenAPI string date-time representation
+ */
+export function zDate(metaOptions?: {
+  description?: string;
+  example?: string;
+}) {
+  return attachDateJsonSchema(z.date(), metaOptions);
 }
 
 /**
  * Builds a coerced Date schema for query parameters and request bodies,
  * representing an ISO 8601 date-time string in OpenAPI/JSON Schema while parsing strings into Date instances.
  *
+ * Preserves OpenAPI schema metadata even after `.meta()` or `.nullable()` transformations.
+ *
+ * @param metaOptions Optional description and example documentation
  * @returns Coerced Zod Date schema with OpenAPI string date-time representation
  */
-export function zCoerceDate() {
-  const schema = z.coerce.date();
-  (
-    schema as unknown as {
-      _zod: {
-        processJSONSchema?: (
-          ctx: unknown,
-          json: Record<string, unknown>,
-        ) => void;
-      };
-    }
-  )._zod.processJSONSchema = (_ctx, json) => {
-    json["type"] = "string";
-    json["format"] = "date-time";
-  };
-  return schema;
+export function zCoerceDate(metaOptions?: {
+  description?: string;
+  example?: string;
+}) {
+  return attachDateJsonSchema(z.coerce.date(), metaOptions);
 }

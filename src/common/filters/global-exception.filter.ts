@@ -1,4 +1,4 @@
-import type { SentryService } from "@/common/services/sentry.service";
+import { SentryService } from "@/common/services/sentry.service";
 import {
   type ArgumentsHost,
   Catch,
@@ -10,8 +10,7 @@ import {
   Optional,
 } from "@nestjs/common";
 import type { Request, Response } from "express";
-import type { I18nService } from "nestjs-i18n";
-import { I18nContext } from "nestjs-i18n";
+import { I18nService, I18nContext } from "nestjs-i18n";
 import { extractDatabaseErrorDetails } from "@/common/utils/error.util";
 import { PG_ERROR_CODE } from "@/common/constants/error.constant";
 import { SENTRY_BREADCRUMB_CATEGORY } from "@/common/constants/sentry.constant";

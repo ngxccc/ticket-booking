@@ -4,7 +4,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
-import type { JwtService } from "@nestjs/jwt";
+import { JwtService } from "@nestjs/jwt";
 import { env } from "@/env";
 import type { Request } from "express";
 import type { JwtPayload } from "@/common/decorators/current-user.decorator";

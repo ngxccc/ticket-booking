@@ -1,8 +1,8 @@
 import { Optional, Injectable } from "@nestjs/common";
-import type { SentryService } from "./sentry.service";
+import { SentryService } from "./sentry.service";
 import { SENTRY_BREADCRUMB_CATEGORY } from "@/common/constants/sentry.constant";
 import type { OnModuleInit, OnModuleDestroy } from "@nestjs/common";
-import type { ConfigService } from "@nestjs/config";
+import { ConfigService } from "@nestjs/config";
 import type Redis from "ioredis";
 import Redlock, { type Lock, type Options as RedlockOptions } from "redlock";
 import {
