@@ -1,15 +1,12 @@
-import { ApiPropertyOptional } from "@nestjs/swagger";
 import { z } from "zod";
+import { createZodDto } from "@/common/dto";
 import { zUuidV7 } from "@/common/schemas/zod-primitives";
 import { i18nZodMsg } from "@/common/utils/i18n-message.util";
 import {
   formatTimezoneDate,
   getFutureTimezoneDate,
 } from "@/common/utils/date.util";
-import {
-  catalogLanguageEnum,
-  type CatalogLanguage,
-} from "@/modules/catalog/dto/movie-list-query.dto";
+import { catalogLanguageEnum } from "@/modules/catalog/dto/movie-list-query.dto";
 import { SHOWS_CONSTANTS } from "../shows.constants";
 
 /**
@@ -17,14 +14,28 @@ import { SHOWS_CONSTANTS } from "../shows.constants";
  */
 export const showScheduleQuerySchema = z
   .object({
-    movieId: zUuidV7().optional(),
-    cinemaId: zUuidV7().optional(),
+    movieId: zUuidV7().optional().meta({
+      description: "Filter showtimes by movie UUIDv7 identifier",
+      example: "019fa8bc-8f4d-7000-b366-e691f45cfb8f",
+    }),
+    cinemaId: zUuidV7().optional().meta({
+      description: "Filter showtimes by cinema UUIDv7 identifier",
+      example: "019fa8bc-8f4d-7000-b366-e691f45cfb90",
+    }),
     date: z.iso
       .date(i18nZodMsg("validation.isDate"))
       .default(() =>
         formatTimezoneDate(new Date(), SHOWS_CONSTANTS.DEFAULT_TIMEZONE),
-      ),
-    lang: catalogLanguageEnum.default("vi"),
+      )
+      .meta({
+        description:
+          "Filter showtimes for a specific calendar date (YYYY-MM-DD). Defaults to today in Asia/Ho_Chi_Minh (+07:00). Max 14 days horizon.",
+        example: "2026-09-02",
+      }),
+    lang: catalogLanguageEnum.default("vi").meta({
+      description: "Localization language code for movie metadata",
+      example: "vi",
+    }),
   })
   .strict()
   .superRefine((data, ctx) => {
@@ -61,33 +72,8 @@ export type ShowScheduleQueryDtoType = z.infer<typeof showScheduleQuerySchema>;
 /**
  * Data Transfer Object for public showtime schedule discovery query parameters.
  */
-export class ShowScheduleQueryDto implements ShowScheduleQueryDtoType {
+export class ShowScheduleQueryDto extends createZodDto(
+  showScheduleQuerySchema,
+) {
   public static readonly zodSchema = showScheduleQuerySchema;
-
-  @ApiPropertyOptional({
-    description: "Filter showtimes by movie UUIDv7 identifier",
-    example: "019fa8bc-8f4d-7000-b366-e691f45cfb8f",
-  })
-  public movieId?: string;
-
-  @ApiPropertyOptional({
-    description: "Filter showtimes by cinema UUIDv7 identifier",
-    example: "019fa8bc-8f4d-7000-b366-e691f45cfb90",
-  })
-  public cinemaId?: string;
-
-  @ApiPropertyOptional({
-    description:
-      "Filter showtimes for a specific calendar date (YYYY-MM-DD). Defaults to today in Asia/Ho_Chi_Minh (+07:00). Max 14 days horizon.",
-    example: "2026-09-02",
-  })
-  public date!: string;
-
-  @ApiPropertyOptional({
-    description: "Localization language code for movie metadata",
-    enum: ["vi", "en"],
-    example: "vi",
-    default: "vi",
-  })
-  public lang!: CatalogLanguage;
 }

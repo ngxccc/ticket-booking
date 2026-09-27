@@ -1,5 +1,5 @@
-import { ApiProperty } from "@nestjs/swagger";
 import { z } from "zod";
+import { createZodDto } from "@/common/dto";
 import { zPassword } from "@/common/schemas/zod-primitives";
 import { i18nZodMsg } from "@/common/utils/i18n-message.util";
 
@@ -11,8 +11,15 @@ export const changePasswordSchema = z
     currentPassword: z
       .string(i18nZodMsg("validation.isString"))
       .min(1, { message: i18nZodMsg("validation.isNotEmpty") })
-      .max(256, { message: i18nZodMsg("validation.maxLength", { "0": 256 }) }),
-    newPassword: zPassword(),
+      .max(256, { message: i18nZodMsg("validation.maxLength", { "0": 256 }) })
+      .meta({
+        description: "Current account password",
+        example: "CurrentPassword123!",
+      }),
+    newPassword: zPassword().meta({
+      description: "New account password (must differ from current)",
+      example: "NewSecurePassword456!",
+    }),
   })
   .strict();
 
@@ -21,18 +28,6 @@ export type ChangePasswordDtoType = z.infer<typeof changePasswordSchema>;
 /**
  * Data Transfer Object for changing account password.
  */
-export class ChangePasswordDto implements ChangePasswordDtoType {
+export class ChangePasswordDto extends createZodDto(changePasswordSchema) {
   public static readonly zodSchema = changePasswordSchema;
-
-  @ApiProperty({
-    example: "CurrentPassword123!",
-    description: "Current account password",
-  })
-  public currentPassword!: string;
-
-  @ApiProperty({
-    example: "NewSecurePassword456!",
-    description: "New account password (must differ from current)",
-  })
-  public newPassword!: string;
 }

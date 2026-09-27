@@ -1,10 +1,11 @@
-import { ApiPropertyOptional } from "@nestjs/swagger";
 import { z } from "zod";
+import { createZodDto } from "@/common/dto";
 import {
   zNumericString,
   zSanitizedString,
   zUuidV7,
 } from "@/common/schemas/zod-primitives";
+import { i18nZodMsg } from "@/common/utils/i18n-message.util";
 import { movieRatingEnum } from "@/database/schemas/enums.schema";
 
 /**
@@ -24,13 +25,45 @@ export type CatalogLanguage = z.infer<typeof catalogLanguageEnum>;
  */
 export const movieListQuerySchema = z
   .object({
-    status: movieStatusEnum.optional(),
-    genreId: zUuidV7().optional(),
-    rating: z.enum(movieRatingEnum.enumValues).optional(),
-    search: zSanitizedString({ min: 1, max: 100 }).optional(),
-    page: zNumericString({ min: 1, integer: true }).default(1),
-    limit: zNumericString({ min: 1, max: 100, integer: true }).default(20),
-    lang: catalogLanguageEnum.default("vi"),
+    status: movieStatusEnum.optional().meta({
+      description: "Filter by schedule status (kebab-case)",
+      example: "now-showing",
+    }),
+    genreId: zUuidV7().optional().meta({
+      description: "Filter by genre UUIDv7",
+      example: "019fa8bc-8f4d-7000-b366-e691f45cfb01",
+    }),
+    rating: z
+      .enum(
+        movieRatingEnum.enumValues,
+        i18nZodMsg("validation.isIn", {
+          "0": movieRatingEnum.enumValues.join(", "),
+        }),
+      )
+      .optional()
+      .meta({
+        description: "Filter by movie age rating",
+        example: "PG_13",
+      }),
+    search: zSanitizedString({ min: 1, max: 100 }).optional().meta({
+      description:
+        "Search keyword matching Vietnamese and English movie titles",
+      example: "Deadpool",
+    }),
+    page: zNumericString({ min: 1, integer: true }).default(1).meta({
+      description: "Page index (1-based)",
+      example: 1,
+    }),
+    limit: zNumericString({ min: 1, max: 100, integer: true })
+      .default(20)
+      .meta({
+        description: "Number of records per page (1..100)",
+        example: 20,
+      }),
+    lang: catalogLanguageEnum.default("vi").meta({
+      description: "Localization language code",
+      example: "vi",
+    }),
   })
   .strict();
 
@@ -39,54 +72,6 @@ export type MovieListQueryDtoType = z.infer<typeof movieListQuerySchema>;
 /**
  * Data Transfer Object for public movie catalog discovery query parameters.
  */
-export class MovieListQueryDto implements MovieListQueryDtoType {
+export class MovieListQueryDto extends createZodDto(movieListQuerySchema) {
   public static readonly zodSchema = movieListQuerySchema;
-
-  @ApiPropertyOptional({
-    description: "Filter by schedule status (kebab-case)",
-    enum: ["now-showing", "coming-soon"],
-    example: "now-showing",
-  })
-  public status?: MovieStatus;
-
-  @ApiPropertyOptional({
-    description: "Filter by genre UUIDv7",
-    example: "019fa8bc-8f4d-7000-b366-e691f45cfb01",
-  })
-  public genreId?: string;
-
-  @ApiPropertyOptional({
-    description: "Filter by movie age rating",
-    enum: movieRatingEnum.enumValues,
-    example: "PG_13",
-  })
-  public rating?: (typeof movieRatingEnum.enumValues)[number];
-
-  @ApiPropertyOptional({
-    description: "Search keyword matching Vietnamese and English movie titles",
-    example: "Deadpool",
-  })
-  public search?: string;
-
-  @ApiPropertyOptional({
-    description: "Page index (1-based)",
-    example: 1,
-    default: 1,
-  })
-  public page!: number;
-
-  @ApiPropertyOptional({
-    description: "Number of records per page (1..100)",
-    example: 20,
-    default: 20,
-  })
-  public limit!: number;
-
-  @ApiPropertyOptional({
-    description: "Localization language code",
-    enum: ["vi", "en"],
-    example: "vi",
-    default: "vi",
-  })
-  public lang!: CatalogLanguage;
 }

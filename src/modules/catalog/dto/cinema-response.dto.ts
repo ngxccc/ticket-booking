@@ -1,69 +1,55 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { PaginationMetaDto } from "./movie-response.dto";
+import { z } from "zod";
+import { createZodDto, paginationMetaSchema } from "@/common/dto";
 
-export class CinemaResponseDto {
-  @ApiProperty({
+export const cinemaResponseSchema = z.object({
+  id: z.string().meta({
     description: "UUIDv7 identifier of the cinema venue",
     example: "019fa8bc-8f4d-7000-b366-e691f45cfc01",
-  })
-  id!: string;
-
-  @ApiProperty({
+  }),
+  name: z.string().meta({
     description: "Name of the cinema venue",
     example: "CGV Vincom Đồng Khởi",
-  })
-  name!: string;
-
-  @ApiProperty({
+  }),
+  city: z.string().meta({
     description: "City or province name",
     example: "Thành phố Hồ Chí Minh",
-  })
-  city!: string;
-
-  @ApiProperty({
+  }),
+  ward: z.string().meta({
     description: "Ward or commune name",
     example: "Phường Bến Nghé",
-  })
-  ward!: string;
-
-  @ApiProperty({
+  }),
+  streetAddress: z.string().meta({
     description: "Detailed street and building address",
     example: "Tầng 5, TTTM Vincom Center, 72 Lê Thánh Tôn",
-  })
-  streetAddress!: string;
-
-  @ApiProperty({
+  }),
+  postalCode: z.string().nullable().meta({
     description: "5-digit postal code",
     example: "70000",
-    nullable: true,
-  })
-  postalCode!: string | null;
-
-  @ApiProperty({
+  }),
+  latitude: z.string().nullable().meta({
     description: "GPS Latitude",
     example: "10.77810000",
-    nullable: true,
-  })
-  latitude!: string | null;
-
-  @ApiProperty({
+  }),
+  longitude: z.string().nullable().meta({
     description: "GPS Longitude",
     example: "106.70250000",
-    nullable: true,
-  })
-  longitude!: string | null;
-
-  @ApiProperty({
+  }),
+  totalHalls: z.number().meta({
     description: "Total number of active screening halls",
     example: 7,
-  })
-  totalHalls!: number;
-}
+  }),
+});
+export const cinemaListResponseSchema = z.object({
+  data: z.array(cinemaResponseSchema),
+  meta: paginationMetaSchema,
+});
 
-export class CinemaListResponseDto {
-  @ApiProperty({ type: [CinemaResponseDto] })
-  data!: CinemaResponseDto[];
+export type CinemaResponseDtoType = z.infer<typeof cinemaResponseSchema>;
+export type CinemaListResponseDtoType = z.infer<
+  typeof cinemaListResponseSchema
+>;
 
-  @ApiProperty({ type: PaginationMetaDto })
-  meta!: PaginationMetaDto;
-}
+export class CinemaResponseDto extends createZodDto(cinemaResponseSchema) {}
+export class CinemaListResponseDto extends createZodDto(
+  cinemaListResponseSchema,
+) {}

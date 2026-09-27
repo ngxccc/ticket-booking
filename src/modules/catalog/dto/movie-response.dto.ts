@@ -1,86 +1,70 @@
-import { PaginationMetaDto } from "@/common/dto";
-export { PaginationMetaDto };
-import { ApiProperty } from "@nestjs/swagger";
+import { z } from "zod";
+import {
+  createZodDto,
+  paginationMetaSchema,
+  PaginationMetaDto,
+} from "@/common/dto";
 
-export class MovieGenreItemDto {
-  @ApiProperty({
+export { PaginationMetaDto };
+export const movieGenreItemSchema = z.object({
+  id: z.string().meta({
     description: "UUIDv7 of the genre",
     example: "019fa8bc-8f4d-7000-b366-e691f45cfb01",
-  })
-  id!: string;
-
-  @ApiProperty({
+  }),
+  name: z.string().meta({
     description: "Localized genre name",
     example: "Action",
-  })
-  name!: string;
-}
+  }),
+});
 
-export class MovieResponseDto {
-  @ApiProperty({
+export const movieResponseSchema = z.object({
+  id: z.string().meta({
     description: "UUIDv7 identifier of the movie",
     example: "019fa8bc-8f4d-7000-b366-e691f45cfb91",
-  })
-  id!: string;
-
-  @ApiProperty({
+  }),
+  title: z.string().meta({
     description: "Localized movie title",
     example: "Deadpool & Wolverine",
-  })
-  title!: string;
-
-  @ApiProperty({
+  }),
+  description: z.string().nullable().meta({
     description: "Localized movie synopsis/description",
     example: "Wolverine joins Deadpool on a multiverse mission.",
-    nullable: true,
-  })
-  description!: string | null;
-
-  @ApiProperty({
+  }),
+  durationMinutes: z.number().meta({
     description: "Duration in minutes",
     example: 128,
-  })
-  durationMinutes!: number;
-
-  @ApiProperty({
+  }),
+  releaseDate: z.string().nullable().meta({
     description: "Release date in YYYY-MM-DD format",
     example: "2026-07-26",
-    nullable: true,
-  })
-  releaseDate!: string | null;
-
-  @ApiProperty({
+  }),
+  rating: z.string().nullable().meta({
     description: "Age rating code",
     example: "R",
-    nullable: true,
-  })
-  rating!: string | null;
-
-  @ApiProperty({
+  }),
+  posterUrl: z.string().nullable().meta({
     description: "Poster image URL",
     example: "https://cdn.ticketbooking.com/posters/deadpool.jpg",
-    nullable: true,
-  })
-  posterUrl!: string | null;
-
-  @ApiProperty({
+  }),
+  trailerUrl: z.string().nullable().meta({
     description: "Trailer video URL",
     example: "https://youtube.com/watch?v=deadpool",
-    nullable: true,
-  })
-  trailerUrl!: string | null;
-
-  @ApiProperty({
+  }),
+  genres: z.array(movieGenreItemSchema).meta({
     description: "List of associated genres",
-    type: [MovieGenreItemDto],
-  })
-  genres!: MovieGenreItemDto[];
-}
+  }),
+});
+export const movieListResponseSchema = z.object({
+  data: z.array(movieResponseSchema),
+  meta: paginationMetaSchema,
+});
 
-export class MovieListResponseDto {
-  @ApiProperty({ type: [MovieResponseDto] })
-  data!: MovieResponseDto[];
+export type MovieGenreItemDtoType = z.infer<typeof movieGenreItemSchema>;
+export type MovieResponseDtoType = z.infer<typeof movieResponseSchema>;
+export type MovieListResponseDtoType = z.infer<typeof movieListResponseSchema>;
 
-  @ApiProperty({ type: PaginationMetaDto })
-  meta!: PaginationMetaDto;
-}
+export class MovieGenreItemDto extends createZodDto(movieGenreItemSchema) {}
+export class MovieResponseDto extends createZodDto(movieResponseSchema) {}
+export class MovieListResponseDto extends createZodDto(
+  movieListResponseSchema,
+) {}

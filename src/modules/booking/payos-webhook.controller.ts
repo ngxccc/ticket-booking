@@ -52,11 +52,7 @@ export class PayOSWebhookController {
     if (
       !checksumKey ||
       !payload.signature ||
-      !verifyPayOSSignature(
-        payload.data as unknown as Record<string, unknown>,
-        payload.signature,
-        checksumKey,
-      )
+      !verifyPayOSSignature(payload.data, payload.signature, checksumKey)
     ) {
       this.logger.warn(
         `PAYOS_WEBHOOK_INVALID_SIGNATURE: Webhook signature verification failed for orderCode ${String(payload.data.orderCode)}`,
