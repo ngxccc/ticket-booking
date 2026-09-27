@@ -75,13 +75,13 @@ export function zPassword() {
     })
     .min(8, { message: i18nZodMsg("validation.minLength", { "0": 8 }) })
     .max(128, { message: i18nZodMsg("validation.maxLength", { "0": 128 }) })
-    .regex(/[A-Z]/, {
+    .refine((val) => /[A-Z]/.test(val), {
       message: i18nZodMsg("validation.passwordMustContainUppercase"),
     })
-    .regex(/[0-9]/, {
+    .refine((val) => /[0-9]/.test(val), {
       message: i18nZodMsg("validation.passwordMustContainNumber"),
     })
-    .regex(/[^a-zA-Z0-9]/, {
+    .refine((val) => /[^a-zA-Z0-9]/.test(val), {
       message: i18nZodMsg("validation.passwordMustContainSpecialChar"),
     });
 }
