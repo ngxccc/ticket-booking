@@ -36,7 +36,7 @@ import {
 } from "./dto";
 
 @ApiTags(SHOWS_ROUTES.BASE)
-@Controller(SHOWS_ROUTES.BASE)
+@Controller({ path: SHOWS_ROUTES.BASE, version: "1" })
 @UseGuards(CustomThrottlerGuard)
 export class ShowsController {
   constructor(private readonly showsService: ShowsService) {}

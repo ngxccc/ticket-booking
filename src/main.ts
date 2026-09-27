@@ -3,6 +3,7 @@ import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { initSentry } from "./common/services/sentry.service";
 import { setupOpenApiAndScalar } from "./common/config/openapi.config";
+import { setupGlobalPrefix } from "./common/config/api-prefix.config";
 import { AppModule } from "./app.module";
 
 // Initialize Sentry SDK before NestJS bootstrap to capture startup crashes and enable tracing instrumentation.
@@ -21,7 +22,10 @@ async function bootstrap() {
 
   // Enable shutdown hooks explicitly so NestJS can trigger onApplicationShutdown across Sentry and background workers.
   app.enableShutdownHooks();
-  // Generate OpenAPI schema and serve interactive Scalar API documentation at /reference.
+  // Enforce standardized /api global route prefix and URI versioning across all REST controllers.
+  setupGlobalPrefix(app);
+
+  // Generate OpenAPI schema and serve interactive Scalar API documentation at /api/docs.
   setupOpenApiAndScalar(app);
 
   await app.listen(process.env["PORT"] ?? 3000);

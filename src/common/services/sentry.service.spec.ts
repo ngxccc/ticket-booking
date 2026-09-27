@@ -201,7 +201,7 @@ describe("SentryService", () => {
       expect(
         shouldDropBreadcrumb({
           category: SENTRY_BREADCRUMB_CATEGORY.HTTP,
-          message: "GET /api/shows 200",
+          message: "GET /api/v1/shows 200",
         }),
       ).toBe(false);
       expect(
@@ -312,17 +312,19 @@ describe("SentryService", () => {
   });
 
   describe("sampleTraceTransaction", () => {
-    it("should drop 100% of traces when transaction belongs to health or metrics endpoints", () => {
+    it("should drop 100% of traces when transaction belongs to health, docs, or metrics endpoints", () => {
       expect(sampleTraceTransaction("GET /health")).toBe(0.0);
       expect(sampleTraceTransaction("GET /metrics")).toBe(0.0);
       expect(sampleTraceTransaction("GET /")).toBe(0.0);
-      expect(sampleTraceTransaction("GET /reference")).toBe(0.0);
-      expect(sampleTraceTransaction("GET /api-json")).toBe(0.0);
+      expect(sampleTraceTransaction("GET /api/docs")).toBe(0.0);
+      expect(sampleTraceTransaction("GET /openapi.json")).toBe(0.0);
     });
 
     it("should return configured sample rate when transaction is a business route", () => {
-      expect(sampleTraceTransaction("POST /bookings/reserve", 1.0)).toBe(1.0);
-      expect(sampleTraceTransaction("POST /auth/login", 0.5)).toBe(0.5);
+      expect(sampleTraceTransaction("POST /api/v1/bookings/reserve", 1.0)).toBe(
+        1.0,
+      );
+      expect(sampleTraceTransaction("POST /api/v1/auth/login", 0.5)).toBe(0.5);
     });
   });
 
@@ -446,7 +448,7 @@ describe("SentryService", () => {
       expect(() => {
         service.addBreadcrumb({
           category: "http",
-          message: "GET /api/shows",
+          message: "GET /api/v1/shows",
         });
       }).not.toThrow();
     });

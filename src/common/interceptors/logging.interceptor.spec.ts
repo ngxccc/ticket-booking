@@ -92,7 +92,7 @@ describe("LoggingInterceptor", () => {
     });
 
     it("should log message at warn level when error is 4xx HttpException", (done) => {
-      const mockRequest = { method: "POST", originalUrl: "/auth/login" };
+      const mockRequest = { method: "POST", originalUrl: "/api/v1/auth/login" };
       const mockResponse = { statusCode: 200 };
 
       const mockContext = {
@@ -113,7 +113,7 @@ describe("LoggingInterceptor", () => {
           expect(err).toBe(error);
           expect(warnSpy).toHaveBeenCalledWith(
             expect.stringMatching(
-              /^\[POST\] \/auth\/login 400 - \d+ms - Error: Bad Request$/,
+              /^\[POST\] \/api\/v1\/auth\/login 400 - \d+ms - Error: Bad Request$/,
             ),
           );
           done();
@@ -203,7 +203,7 @@ describe("LoggingInterceptor", () => {
       ).mockImplementation(() => undefined);
       const mockRequest = {
         method: "GET",
-        originalUrl: "/api/shows",
+        originalUrl: "/api/v1/shows",
         headers: { "x-request-id": "req-999" },
         user: { id: "user-123", email: "user@test.com", role: "admin" },
       };

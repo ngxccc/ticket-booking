@@ -31,7 +31,7 @@ export const rfc9457ErrorResponseSchema = z.object({
   }),
   instance: z.string().meta({
     description: "API request path that triggered the error",
-    example: "/auth/register",
+    example: "/api/v1/auth/register",
   }),
   code: z.string().optional().meta({
     description: "Machine-readable error code",

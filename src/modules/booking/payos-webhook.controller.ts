@@ -24,7 +24,7 @@ import { BOOKING_ROUTES } from "./booking.routes";
 import { LOG_EVENTS } from "@/common/constants/event.constant";
 
 @ApiTags(BOOKING_ROUTES.PAYMENTS_BASE)
-@Controller(BOOKING_ROUTES.PAYMENTS_BASE)
+@Controller({ path: BOOKING_ROUTES.PAYMENTS_BASE, version: "1" })
 export class PayOSWebhookController {
   private readonly logger = new Logger(PayOSWebhookController.name);
 

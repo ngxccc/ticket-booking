@@ -129,8 +129,8 @@ export function sampleTraceTransaction(
     name.startsWith("GET /health") ||
     name === "GET /" ||
     name.startsWith("GET /metrics") ||
-    name.startsWith("GET /reference") ||
-    name.startsWith("GET /api-json")
+    name.startsWith("GET /api/docs") ||
+    name.startsWith("GET /openapi.json")
   ) {
     return 0.0;
   }
