@@ -30,45 +30,20 @@ jobs:
       PORT: "3000"
       TARGET_URL: "http://127.0.0.1:3000"
       VUS: ${{ github.event.inputs.vus || '2000' }}
-    services:
-      postgres:
-        image: postgres:18-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgrespassword
-          POSTGRES_DB: ticket_booking
-        ports:
-          - 5432:5432
-        options: >-
-          --mount type=tmpfs,destination=/var/lib/postgresql,tmpfs-size=1073741824
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      redis:
-        image: redis:8-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --mount type=tmpfs,destination=/data,tmpfs-size=536870912
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
       - name: Setup Environment
         uses: ./.github/setup-environment
+      - name: Start Test Services
+        uses: ./.github/setup-services
 
       - name: Setup Grafana k6
         uses: grafana/setup-k6-action@v1
 
       - name: Run Database Migrations
-        run: doppler run --preserve-env="true" -c stg -- bun drizzle-kit migrate --config drizzle.config.ts
+        run: doppler run --preserve-env="true" -c test -- bun drizzle-kit migrate --config drizzle.config.ts
 
       - name: Build Application
         run: bun run build
@@ -82,7 +57,7 @@ jobs:
         run: bun run test:load:seed
       - name: Start Application in Background
         run: |
-          doppler run --preserve-env="true" -c stg -- bun dist/main.js &
+          doppler run --preserve-env="true" -c test -- bun dist/main.js &
           APP_PID=$!
           echo "APP_PID=$APP_PID" >> $GITHUB_ENV
           ready=false
