@@ -19,7 +19,7 @@ import {
 } from "./database.helper";
 import { createRedisClient } from "@/config/redis.config";
 import { ZodValidationPipe } from "@/common/pipes/zod-validation.pipe";
-
+import { setupGlobalPrefix } from "@/common/config/api-prefix.config";
 /**
  * Encapsulates the runtime application and isolated resources provisioned for a test suite.
  */
@@ -133,6 +133,7 @@ export async function createTestApp(
     .compile();
 
   const app = moduleFixture.createNestApplication();
+  setupGlobalPrefix(app);
   app.useGlobalPipes(new ZodValidationPipe());
   await app.init();
 

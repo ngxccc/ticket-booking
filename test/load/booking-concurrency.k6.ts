@@ -94,7 +94,7 @@ export function hotSeatScenario(): void {
     return;
   }
 
-  const url = `${fixture.targetUrl}/bookings/reserve`;
+  const url = `${fixture.targetUrl}/api/v1/bookings/reserve`;
   const payload = JSON.stringify({
     showId: fixture.showId,
     seatIds: [fixture.targetSeatId],
@@ -140,7 +140,7 @@ export function rateLimitScenario(): void {
   const user = fixture.users[0];
   if (!user) return;
 
-  const url = `${fixture.targetUrl}/bookings/reserve`;
+  const url = `${fixture.targetUrl}/api/v1/bookings/reserve`;
   const payload = JSON.stringify({
     showId: fixture.showId,
     seatIds: [fixture.otherSeatIds[0] ?? fixture.targetSeatId],

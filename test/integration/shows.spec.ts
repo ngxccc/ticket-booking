@@ -219,7 +219,7 @@ describe("Shows Module Integration", () => {
         const basePrice = 100000;
 
         const res = await request(getHttpServer())
-          .post("/shows")
+          .post("/api/v1/shows")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: seededMovieId,
@@ -264,7 +264,7 @@ describe("Shows Module Integration", () => {
         );
 
         await request(getHttpServer())
-          .post("/shows")
+          .post("/api/v1/shows")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: seededMovieId,
@@ -274,7 +274,7 @@ describe("Shows Module Integration", () => {
           });
 
         const resOverlap = await request(getHttpServer())
-          .post("/shows")
+          .post("/api/v1/shows")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: seededMovieId,
@@ -285,7 +285,7 @@ describe("Shows Module Integration", () => {
         expect(resOverlap.status).toBe(409);
 
         const resBuffer = await request(getHttpServer())
-          .post("/shows")
+          .post("/api/v1/shows")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: seededMovieId,
@@ -300,7 +300,7 @@ describe("Shows Module Integration", () => {
     describe("when checking authorization", () => {
       it("should reject with 403 Forbidden when called by a non-admin user", async () => {
         const res = await request(getHttpServer())
-          .post("/shows")
+          .post("/api/v1/shows")
           .set("Authorization", `Bearer ${userToken}`)
           .send({
             movieId: seededMovieId,
@@ -313,7 +313,7 @@ describe("Shows Module Integration", () => {
       });
 
       it("should reject with 401 Unauthorized when no auth token is provided", async () => {
-        const res = await request(getHttpServer()).post("/shows").send({
+        const res = await request(getHttpServer()).post("/api/v1/shows").send({
           movieId: seededMovieId,
           hallId: seededHallId,
           startTime: "2026-09-05T10:00:00.000Z",
@@ -328,7 +328,7 @@ describe("Shows Module Integration", () => {
       it("should reject with 404 Not Found when movieId does not exist", async () => {
         const nonExistentMovieId = "019fa8bc-8f4d-7000-b366-e691f45cfb99";
         const res = await request(getHttpServer())
-          .post("/shows")
+          .post("/api/v1/shows")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: nonExistentMovieId,
@@ -342,7 +342,7 @@ describe("Shows Module Integration", () => {
 
       it("should reject with 400 Bad Request when request body is invalid", async () => {
         const res = await request(getHttpServer())
-          .post("/shows")
+          .post("/api/v1/shows")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: "invalid-uuid",
@@ -359,7 +359,7 @@ describe("Shows Module Integration", () => {
           Date.now() - TIME_IN_MS.MINUTE,
         ).toISOString();
         const res = await request(getHttpServer())
-          .post("/shows")
+          .post("/api/v1/shows")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: seededMovieId,
@@ -374,7 +374,7 @@ describe("Shows Module Integration", () => {
       it("should reject with 404 Not Found when hallId does not exist", async () => {
         const nonExistentHallId = "019fa8bc-8f4d-7000-b366-e691f45cfb88";
         const res = await request(getHttpServer())
-          .post("/shows")
+          .post("/api/v1/shows")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: seededMovieId,
@@ -399,7 +399,7 @@ describe("Shows Module Integration", () => {
         );
 
         const res = await request(getHttpServer())
-          .post("/shows")
+          .post("/api/v1/shows")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: seededMovieId,
@@ -418,7 +418,7 @@ describe("Shows Module Integration", () => {
         );
 
         const res1 = await request(getHttpServer())
-          .post("/shows")
+          .post("/api/v1/shows")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: seededMovieId,
@@ -429,7 +429,7 @@ describe("Shows Module Integration", () => {
         expect(res1.status).toBe(201);
 
         const resExact = await request(getHttpServer())
-          .post("/shows")
+          .post("/api/v1/shows")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: seededMovieId,
@@ -446,7 +446,7 @@ describe("Shows Module Integration", () => {
     describe("when checking authorization", () => {
       it("should reject with 401 Unauthorized when no token is provided", async () => {
         const res = await request(getHttpServer())
-          .post("/shows/batch")
+          .post("/api/v1/shows/batch")
           .send({
             movieId: seededMovieId,
             hallId: seededHallId,
@@ -461,7 +461,7 @@ describe("Shows Module Integration", () => {
 
       it("should reject with 403 Forbidden when accessed by standard user", async () => {
         const res = await request(getHttpServer())
-          .post("/shows/batch")
+          .post("/api/v1/shows/batch")
           .set("Authorization", `Bearer ${userToken}`)
           .send({
             movieId: seededMovieId,
@@ -479,7 +479,7 @@ describe("Shows Module Integration", () => {
     describe("when validating batch parameters and limits", () => {
       it("should reject with 400 Bad Request when startDate > endDate", async () => {
         const res = await request(getHttpServer())
-          .post("/shows/batch")
+          .post("/api/v1/shows/batch")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: seededMovieId,
@@ -495,7 +495,7 @@ describe("Shows Module Integration", () => {
 
       it("should reject with 400 Bad Request when date range exceeds 30 days", async () => {
         const res = await request(getHttpServer())
-          .post("/shows/batch")
+          .post("/api/v1/shows/batch")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: seededMovieId,
@@ -511,7 +511,7 @@ describe("Shows Module Integration", () => {
 
       it("should reject with 400 Bad Request when total shows exceed 100 limit", async () => {
         const res = await request(getHttpServer())
-          .post("/shows/batch")
+          .post("/api/v1/shows/batch")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: seededMovieId,
@@ -527,7 +527,7 @@ describe("Shows Module Integration", () => {
 
       it("should reject with 400 Bad Request when time slots collide internally (intra-batch collision)", async () => {
         const res = await request(getHttpServer())
-          .post("/shows/batch")
+          .post("/api/v1/shows/batch")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: seededMovieId,
@@ -545,7 +545,7 @@ describe("Shows Module Integration", () => {
     describe("when executing batch creation transaction", () => {
       it("should successfully create batch showtimes across date range with pre-allocated seats (201 Created)", async () => {
         const res = await request(getHttpServer())
-          .post("/shows/batch")
+          .post("/api/v1/shows/batch")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: seededMovieId,
@@ -581,7 +581,7 @@ describe("Shows Module Integration", () => {
       });
       it("should reject entire batch and rollback cleanly when one slot collides with existing DB schedule (409 Conflict)", async () => {
         await request(getHttpServer())
-          .post("/shows")
+          .post("/api/v1/shows")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: seededMovieId,
@@ -591,7 +591,7 @@ describe("Shows Module Integration", () => {
           });
 
         const res = await request(getHttpServer())
-          .post("/shows/batch")
+          .post("/api/v1/shows/batch")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: seededMovieId,
@@ -652,7 +652,7 @@ describe("Shows Module Integration", () => {
           .returning({ id: shows.id });
         const showId = show?.id ?? "";
 
-        const res = await request(getHttpServer()).get("/shows");
+        const res = await request(getHttpServer()).get("/api/v1/shows");
 
         expect(res.status).toBe(200);
         const body = res.body as ScheduleDiscoveryApiResponse;
@@ -729,7 +729,7 @@ describe("Shows Module Integration", () => {
 
         // 1. Filter by movieId (seededMovie) -> should return Show 1 and Show 3
         const movieRes = await request(getHttpServer())
-          .get("/shows")
+          .get("/api/v1/shows")
           .query({ date: futureDateStr, movieId: seededMovieId });
         expect(movieRes.status).toBe(200);
         const movieBody = movieRes.body as ScheduleDiscoveryApiResponse;
@@ -740,7 +740,7 @@ describe("Shows Module Integration", () => {
 
         // 2. Filter by cinemaId (seededCinema) -> should return Show 1 and Show 2
         const cinemaRes = await request(getHttpServer())
-          .get("/shows")
+          .get("/api/v1/shows")
           .query({ date: futureDateStr, cinemaId: seededCinemaId });
         expect(cinemaRes.status).toBe(200);
         const cinemaBody = cinemaRes.body as ScheduleDiscoveryApiResponse;
@@ -750,11 +750,13 @@ describe("Shows Module Integration", () => {
         expect(cinemaShowIds).not.toContain(s3Id);
 
         // 3. Filter by both movieId & cinemaId -> should return ONLY Show 1
-        const combinedRes = await request(getHttpServer()).get("/shows").query({
-          date: futureDateStr,
-          movieId: seededMovieId,
-          cinemaId: seededCinemaId,
-        });
+        const combinedRes = await request(getHttpServer())
+          .get("/api/v1/shows")
+          .query({
+            date: futureDateStr,
+            movieId: seededMovieId,
+            cinemaId: seededCinemaId,
+          });
         expect(combinedRes.status).toBe(200);
         const combinedBody = combinedRes.body as ScheduleDiscoveryApiResponse;
         expect(combinedBody.data).toHaveLength(1);
@@ -762,7 +764,7 @@ describe("Shows Module Integration", () => {
 
         // 4. Filter with non-existent valid UUIDv7 -> returns empty array
         const emptyRes = await request(getHttpServer())
-          .get("/shows")
+          .get("/api/v1/shows")
           .query({ date: futureDateStr, movieId: uuidv7() });
         expect(emptyRes.status).toBe(200);
         expect((emptyRes.body as ScheduleDiscoveryApiResponse).data).toEqual(
@@ -832,7 +834,7 @@ describe("Shows Module Integration", () => {
         ]);
 
         const res = await request(getHttpServer())
-          .get("/shows")
+          .get("/api/v1/shows")
           .query({ date: futureDateStr, movieId: seededMovieId });
 
         expect(res.status).toBe(200);
@@ -884,7 +886,7 @@ describe("Shows Module Integration", () => {
         ]);
 
         const res = await request(getHttpServer())
-          .get("/shows")
+          .get("/api/v1/shows")
           .query({ date: futureDateStr, movieId: seededMovieId });
 
         expect(res.status).toBe(200);
@@ -931,7 +933,7 @@ describe("Shows Module Integration", () => {
 
         // Query with lang=en
         const enRes = await request(getHttpServer())
-          .get("/shows")
+          .get("/api/v1/shows")
           .query({ date: futureDateStr, movieId: movieWithEn.id, lang: "en" });
 
         expect(enRes.status).toBe(200);
@@ -950,7 +952,7 @@ describe("Shows Module Integration", () => {
         );
 
         const res = await request(getHttpServer())
-          .get("/shows")
+          .get("/api/v1/shows")
           .query({ date: pastDateStr });
 
         expect(res.status).toBe(400);
@@ -964,7 +966,7 @@ describe("Shows Module Integration", () => {
         );
 
         const res = await request(getHttpServer())
-          .get("/shows")
+          .get("/api/v1/shows")
           .query({ date: farFutureDateStr });
 
         expect(res.status).toBe(400);
@@ -972,7 +974,7 @@ describe("Shows Module Integration", () => {
 
       it("should return 400 Bad Request when movieId is not a valid UUIDv7", async () => {
         const res = await request(getHttpServer())
-          .get("/shows")
+          .get("/api/v1/shows")
           .query({ movieId: "not-a-uuid" });
 
         expect(res.status).toBe(400);
@@ -980,7 +982,7 @@ describe("Shows Module Integration", () => {
 
       it("should return 400 Bad Request when extraneous query parameters are passed", async () => {
         const res = await request(getHttpServer())
-          .get("/shows")
+          .get("/api/v1/shows")
           .query({ date: todayStr, unexpectedKey: "attack_payload" });
 
         expect(res.status).toBe(400);

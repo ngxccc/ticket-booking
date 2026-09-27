@@ -81,7 +81,7 @@ describe("Catalog Module Integration - Movies", () => {
         );
 
         const res = await request(getHttpServer()).get(
-          "/movies?page=1&limit=10",
+          "/api/v1/movies?page=1&limit=10",
         );
 
         expect(res.status).toBe(200);
@@ -128,7 +128,7 @@ describe("Catalog Module Integration - Movies", () => {
         );
 
         const res = await request(getHttpServer()).get(
-          "/movies?status=now-showing",
+          "/api/v1/movies?status=now-showing",
         );
 
         expect(res.status).toBe(200);
@@ -164,7 +164,7 @@ describe("Catalog Module Integration - Movies", () => {
         );
 
         const res = await request(getHttpServer()).get(
-          "/movies?status=coming-soon",
+          "/api/v1/movies?status=coming-soon",
         );
 
         expect(res.status).toBe(200);
@@ -194,7 +194,7 @@ describe("Catalog Module Integration - Movies", () => {
         await linkMovieGenre(db, movieDrama.id, genreDrama.id);
 
         const res = await request(getHttpServer()).get(
-          `/movies?genreId=${genreAction.id}`,
+          `/api/v1/movies?genreId=${genreAction.id}`,
         );
 
         expect(res.status).toBe(200);
@@ -215,7 +215,9 @@ describe("Catalog Module Integration - Movies", () => {
         const movieG = await createMovie(db, { rating: "G" });
         await createMovieTranslation(db, movieG.id, "vi", "Phim Nhãn G");
 
-        const res = await request(getHttpServer()).get("/movies?rating=R");
+        const res = await request(getHttpServer()).get(
+          "/api/v1/movies?rating=R",
+        );
 
         expect(res.status).toBe(200);
         const body = res.body as unknown as ApiResponse<
@@ -233,7 +235,7 @@ describe("Catalog Module Integration - Movies", () => {
 
         // Searching English title while requesting vi locale
         const res = await request(getHttpServer()).get(
-          "/movies?search=Dark%20Knight&lang=vi",
+          "/api/v1/movies?search=Dark%20Knight&lang=vi",
         );
 
         expect(res.status).toBe(200);
@@ -253,7 +255,9 @@ describe("Catalog Module Integration - Movies", () => {
         const movie2 = await createMovie(db);
         await createMovieTranslation(db, movie2.id, "vi", "Normal Movie");
 
-        const res = await request(getHttpServer()).get("/movies?search=100%");
+        const res = await request(getHttpServer()).get(
+          "/api/v1/movies?search=100%",
+        );
 
         expect(res.status).toBe(200);
         const body = res.body as unknown as ApiResponse<
@@ -266,7 +270,7 @@ describe("Catalog Module Integration - Movies", () => {
 
       it("should return 200 OK with empty data array when no movies match criteria (INV-4)", async () => {
         const res = await request(getHttpServer()).get(
-          "/movies?search=NonExistentMovie9999",
+          "/api/v1/movies?search=NonExistentMovie9999",
         );
 
         expect(res.status).toBe(200);
@@ -290,7 +294,9 @@ describe("Catalog Module Integration - Movies", () => {
           "Mô tả tiếng Việt",
         );
 
-        const res = await request(getHttpServer()).get(`/movies?lang=en`);
+        const res = await request(getHttpServer()).get(
+          `/api/v1/movies?lang=en`,
+        );
 
         expect(res.status).toBe(200);
         const body = res.body as unknown as ApiResponse<
@@ -304,7 +310,7 @@ describe("Catalog Module Integration - Movies", () => {
 
       it("should reject snake_case status value with 400 Bad Request", async () => {
         const res = await request(getHttpServer()).get(
-          "/movies?status=now_showing",
+          "/api/v1/movies?status=now_showing",
         );
         expect(res.status).toBe(400);
         const body = res.body as unknown as Rfc9457ErrorResponse;
@@ -313,7 +319,7 @@ describe("Catalog Module Integration - Movies", () => {
       });
 
       it("should reject page < 1 with 400 Bad Request (INV-4)", async () => {
-        const res = await request(getHttpServer()).get("/movies?page=0");
+        const res = await request(getHttpServer()).get("/api/v1/movies?page=0");
 
         expect(res.status).toBe(400);
         const body = res.body as unknown as Rfc9457ErrorResponse;
@@ -321,7 +327,9 @@ describe("Catalog Module Integration - Movies", () => {
       });
 
       it("should reject limit > 100 with 400 Bad Request (INV-4)", async () => {
-        const res = await request(getHttpServer()).get("/movies?limit=101");
+        const res = await request(getHttpServer()).get(
+          "/api/v1/movies?limit=101",
+        );
 
         expect(res.status).toBe(400);
         const body = res.body as unknown as Rfc9457ErrorResponse;
@@ -351,7 +359,7 @@ describe("Catalog Module Integration - Movies", () => {
         await linkMovieGenre(db, movie.id, genre.id);
 
         const res = await request(getHttpServer()).get(
-          `/movies/${movie.id}?lang=vi`,
+          `/api/v1/movies/${movie.id}?lang=vi`,
         );
 
         expect(res.status).toBe(200);
@@ -366,7 +374,9 @@ describe("Catalog Module Integration - Movies", () => {
       });
 
       it("should return 400 Bad Request when movie id is not a valid UUIDv7 (INV-5)", async () => {
-        const res = await request(getHttpServer()).get("/movies/not-a-uuid");
+        const res = await request(getHttpServer()).get(
+          "/api/v1/movies/not-a-uuid",
+        );
 
         expect(res.status).toBe(400);
         const body = res.body as unknown as Rfc9457ErrorResponse;
@@ -377,7 +387,7 @@ describe("Catalog Module Integration - Movies", () => {
       it("should return 404 Not Found with RFC 9457 details when movie does not exist (INV-5)", async () => {
         const nonExistentId = uuidv7();
         const res = await request(getHttpServer()).get(
-          `/movies/${nonExistentId}`,
+          `/api/v1/movies/${nonExistentId}`,
         );
 
         expect(res.status).toBe(404);
@@ -397,7 +407,7 @@ describe("Catalog Module Integration - Movies", () => {
         );
 
         const res = await request(getHttpServer()).get(
-          `/movies/${movie.id}?lang=en`,
+          `/api/v1/movies/${movie.id}?lang=en`,
         );
 
         expect(res.status).toBe(200);
