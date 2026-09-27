@@ -67,24 +67,20 @@ export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
 export function setupOpenApiAndScalar(app: INestApplication): OpenAPIObject {
   const document = createOpenApiDocument(app);
 
-  // Expose raw JSON specification at /openapi.json and /api-json for automated validation and frontend SDK generators.
+  // Expose raw JSON specification at /openapi.json for automated validation and frontend SDK generators.
   app.use("/openapi.json", (_req: Request, res: Response) => {
     res.setHeader("Content-Type", "application/json");
     res.json(document);
   });
 
-  app.use("/api-json", (_req: Request, res: Response) => {
-    res.setHeader("Content-Type", "application/json");
-    res.json(document);
-  });
-
-  // Serve modern, interactive Scalar API Reference UI at /reference with live testing capability.
+  // Serve modern, interactive Scalar API Reference UI at /api/docs with live testing capability.
   app.use(
-    "/reference",
+    "/api/docs",
     apiReference({
       spec: {
         content: document,
       },
+      theme: "saturn",
     }),
   );
 

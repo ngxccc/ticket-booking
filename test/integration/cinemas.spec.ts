@@ -68,7 +68,7 @@ describe("Catalog Module Integration - Cinemas", () => {
         await createHall(db, { cinemaId: cinema2.id, name: "Hall A" });
 
         const res = await request(getHttpServer())
-          .get("/cinemas")
+          .get("/api/v1/cinemas")
           .query({ page: 1, limit: 10 })
           .expect(200);
 
@@ -104,7 +104,9 @@ describe("Catalog Module Integration - Cinemas", () => {
           streetAddress: "2 Hải Triều",
         });
 
-        const res = await request(getHttpServer()).get("/cinemas").expect(200);
+        const res = await request(getHttpServer())
+          .get("/api/v1/cinemas")
+          .expect(200);
 
         const body = res.body as ApiResponse<
           CinemaResponseDto[],
@@ -132,7 +134,7 @@ describe("Catalog Module Integration - Cinemas", () => {
         });
 
         const res = await request(getHttpServer())
-          .get("/cinemas")
+          .get("/api/v1/cinemas")
           .query({ city: "Hồ Chí Minh" })
           .expect(200);
 
@@ -159,7 +161,7 @@ describe("Catalog Module Integration - Cinemas", () => {
         });
 
         const res = await request(getHttpServer())
-          .get("/cinemas")
+          .get("/api/v1/cinemas")
           .query({ ward: "Bến Nghé" })
           .expect(200);
 
@@ -186,7 +188,7 @@ describe("Catalog Module Integration - Cinemas", () => {
         });
 
         const resName = await request(getHttpServer())
-          .get("/cinemas")
+          .get("/api/v1/cinemas")
           .query({ search: "Cinestar" })
           .expect(200);
 
@@ -197,7 +199,7 @@ describe("Catalog Module Integration - Cinemas", () => {
         expect(bodyName.meta?.total).toBe(1);
         expect(bodyName.data[0]?.name).toBe("Cinestar Quốc Thanh");
         const resAddr = await request(getHttpServer())
-          .get("/cinemas")
+          .get("/api/v1/cinemas")
           .query({ search: "Cao Thắng" })
           .expect(200);
 
@@ -218,7 +220,7 @@ describe("Catalog Module Integration - Cinemas", () => {
         });
 
         const res = await request(getHttpServer())
-          .get("/cinemas")
+          .get("/api/v1/cinemas")
           .query({ city: "Đà Nẵng" })
           .expect(200);
 
@@ -253,7 +255,9 @@ describe("Catalog Module Integration - Cinemas", () => {
           streetAddress: "Address H",
         });
 
-        const res = await request(getHttpServer()).get("/cinemas").expect(200);
+        const res = await request(getHttpServer())
+          .get("/api/v1/cinemas")
+          .expect(200);
 
         const body = res.body as ApiResponse<
           CinemaResponseDto[],
@@ -269,7 +273,7 @@ describe("Catalog Module Integration - Cinemas", () => {
     describe("when validation fails (RFC 9457)", () => {
       it("should return 400 Bad Request when page is less than 1", async () => {
         const res = await request(getHttpServer())
-          .get("/cinemas")
+          .get("/api/v1/cinemas")
           .query({ page: 0 })
           .expect(400);
 
@@ -280,7 +284,7 @@ describe("Catalog Module Integration - Cinemas", () => {
 
       it("should return 400 Bad Request when limit exceeds 100", async () => {
         const res = await request(getHttpServer())
-          .get("/cinemas")
+          .get("/api/v1/cinemas")
           .query({ limit: 101 })
           .expect(400);
 
@@ -291,7 +295,7 @@ describe("Catalog Module Integration - Cinemas", () => {
 
       it("should return 400 Bad Request when unknown query parameters are passed (.strict)", async () => {
         const res = await request(getHttpServer())
-          .get("/cinemas")
+          .get("/api/v1/cinemas")
           .query({ unknownParam: "malicious" })
           .expect(400);
 

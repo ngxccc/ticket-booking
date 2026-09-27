@@ -176,7 +176,7 @@ describe("Booking Module Integration", () => {
       it("should return 401 Unauthorized when Authorization header is missing", async () => {
         const idempotencyKey = uuidv7();
         const response = await request(httpServer)
-          .post("/bookings/reserve")
+          .post("/api/v1/bookings/reserve")
           .set("idempotency-key", idempotencyKey)
           .send({
             showId: testShowId,
@@ -191,7 +191,7 @@ describe("Booking Module Integration", () => {
       it("should return 401 Unauthorized when Bearer token is malformed or invalid", async () => {
         const idempotencyKey = uuidv7();
         const response = await request(httpServer)
-          .post("/bookings/reserve")
+          .post("/api/v1/bookings/reserve")
           .set("Authorization", "Bearer invalid-malformed-jwt-token")
           .set("idempotency-key", idempotencyKey)
           .send({
@@ -207,7 +207,7 @@ describe("Booking Module Integration", () => {
     describe("when validating idempotency header", () => {
       it("should return 400 Bad Request when idempotency-key header is missing", async () => {
         const response = await request(httpServer)
-          .post("/bookings/reserve")
+          .post("/api/v1/bookings/reserve")
           .set("Authorization", `Bearer ${testUserToken}`)
           .send({
             showId: testShowId,
@@ -224,7 +224,7 @@ describe("Booking Module Integration", () => {
       it("should return 400 Bad Request when showId is not a valid UUIDv7 format", async () => {
         const idempotencyKey = uuidv7();
         const response = await request(httpServer)
-          .post("/bookings/reserve")
+          .post("/api/v1/bookings/reserve")
           .set("Authorization", `Bearer ${testUserToken}`)
           .set("idempotency-key", idempotencyKey)
           .send({
@@ -246,7 +246,7 @@ describe("Booking Module Integration", () => {
       it("should return 400 Bad Request when seatIds array is empty (violates @ArrayMinSize(1))", async () => {
         const idempotencyKey = uuidv7();
         const response = await request(httpServer)
-          .post("/bookings/reserve")
+          .post("/api/v1/bookings/reserve")
           .set("Authorization", `Bearer ${testUserToken}`)
           .set("idempotency-key", idempotencyKey)
           .send({
@@ -267,7 +267,7 @@ describe("Booking Module Integration", () => {
       it("should return 400 Bad Request when seatIds array exceeds 6 seats (violates @ArrayMaxSize(6))", async () => {
         const idempotencyKey = uuidv7();
         const response = await request(httpServer)
-          .post("/bookings/reserve")
+          .post("/api/v1/bookings/reserve")
           .set("Authorization", `Bearer ${testUserToken}`)
           .set("idempotency-key", idempotencyKey)
           .send({
@@ -298,7 +298,7 @@ describe("Booking Module Integration", () => {
       it("should successfully reserve seats and return 201 Created with correct ApiResponse shape", async () => {
         const idempotencyKey = uuidv7();
         const response = await request(httpServer)
-          .post("/bookings/reserve")
+          .post("/api/v1/bookings/reserve")
           .set("Authorization", `Bearer ${testUserToken}`)
           .set("idempotency-key", idempotencyKey)
           .send({
@@ -326,7 +326,7 @@ describe("Booking Module Integration", () => {
         const firstIdempotencyKey = uuidv7();
         const secondIdempotencyKey = uuidv7();
         await request(httpServer)
-          .post("/bookings/reserve")
+          .post("/api/v1/bookings/reserve")
           .set("Authorization", `Bearer ${testUserToken}`)
           .set("idempotency-key", firstIdempotencyKey)
           .send({
@@ -336,7 +336,7 @@ describe("Booking Module Integration", () => {
           .expect(201);
 
         const conflictResponse = await request(httpServer)
-          .post("/bookings/reserve")
+          .post("/api/v1/bookings/reserve")
           .set("Authorization", `Bearer ${testUserToken}`)
           .set("idempotency-key", secondIdempotencyKey)
           .send({
@@ -356,7 +356,7 @@ describe("Booking Module Integration", () => {
         const key1 = uuidv7();
         const key2 = uuidv7();
         const reqA = request(httpServer)
-          .post("/bookings/reserve")
+          .post("/api/v1/bookings/reserve")
           .set("Authorization", `Bearer ${testUserToken}`)
           .set("idempotency-key", key1)
           .send({
@@ -365,7 +365,7 @@ describe("Booking Module Integration", () => {
           });
 
         const reqB = request(httpServer)
-          .post("/bookings/reserve")
+          .post("/api/v1/bookings/reserve")
           .set("Authorization", `Bearer ${testUserToken}`)
           .set("idempotency-key", key2)
           .send({
@@ -394,7 +394,7 @@ describe("Booking Module Integration", () => {
       it("should allow one reservation and reject concurrent duplicates with 409 Conflict when requests share the same idempotency key", async () => {
         const sameIdempotencyKey = uuidv7();
         const reqA = request(httpServer)
-          .post("/bookings/reserve")
+          .post("/api/v1/bookings/reserve")
           .set("Authorization", `Bearer ${testUserToken}`)
           .set("idempotency-key", sameIdempotencyKey)
           .send({
@@ -403,7 +403,7 @@ describe("Booking Module Integration", () => {
           });
 
         const reqB = request(httpServer)
-          .post("/bookings/reserve")
+          .post("/api/v1/bookings/reserve")
           .set("Authorization", `Bearer ${testUserToken}`)
           .set("idempotency-key", sameIdempotencyKey)
           .send({
@@ -432,7 +432,7 @@ describe("Booking Module Integration", () => {
       it("should mark expired bookings as expired, release seat locks to available, and allow re-reservation when cleanup cron runs", async () => {
         const userAIdempotencyKey = uuidv7();
         const resA = await request(httpServer)
-          .post("/bookings/reserve")
+          .post("/api/v1/bookings/reserve")
           .set("Authorization", `Bearer ${testUserToken}`)
           .set("idempotency-key", userAIdempotencyKey)
           .send({
@@ -456,7 +456,7 @@ describe("Booking Module Integration", () => {
         );
         const userBIdempotencyKey1 = uuidv7();
         await request(httpServer)
-          .post("/bookings/reserve")
+          .post("/api/v1/bookings/reserve")
           .set("Authorization", `Bearer ${userBSession.token}`)
           .set("idempotency-key", userBIdempotencyKey1)
           .send({
@@ -508,7 +508,7 @@ describe("Booking Module Integration", () => {
         // Once seat hold expires and resets to available, subsequent reservation attempts must succeed cleanly.
         const userBIdempotencyKey2 = uuidv7();
         const resB = await request(httpServer)
-          .post("/bookings/reserve")
+          .post("/api/v1/bookings/reserve")
           .set("Authorization", `Bearer ${userBSession.token}`)
           .set("idempotency-key", userBIdempotencyKey2)
           .send({
@@ -531,7 +531,7 @@ describe("Booking Module Integration", () => {
   describe("POST /payments/payos-webhook", () => {
     it("should reject payload with 400 Bad Request when HMAC-SHA256 signature is invalid", async () => {
       const response = await request(httpServer)
-        .post("/payments/payos-webhook")
+        .post("/api/v1/payments/payos-webhook")
         .send({
           code: "00",
           desc: "success",
@@ -558,7 +558,7 @@ describe("Booking Module Integration", () => {
     describe("when validating request", () => {
       it("should reject unauthorized request with 401 Unauthorized when Bearer token is missing", async () => {
         const response = await request(httpServer)
-          .post("/bookings/confirm")
+          .post("/api/v1/bookings/confirm")
           .set("idempotency-key", uuidv7())
           .send({
             bookingId: uuidv7(),
@@ -572,7 +572,7 @@ describe("Booking Module Integration", () => {
       });
       it("should return 404 Not Found when attempting to confirm non-existent booking", async () => {
         const response = await request(httpServer)
-          .post("/bookings/confirm")
+          .post("/api/v1/bookings/confirm")
           .set("Authorization", `Bearer ${testUserToken}`)
           .set("idempotency-key", uuidv7())
           .send({
@@ -603,7 +603,7 @@ describe("Booking Module Integration", () => {
         if (!booking) throw new Error("Failed to seed booking");
 
         const response = await request(httpServer)
-          .post("/bookings/confirm")
+          .post("/api/v1/bookings/confirm")
           .set("Authorization", `Bearer ${testUserToken}`)
           .set("idempotency-key", uuidv7())
           .send({
@@ -634,7 +634,7 @@ describe("Booking Module Integration", () => {
         if (!booking) throw new Error("Failed to seed booking");
 
         const response = await request(httpServer)
-          .post("/bookings/confirm")
+          .post("/api/v1/bookings/confirm")
           .set("Authorization", `Bearer ${testUserToken}`)
           .set("idempotency-key", uuidv7())
           .send({
@@ -667,7 +667,7 @@ describe("Booking Module Integration", () => {
         if (!booking) throw new Error("Failed to seed booking");
 
         const response = await request(httpServer)
-          .post("/bookings/confirm")
+          .post("/api/v1/bookings/confirm")
           .set("Authorization", `Bearer ${testUserToken}`)
           .set("idempotency-key", uuidv7())
           .send({
@@ -684,7 +684,7 @@ describe("Booking Module Integration", () => {
 
         // Idempotent retry must return the existing confirmed booking state safely.
         const retryResponse = await request(httpServer)
-          .post("/bookings/confirm")
+          .post("/api/v1/bookings/confirm")
           .set("Authorization", `Bearer ${testUserToken}`)
           .set("idempotency-key", uuidv7())
           .send({
@@ -718,7 +718,7 @@ describe("Booking Module Integration", () => {
 
         const [res1, res2] = await Promise.all([
           request(httpServer)
-            .post("/bookings/confirm")
+            .post("/api/v1/bookings/confirm")
             .set("Authorization", `Bearer ${testUserToken}`)
             .set("idempotency-key", uuidv7())
             .send({
@@ -729,7 +729,7 @@ describe("Booking Module Integration", () => {
               paymentMethod: "PAYOS",
             }),
           request(httpServer)
-            .post("/bookings/confirm")
+            .post("/api/v1/bookings/confirm")
             .set("Authorization", `Bearer ${testUserToken}`)
             .set("idempotency-key", uuidv7())
             .send({

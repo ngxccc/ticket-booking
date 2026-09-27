@@ -23,7 +23,7 @@ import {
 } from "./dto";
 
 @ApiTags(CATALOG_ROUTES.CINEMAS)
-@Controller(CATALOG_ROUTES.CINEMAS)
+@Controller({ path: CATALOG_ROUTES.CINEMAS, version: "1" })
 @UseGuards(CustomThrottlerGuard)
 export class CinemasController {
   constructor(private readonly cinemasService: CinemasService) {}

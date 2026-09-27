@@ -44,7 +44,7 @@ import type { I18nTranslations } from "@/generated/i18n.generated";
 import { HTTP_HEADERS } from "@/common/constants/header.constants";
 
 @ApiTags(BOOKING_ROUTES.BASE)
-@Controller(BOOKING_ROUTES.BASE)
+@Controller({ path: BOOKING_ROUTES.BASE, version: "1" })
 @UseGuards(CustomThrottlerGuard)
 export class BookingController {
   constructor(

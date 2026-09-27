@@ -28,7 +28,7 @@ import {
 } from "./dto";
 
 @ApiTags(CATALOG_ROUTES.MOVIES)
-@Controller(CATALOG_ROUTES.MOVIES)
+@Controller({ path: CATALOG_ROUTES.MOVIES, version: "1" })
 @UseGuards(CustomThrottlerGuard)
 export class MoviesController {
   constructor(private readonly moviesService: MoviesService) {}
