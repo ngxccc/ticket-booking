@@ -17,7 +17,8 @@ export interface I18nExceptionPayload<K extends I18nPath = I18nPath> {
 }
 
 export type I18nKeyOrPayload<K extends I18nPath = I18nPath> =
-  K | I18nExceptionPayload<K>;
+  | K
+  | I18nExceptionPayload<K>;
 
 function normalizePayload<K extends I18nPath>(
   keyOrPayload: I18nKeyOrPayload<K>,
