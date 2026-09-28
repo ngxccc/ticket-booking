@@ -49,6 +49,7 @@ export type I18nTranslations = {
         "GATEWAY_TIMEOUT": string;
     };
     "shows": {
+        "SHOWTIME_NOT_FOUND": string;
         "MOVIE_NOT_FOUND": string;
         "HALL_NOT_FOUND": string;
         "NO_SEATS_CONFIGURED": string;
@@ -90,3 +91,33 @@ export type I18nTranslations = {
 };
 /* prettier-ignore */
 export type I18nPath = Path<I18nTranslations>;
+
+/* prettier-ignore */
+export interface I18nArgsMap {
+    "catalog.CINEMA_NOT_FOUND": { id?: string | number; };
+    "catalog.MOVIE_NOT_FOUND": { id?: string | number; };
+    "shows.DATE_HORIZON_EXCEEDED": { maxDays?: string | number; };
+    "shows.MAX_DAYS_EXCEEDED": { maxDays?: string | number; };
+    "shows.MAX_SHOWS_EXCEEDED": { maxShows?: string | number; };
+    "shows.PAST_SHOW_SLOT": { minLeadTime?: string | number; };
+    "validation.isBoolean": { property?: string | number; };
+    "validation.isDate": { property?: string | number; };
+    "validation.isIn": { "constraints.0"?: string | number; property?: string | number; };
+    "validation.isInt": { property?: string | number; };
+    "validation.isNotEmpty": { property?: string | number; };
+    "validation.isNumberString": { property?: string | number; };
+    "validation.isPositive": { property?: string | number; };
+    "validation.isString": { property?: string | number; };
+    "validation.isUuid": { property?: string | number; };
+    "validation.matches": { property?: string | number; };
+    "validation.maxLength": { "constraints.0"?: string | number; property?: string | number; };
+    "validation.minLength": { "constraints.0"?: string | number; property?: string | number; };
+    "validation.passwordMustContainNumber": { property?: string | number; };
+    "validation.passwordMustContainSpecialChar": { property?: string | number; };
+    "validation.passwordMustContainUppercase": { property?: string | number; };
+}
+
+/* prettier-ignore */
+export type I18nArgs<K extends I18nPath> = K extends keyof I18nArgsMap
+  ? I18nArgsMap[K]
+  : Record<string, unknown> | undefined;

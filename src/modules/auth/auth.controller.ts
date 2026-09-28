@@ -27,8 +27,6 @@ import { AUTH_ROUTES } from "./auth.routes";
 import { AuthService } from "./auth.service";
 import {
   LoginDto,
-  LoginResponseDto,
-  RefreshResponseDto,
   RefreshTokenDto,
   RegisterDto,
   VerifyEmailDto,
@@ -36,6 +34,8 @@ import {
   ResetPasswordDto,
   ResendVerificationDto,
   ChangePasswordDto,
+  LoginResponseDto,
+  RefreshResponseDto,
 } from "./dto";
 
 @UseGuards(CustomThrottlerGuard)

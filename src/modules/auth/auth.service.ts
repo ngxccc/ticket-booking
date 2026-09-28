@@ -1,16 +1,10 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Inject,
-  Injectable,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { eq } from "drizzle-orm";
 import {
   DATABASE_CONNECTION,
   type DrizzleDB,
 } from "@/database/database.module";
-import {
+import type {
   LoginDto,
   LoginResponseDto,
   RefreshResponseDto,
@@ -34,29 +28,21 @@ import {
 } from "@/common/utils/crypto.util";
 import { randomBytes } from "node:crypto";
 import { getExpiryDate } from "@/common/utils/date.util";
-import { I18nContext, I18nService } from "nestjs-i18n";
-import type { I18nTranslations, I18nPath } from "@/generated/i18n.generated";
 import { JwtService } from "@nestjs/jwt";
 import { env } from "@/env";
+import {
+  I18nBadRequestException,
+  I18nConflictException,
+  I18nUnauthorizedException,
+} from "@/common/exceptions";
+
 @Injectable()
 export class AuthService {
   constructor(
     @Inject(DATABASE_CONNECTION)
     private readonly db: DrizzleDB,
-    private readonly i18n: I18nService<I18nTranslations>,
     private readonly jwtService: JwtService,
   ) {}
-
-  private throwException(
-    key: I18nPath,
-    Exception: new (message: string) => Error = BadRequestException,
-  ): never {
-    throw new Exception(
-      this.i18n.t(key, {
-        lang: I18nContext.current()?.lang,
-      }),
-    );
-  }
 
   private async generateTokens(userId: string, email: string, role: string) {
     const payload = { sub: userId, email, role };
@@ -96,11 +82,7 @@ export class AuthService {
       .limit(1);
 
     if (existingUser) {
-      throw new ConflictException(
-        this.i18n.t("auth.EMAIL_ALREADY_EXISTS", {
-          lang: I18nContext.current()?.lang,
-        }),
-      );
+      throw new I18nConflictException("auth.EMAIL_ALREADY_EXISTS");
     }
 
     const passwordHash = await hashPassword(dto.password);
@@ -132,11 +114,7 @@ export class AuthService {
       });
     } catch (error) {
       if (isPostgresErrorCode(error, PG_ERROR_CODE.UNIQUE_VIOLATION)) {
-        throw new ConflictException(
-          this.i18n.t("auth.EMAIL_ALREADY_EXISTS", {
-            lang: I18nContext.current()?.lang,
-          }),
-        );
+        throw new I18nConflictException("auth.EMAIL_ALREADY_EXISTS");
       }
       throw error;
     }
@@ -154,11 +132,11 @@ export class AuthService {
       .limit(1);
 
     if (!user) {
-      this.throwException("auth.VERIFICATION_TOKEN_INVALID");
+      throw new I18nBadRequestException("auth.VERIFICATION_TOKEN_INVALID");
     }
 
     if (user.verificationExpiresAt && user.verificationExpiresAt < new Date()) {
-      this.throwException("auth.VERIFICATION_TOKEN_EXPIRED");
+      throw new I18nBadRequestException("auth.VERIFICATION_TOKEN_EXPIRED");
     }
 
     await this.db
@@ -251,11 +229,11 @@ export class AuthService {
       user.status === "inactive" ||
       user.status === "suspended"
     ) {
-      this.throwException("auth.INVALID_CREDENTIALS");
+      throw new I18nBadRequestException("auth.INVALID_CREDENTIALS");
     }
 
     if (user.status === "pending_verification") {
-      this.throwException("auth.EMAIL_NOT_VERIFIED");
+      throw new I18nBadRequestException("auth.EMAIL_NOT_VERIFIED");
     }
 
     const isPasswordValid = await comparePassword(
@@ -263,9 +241,8 @@ export class AuthService {
       user.passwordHash,
     );
     if (!isPasswordValid) {
-      this.throwException("auth.INVALID_CREDENTIALS");
+      throw new I18nBadRequestException("auth.INVALID_CREDENTIALS");
     }
-
     const { accessToken, refreshToken } = await this.createTokenSession(
       user.id,
       user.email,
@@ -306,10 +283,7 @@ export class AuthService {
       deletedToken.isRevoked ||
       deletedToken.expiresAt < new Date()
     ) {
-      this.throwException(
-        "auth.TOKEN_INVALID_OR_EXPIRED",
-        UnauthorizedException,
-      );
+      throw new I18nUnauthorizedException("auth.TOKEN_INVALID_OR_EXPIRED");
     }
 
     const [user] = await this.db
@@ -324,10 +298,7 @@ export class AuthService {
       .limit(1);
 
     if (user?.status !== "active") {
-      this.throwException(
-        "auth.TOKEN_INVALID_OR_EXPIRED",
-        UnauthorizedException,
-      );
+      throw new I18nUnauthorizedException("auth.TOKEN_INVALID_OR_EXPIRED");
     }
 
     const { accessToken, refreshToken } = await this.createTokenSession(
@@ -357,10 +328,7 @@ export class AuthService {
       deletedToken.isRevoked ||
       deletedToken.expiresAt < new Date()
     ) {
-      this.throwException(
-        "auth.TOKEN_INVALID_OR_EXPIRED",
-        UnauthorizedException,
-      );
+      throw new I18nUnauthorizedException("auth.TOKEN_INVALID_OR_EXPIRED");
     }
 
     return;
@@ -368,10 +336,7 @@ export class AuthService {
 
   async logoutAll(userId: string): Promise<void> {
     if (!userId) {
-      this.throwException(
-        "auth.TOKEN_INVALID_OR_EXPIRED",
-        UnauthorizedException,
-      );
+      throw new I18nUnauthorizedException("auth.TOKEN_INVALID_OR_EXPIRED");
     }
 
     await this.db.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
@@ -435,7 +400,7 @@ export class AuthService {
       !user?.resetPasswordExpiresAt ||
       user.resetPasswordExpiresAt < new Date()
     ) {
-      this.throwException("auth.RESET_PASSWORD_TOKEN_INVALID");
+      throw new I18nBadRequestException("auth.RESET_PASSWORD_TOKEN_INVALID");
     }
 
     const passwordHash = await hashPassword(dto.password);
@@ -466,14 +431,11 @@ export class AuthService {
       .limit(1);
 
     if (!user) {
-      this.throwException("auth.INVALID_CREDENTIALS", BadRequestException);
+      throw new I18nBadRequestException("auth.INVALID_CREDENTIALS");
     }
 
     if (!user.passwordHash) {
-      this.throwException(
-        "auth.CANNOT_CHANGE_OAUTH_PASSWORD",
-        BadRequestException,
-      );
+      throw new I18nBadRequestException("auth.CANNOT_CHANGE_OAUTH_PASSWORD");
     }
 
     const isPasswordValid = await comparePassword(
@@ -481,14 +443,11 @@ export class AuthService {
       user.passwordHash,
     );
     if (!isPasswordValid) {
-      this.throwException(
-        "auth.INVALID_CURRENT_PASSWORD",
-        UnauthorizedException,
-      );
+      throw new I18nUnauthorizedException("auth.INVALID_CURRENT_PASSWORD");
     }
 
     if (dto.currentPassword === dto.newPassword) {
-      this.throwException("auth.NEW_PASSWORD_SAME_AS_OLD", BadRequestException);
+      throw new I18nBadRequestException("auth.NEW_PASSWORD_SAME_AS_OLD");
     }
 
     const newPasswordHash = await hashPassword(dto.newPassword);

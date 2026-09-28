@@ -1,7 +1,7 @@
 ---
 title: "Showtime Schedule Discovery SSOT Operational Workflow"
-docType: "feature-workflow"
-status: "approved"
+docType: feature-workflow
+status: approved
 date: 2026-09-02
 version: "1.0.0"
 ---

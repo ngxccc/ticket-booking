@@ -375,7 +375,7 @@ describe("Booking Module Integration", () => {
 
         const [resA, resB] = await Promise.all([reqA, reqB]);
 
-        const statuses = [resA.status, resB.status].sort((a, b) => a - b);
+        const statuses = [resA.status, resB.status].toSorted((a, b) => a - b);
         expect(statuses).toEqual([201, 409]);
 
         // Assert DB state: Exactly 1 booking row created for this test user (no duplicate bookings or partial state)
@@ -413,7 +413,7 @@ describe("Booking Module Integration", () => {
 
         const [resA, resB] = await Promise.all([reqA, reqB]);
 
-        const statuses = [resA.status, resB.status].sort((a, b) => a - b);
+        const statuses = [resA.status, resB.status].toSorted((a, b) => a - b);
         expect(statuses).toEqual([201, 409]);
 
         // Assert DB state: Exactly 1 booking row created for this test user despite racy duplicate request

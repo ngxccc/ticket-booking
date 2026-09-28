@@ -35,7 +35,7 @@ export function computeBenchmarkMetrics(
     };
   }
 
-  const sorted = [...rawTimes].sort((a, b) => a - b);
+  const sorted = rawTimes.toSorted((a, b) => a - b);
   const sum = sorted.reduce((acc, t) => acc + t, 0);
   const avg = sum / sorted.length;
   const p50 = sorted[Math.floor(sorted.length * 0.5)] ?? 0;

@@ -1,21 +1,16 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import {
-  BadRequestException,
-  ConflictException,
-  GoneException,
-  NotFoundException,
-} from "@nestjs/common";
-import type { I18nService } from "nestjs-i18n";
+  I18nBadRequestException,
+  I18nConflictException,
+  I18nGoneException,
+  I18nNotFoundException,
+} from "@/common/exceptions";
 import { BookingService } from "./booking.service";
 import type { DrizzleDB } from "../../database/database.module";
 import type { RedlockService } from "../../common/services/redlock.service";
 import type { Queue } from "bullmq";
 import type { ConfirmBookingDto } from "./dto/confirm-booking.dto";
-import {
-  createMockI18nService,
-  createMockRedlockService,
-  createMockQueue,
-} from "../../../test/mocks";
+import { createMockRedlockService, createMockQueue } from "../../../test/mocks";
 
 interface MockTx {
   select: ReturnType<typeof mock>;
@@ -36,7 +31,6 @@ interface MockBookingQueue {
 
 describe("BookingService", () => {
   let service: BookingService;
-  const mockI18nService = createMockI18nService();
   let mockRedlockService: ReturnType<typeof createMockRedlockService>;
   let mockBookingQueue: MockBookingQueue;
   let mockRedis: typeof mockRedlockService.mockRedis;
@@ -44,7 +38,6 @@ describe("BookingService", () => {
   let mockDb: MockDb;
 
   beforeEach(() => {
-    mockI18nService.clearAll();
     mockRedlockService = createMockRedlockService();
     mockRedis = mockRedlockService.mockRedis;
     const baseQueue = createMockQueue();
@@ -86,7 +79,6 @@ describe("BookingService", () => {
       mockDb as unknown as DrizzleDB,
       mockRedlockService as unknown as RedlockService,
       mockBookingQueue as unknown as Queue,
-      mockI18nService as unknown as I18nService,
     );
   });
 
@@ -97,10 +89,10 @@ describe("BookingService", () => {
       seatIds: ["seat-1", "seat-2"],
     };
 
-    it("should throw NotFoundException when seatIds is empty array", () => {
+    it("should throw I18nNotFoundException when seatIds is empty array", () => {
       expect(
         service.reserveSeats(userId, { ...dto, seatIds: [] }),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(I18nNotFoundException);
     });
 
     it("should return cached payload when idempotencyKey is found for user", async () => {
@@ -118,17 +110,17 @@ describe("BookingService", () => {
       expect(mockRedlockService.acquireLock).not.toHaveBeenCalled();
     });
 
-    it("should throw ConflictException when redlock acquisition fails", () => {
+    it("should throw I18nConflictException when redlock acquisition fails", () => {
       mockRedlockService.acquireLock.mockImplementation(() =>
         Promise.reject(new Error("Lock failed")),
       );
 
       expect(service.reserveSeats(userId, dto)).rejects.toThrow(
-        ConflictException,
+        I18nConflictException,
       );
     });
 
-    it("should throw NotFoundException when showtime is not found", () => {
+    it("should throw I18nNotFoundException when showtime is not found", () => {
       mockTx.select.mockImplementation(() => ({
         from: mock(() => ({
           where: mock(() => Promise.resolve([])),
@@ -136,11 +128,11 @@ describe("BookingService", () => {
       }));
 
       expect(service.reserveSeats(userId, dto)).rejects.toThrow(
-        NotFoundException,
+        I18nNotFoundException,
       );
     });
 
-    it("should throw NotFoundException when selected seats count does not match dto", () => {
+    it("should throw I18nNotFoundException when selected seats count does not match dto", () => {
       let callCount = 0;
       mockTx.select.mockImplementation(() => ({
         from: mock(() => ({
@@ -160,11 +152,11 @@ describe("BookingService", () => {
       }));
 
       expect(service.reserveSeats(userId, dto)).rejects.toThrow(
-        NotFoundException,
+        I18nNotFoundException,
       );
     });
 
-    it("should throw ConflictException when requested seat is already booked", () => {
+    it("should throw I18nConflictException when requested seat is already booked", () => {
       let callCount = 0;
       mockTx.select.mockImplementation(() => ({
         from: mock(() => ({
@@ -185,11 +177,11 @@ describe("BookingService", () => {
       }));
 
       expect(service.reserveSeats(userId, dto)).rejects.toThrow(
-        ConflictException,
+        I18nConflictException,
       );
     });
 
-    it("should throw ConflictException when requested seat is reserved and not expired", () => {
+    it("should throw I18nConflictException when requested seat is reserved and not expired", () => {
       const futureDate = new Date(Date.now() + 10 * 60 * 1000);
       let callCount = 0;
       mockTx.select.mockImplementation(() => ({
@@ -216,7 +208,7 @@ describe("BookingService", () => {
       }));
 
       expect(service.reserveSeats(userId, dto)).rejects.toThrow(
-        ConflictException,
+        I18nConflictException,
       );
     });
 
@@ -264,7 +256,7 @@ describe("BookingService", () => {
       expect(result.bookingId).toBe("booking-789");
     });
 
-    it("should throw ConflictException when booking creation returns empty", () => {
+    it("should throw I18nConflictException when booking creation returns empty", () => {
       let callCount = 0;
       mockTx.select.mockImplementation(() => ({
         from: mock(() => ({
@@ -291,7 +283,7 @@ describe("BookingService", () => {
       }));
 
       expect(service.reserveSeats(userId, dto)).rejects.toThrow(
-        ConflictException,
+        I18nConflictException,
       );
     });
 
@@ -448,7 +440,7 @@ describe("BookingService", () => {
       expect(result.bookingId).toBe(confirmDto.bookingId);
     });
 
-    it("should throw NotFoundException when booking is not found or belongs to another user", () => {
+    it("should throw I18nNotFoundException when booking is not found or belongs to another user", () => {
       mockTx.select.mockImplementation(() => ({
         from: mock(() => ({
           where: mock(() => {
@@ -459,7 +451,7 @@ describe("BookingService", () => {
       }));
 
       expect(service.confirmBooking(userId, confirmDto)).rejects.toThrow(
-        NotFoundException,
+        I18nNotFoundException,
       );
     });
 
@@ -508,7 +500,7 @@ describe("BookingService", () => {
       expect(result.paymentId).toBe("existing-pay-1");
     });
 
-    it("should throw GoneException when booking is cancelled or expired", () => {
+    it("should throw I18nGoneException when booking is cancelled or expired", () => {
       const mockExpiredBooking = {
         id: confirmDto.bookingId,
         userId,
@@ -530,11 +522,11 @@ describe("BookingService", () => {
       }));
 
       expect(service.confirmBooking(userId, confirmDto)).rejects.toThrow(
-        GoneException,
+        I18nGoneException,
       );
     });
 
-    it("should throw ConflictException when transactionId already exists for another payment", () => {
+    it("should throw I18nConflictException when transactionId already exists for another payment", () => {
       const mockBooking = {
         id: confirmDto.bookingId,
         userId,
@@ -561,11 +553,11 @@ describe("BookingService", () => {
       }));
 
       expect(service.confirmBooking(userId, confirmDto)).rejects.toThrow(
-        ConflictException,
+        I18nConflictException,
       );
     });
 
-    it("should throw BadRequestException and record requires_refund payment when amount mismatches", () => {
+    it("should throw I18nBadRequestException and record requires_refund payment when amount mismatches", () => {
       const mockBooking = {
         id: confirmDto.bookingId,
         userId,
@@ -592,7 +584,7 @@ describe("BookingService", () => {
       }));
 
       expect(service.confirmBooking(userId, confirmDto)).rejects.toThrow(
-        BadRequestException,
+        I18nBadRequestException,
       );
       expect(mockTx.insert).toHaveBeenCalled();
     });

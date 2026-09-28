@@ -13,21 +13,13 @@ async function generate() {
   const openapiTSModule = await import("openapi-typescript");
   const openapiTS = openapiTSModule.default;
   const { astToString } = openapiTSModule;
-  const prettierModule = await import("prettier");
-  const prettier = prettierModule.default;
-
   const ast = await openapiTS(
     document as unknown as Parameters<typeof openapiTS>[0],
   );
   const rawContents = astToString(ast);
-  const prettierConfig = (await prettier.resolveConfig(process.cwd())) ?? {};
-  const formattedContents = await prettier.format(rawContents, {
-    ...prettierConfig,
-    parser: "typescript",
-  });
 
   const outputPath = "test/generated/api-schema.d.ts";
-  await Bun.write(outputPath, formattedContents);
+  await Bun.write(outputPath, rawContents);
 
   console.log(`OpenAPI types successfully generated at ${outputPath}`);
 }

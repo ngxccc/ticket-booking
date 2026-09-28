@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Headers,
@@ -8,6 +7,7 @@ import {
   Post,
   UseGuards,
 } from "@nestjs/common";
+import { I18nBadRequestException } from "@/common/exceptions";
 import {
   ApiBearerAuth,
   ApiHeader,
@@ -39,18 +39,14 @@ import {
   ConfirmBookingDto,
   ConfirmBookingResponseDto,
 } from "./dto/confirm-booking.dto";
-import { I18nService } from "nestjs-i18n";
-import type { I18nTranslations } from "@/generated/i18n.generated";
+
 import { HTTP_HEADERS } from "@/common/constants/header.constants";
 
 @ApiTags(BOOKING_ROUTES.BASE)
 @Controller({ path: BOOKING_ROUTES.BASE, version: "1" })
 @UseGuards(CustomThrottlerGuard)
 export class BookingController {
-  constructor(
-    private readonly bookingService: BookingService,
-    private readonly i18n: I18nService<I18nTranslations>,
-  ) {}
+  constructor(private readonly bookingService: BookingService) {}
 
   @Post(BOOKING_ROUTES.RESERVE)
   @HttpCode(HttpStatus.CREATED)
@@ -81,9 +77,7 @@ export class BookingController {
     @Headers(HTTP_HEADERS.IDEMPOTENCY_KEY) idempotencyKey?: string,
   ): Promise<ApiResponse<ReserveSeatsResponseDto>> {
     if (!idempotencyKey) {
-      throw new BadRequestException(
-        this.i18n.t("booking.IDEMPOTENCY_KEY_REQUIRED"),
-      );
+      throw new I18nBadRequestException("booking.IDEMPOTENCY_KEY_REQUIRED");
     }
 
     const result = (await this.bookingService.reserveSeats(
@@ -124,9 +118,7 @@ export class BookingController {
     @Headers(HTTP_HEADERS.IDEMPOTENCY_KEY) idempotencyKey?: string,
   ): Promise<ApiResponse<ConfirmBookingResponseDto>> {
     if (!idempotencyKey) {
-      throw new BadRequestException(
-        this.i18n.t("booking.IDEMPOTENCY_KEY_REQUIRED"),
-      );
+      throw new I18nBadRequestException("booking.IDEMPOTENCY_KEY_REQUIRED");
     }
 
     const result = await this.bookingService.confirmBooking(

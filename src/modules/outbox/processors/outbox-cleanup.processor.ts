@@ -1,6 +1,6 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Inject, Logger } from "@nestjs/common";
-import { Job } from "bullmq";
+import type { Job } from "bullmq";
 import { and, eq, lte } from "drizzle-orm";
 import {
   DATABASE_CONNECTION,

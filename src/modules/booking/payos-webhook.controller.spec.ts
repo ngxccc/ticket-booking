@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { createHmac } from "node:crypto";
-import { BadRequestException } from "@nestjs/common";
+import { I18nBadRequestException } from "@/common/exceptions";
 import type { ConfigService } from "@nestjs/config";
-import type { I18nService } from "nestjs-i18n";
 import { sortAndFormatPayloadData } from "@/common/utils/payos-crypto.util";
 import { PayOSWebhookController } from "./payos-webhook.controller";
 import type { PayOSWebhookDto } from "./dto/payos-webhook.dto";
@@ -20,13 +19,9 @@ describe("PayOSWebhookController", () => {
     });
 
     const mockConfigService = { get: mockGet };
-    const mockI18n = {
-      t: (key: string) => key,
-    };
 
     controller = new PayOSWebhookController(
       mockConfigService as unknown as ConfigService,
-      mockI18n as unknown as I18nService,
     );
   });
   const validData = {
@@ -48,24 +43,24 @@ describe("PayOSWebhookController", () => {
     data: validData,
     signature: "invalid_sig",
   };
-  it("should throw BadRequestException on invalid HMAC signature (INV-6)", () => {
+  it("should throw I18nBadRequestException on invalid HMAC signature (INV-6)", () => {
     expect(() => controller.handlePayOSWebhook(validPayload)).toThrow(
-      BadRequestException,
+      I18nBadRequestException,
     );
   });
 
-  it("should throw BadRequestException on missing or empty signature (INV-6)", () => {
+  it("should throw I18nBadRequestException on missing or empty signature (INV-6)", () => {
     const emptySigPayload: PayOSWebhookDto = {
       ...validPayload,
       signature: "",
     };
 
     expect(() => controller.handlePayOSWebhook(emptySigPayload)).toThrow(
-      BadRequestException,
+      I18nBadRequestException,
     );
   });
 
-  it("should throw BadRequestException if timestamp skew exceeds 5 minutes (INV-6)", () => {
+  it("should throw I18nBadRequestException if timestamp skew exceeds 5 minutes (INV-6)", () => {
     const stalePayload: PayOSWebhookDto = {
       ...validPayload,
       data: {
@@ -75,11 +70,11 @@ describe("PayOSWebhookController", () => {
     };
 
     expect(() => controller.handlePayOSWebhook(stalePayload)).toThrow(
-      BadRequestException,
+      I18nBadRequestException,
     );
   });
 
-  it("should throw BadRequestException if transactionDateTime is missing (INV-6)", () => {
+  it("should throw I18nBadRequestException if transactionDateTime is missing (INV-6)", () => {
     const missingTimePayload: PayOSWebhookDto = {
       ...validPayload,
       data: {
@@ -89,7 +84,7 @@ describe("PayOSWebhookController", () => {
     };
 
     expect(() => controller.handlePayOSWebhook(missingTimePayload)).toThrow(
-      BadRequestException,
+      I18nBadRequestException,
     );
   });
 

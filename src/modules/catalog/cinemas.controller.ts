@@ -18,8 +18,8 @@ import { CATALOG_ROUTES } from "./catalog.routes";
 import { CinemasService } from "./cinemas.service";
 import {
   CinemaListQueryDto,
+  type PaginationMetaDto,
   CinemaResponseDto,
-  PaginationMetaDto,
 } from "./dto";
 
 @ApiTags(CATALOG_ROUTES.CINEMAS)

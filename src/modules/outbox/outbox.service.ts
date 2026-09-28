@@ -6,7 +6,7 @@ import {
   type OnApplicationShutdown,
 } from "@nestjs/common";
 import { InjectQueue } from "@nestjs/bullmq";
-import { Queue } from "bullmq";
+import type { Queue } from "bullmq";
 import {
   DATABASE_CONNECTION,
   type DrizzleDB,

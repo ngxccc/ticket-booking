@@ -17,33 +17,6 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/ticket_booking?sslmode=disable
       REDIS_URL: redis://localhost:6379
 
-    services:
-      postgres:
-        image: postgres:18-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgrespassword
-          POSTGRES_DB: ticket_booking
-        ports:
-          - 5432:5432
-        options: >-
-          --mount type=tmpfs,destination=/var/lib/postgresql,tmpfs-size=1073741824
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      redis:
-        image: redis:8-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --mount type=tmpfs,destination=/data,tmpfs-size=536870912
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -51,8 +24,11 @@ jobs:
       - name: Setup Environment
         uses: ./.github/setup-environment
 
+      - name: Start Test Services
+        uses: ./.github/setup-services
+
       - name: Database Migrations
-        run: bun run db:migrate stg
+        run: bun run db:migrate test
 
       - name: Unit Tests
         run: bun run test:ci
@@ -70,8 +46,11 @@ jobs:
       - name: E2E Tests
         run: bun run test:e2e
 
-      - name: Linting
-        run: bun run lint
+      - name: Fast Linting (Oxlint)
+        run: bun run lint:fast
+
+      - name: Deep Linting (ESLint)
+        run: bun run lint:eslint
 
       - name: Type-Checking
         run: bun run check-types

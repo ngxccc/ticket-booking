@@ -10,7 +10,7 @@ import {
   Optional,
 } from "@nestjs/common";
 import type { Request, Response } from "express";
-import { I18nContext, I18nService } from "nestjs-i18n";
+import { I18nService, I18nContext } from "nestjs-i18n";
 import { extractDatabaseErrorDetails } from "@/common/utils/error.util";
 import { PG_ERROR_CODE } from "@/common/constants/error.constant";
 import { SENTRY_BREADCRUMB_CATEGORY } from "@/common/constants/sentry.constant";
@@ -40,12 +40,13 @@ function isRecordObject(res: unknown): res is Record<string, unknown> {
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(GlobalExceptionFilter.name);
+  private static readonly I18N_KEY_REGEX =
+    /^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/;
 
   constructor(
     @Optional() private readonly i18n?: I18nService,
     @Optional() private readonly sentryService?: SentryService,
   ) {}
-
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -202,19 +203,21 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private extractDetail(res: Record<string, unknown>, lang?: string): string {
+    const explicitArgs = isRecordObject(res["args"]) ? res["args"] : undefined;
+
     if (typeof res["detail"] === "string") {
-      return this.formatReason(res["detail"], lang);
+      return this.resolveTextOrKey(res["detail"], lang, explicitArgs);
     }
 
     const msg = res["message"];
     if (typeof msg === "string") {
-      return msg;
+      return this.resolveTextOrKey(msg, lang, explicitArgs);
     }
 
     if (Array.isArray(msg) && msg.length > 0) {
       const first = msg[0] as unknown;
       if (typeof first === "string") {
-        return first;
+        return this.resolveTextOrKey(first, lang, explicitArgs);
       }
       if (isRecordObject(first) && "property" in first) {
         return this.translate(
@@ -226,6 +229,22 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
 
     return "Error occurred";
+  }
+
+  private resolveTextOrKey(
+    text: string,
+    lang?: string,
+    explicitArgs?: Record<string, unknown>,
+  ): string {
+    if (text.includes("|")) {
+      return this.formatReason(text, lang);
+    }
+
+    if (GlobalExceptionFilter.I18N_KEY_REGEX.test(text)) {
+      return this.translateWithArgs(text, lang, explicitArgs, text);
+    }
+
+    return text;
   }
 
   private extractInvalidParams(
@@ -313,7 +332,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     ) {
       return resResponse["error"];
     }
-    const rawName = exceptionName.replace(/Exception$/, "");
+    const rawName = exceptionName
+      .replace(/^I18n/, "")
+      .replace(/Exception$/, "");
     return rawName.replace(/([a-z])([A-Z])/g, "$1 $2");
   }
 

@@ -32,6 +32,7 @@ import {
   createHall,
   createSeatType,
   createBatchSeats,
+  createMovieTranslation,
 } from "../factories";
 import { MovieMother } from "../mothers";
 import type { components } from "../generated/api-schema";
@@ -39,6 +40,7 @@ import type {
   ShowResponseDto,
   BatchShowResponseDto,
   ShowScheduleItemDto,
+  ShowSeatsResponseDtoType,
 } from "@/modules/shows/dto";
 import {
   formatTimezoneDate,
@@ -54,6 +56,10 @@ type SingleShowApiResponse = components["schemas"]["ApiResponseDto"] & {
 
 type BatchShowApiResponse = components["schemas"]["ApiResponseDto"] & {
   data: BatchShowResponseDto;
+};
+
+type ShowSeatsApiResponse = components["schemas"]["ApiResponseDto"] & {
+  data: ShowSeatsResponseDtoType;
 };
 
 interface ScheduleDiscoveryApiResponse {
@@ -986,6 +992,156 @@ describe("Shows Module Integration", () => {
           .query({ date: todayStr, unexpectedKey: "attack_payload" });
 
         expect(res.status).toBe(400);
+      });
+    });
+  });
+
+  describe("GET /shows/:id/seats", () => {
+    describe("when retrieving valid showtime seating chart layout and pricing", () => {
+      it("should return complete seating chart matrix, dimensions, summary, and calculated final prices", async () => {
+        const admin = await createAuthenticatedAdmin(db, jwtService);
+        const movie = await MovieMother.standard(db);
+        await createMovieTranslation(
+          db,
+          movie.id,
+          "vi",
+          "Lật Mặt 7: Một Điều Ước",
+        );
+        const cinema = await createCinema(db);
+        const hall = await createHall(db, { cinemaId: cinema.id });
+        const standardType = await createSeatType(db, {
+          name: `Standard-${uuidv7()}`,
+          priceMultiplier: "1.00",
+        });
+        const vipType = await createSeatType(db, {
+          name: `VIP-${uuidv7()}`,
+          priceMultiplier: "1.20",
+        });
+
+        await createBatchSeats(db, hall.id, standardType.id, 2, "A");
+        await createBatchSeats(db, hall.id, vipType.id, 2, "B");
+
+        const createRes = await request(getHttpServer())
+          .post("/api/v1/shows")
+          .set("Authorization", `Bearer ${admin.token}`)
+          .send({
+            movieId: movie.id,
+            hallId: hall.id,
+            startTime: `${getFutureTimezoneDate(2, SHOWS_CONSTANTS.DEFAULT_TIMEZONE)}T10:00:00.000Z`,
+            basePrice: 100000,
+          });
+        expect(createRes.status).toBe(201);
+        const showPayload = createRes.body as SingleShowApiResponse;
+        const showId = showPayload.data.id;
+
+        const res = await request(getHttpServer()).get(
+          `/api/v1/shows/${showId}/seats`,
+        );
+
+        expect(res.status).toBe(200);
+        const body = res.body as ShowSeatsApiResponse;
+        expect(body.success).toBe(true);
+        expect(body.data.showId).toBe(showId);
+        expect(body.data.movieTitle).toBe("Lật Mặt 7: Một Điều Ước");
+        expect(body.data.cinemaName).toBe(cinema.name);
+        expect(body.data.hallName).toBe(hall.name);
+        expect(body.data.basePrice).toBe(100000);
+
+        // Dimensions & Summary assertions
+        expect(body.data.dimensions.totalRows).toBe(2);
+        expect(body.data.dimensions.totalCols).toBe(2);
+        expect(body.data.summary.total).toBe(4);
+        expect(body.data.summary.available).toBe(4);
+        expect(body.data.summary.reserved).toBe(0);
+        expect(body.data.summary.booked).toBe(0);
+
+        // Itemized Seats assertions
+        expect(body.data.seats).toHaveLength(4);
+        const seatA1 = body.data.seats.find(
+          (s) => s.seatNumber === "A1" || s.seatNumber === "A01",
+        );
+        expect(seatA1).toBeDefined();
+        expect(seatA1?.finalPrice).toBe(100000);
+        expect(seatA1?.status).toBe("available");
+
+        const seatB1 = body.data.seats.find(
+          (s) => s.seatNumber === "B1" || s.seatNumber === "B01",
+        );
+        expect(seatB1).toBeDefined();
+        expect(seatB1?.finalPrice).toBe(120000); // 100000 * 1.20
+        expect(seatB1?.status).toBe("available");
+      });
+    });
+
+    describe("when evaluating real-time availability and virtual expired holds", () => {
+      it("should dynamically resolve expired reserved seat to available via virtual computed status", async () => {
+        const admin = await createAuthenticatedAdmin(db, jwtService);
+        const movie = await MovieMother.standard(db);
+        await createMovieTranslation(
+          db,
+          movie.id,
+          "vi",
+          "Lật Mặt 7: Một Điều Ước",
+        );
+        const cinema = await createCinema(db);
+        const hall = await createHall(db, { cinemaId: cinema.id });
+        const standardType = await createSeatType(db, {
+          name: `Standard-${uuidv7()}`,
+        });
+        await createBatchSeats(db, hall.id, standardType.id, 1, "A");
+
+        const createRes = await request(getHttpServer())
+          .post("/api/v1/shows")
+          .set("Authorization", `Bearer ${admin.token}`)
+          .send({
+            movieId: movie.id,
+            hallId: hall.id,
+            startTime: `${getFutureTimezoneDate(2, SHOWS_CONSTANTS.DEFAULT_TIMEZONE)}T10:00:00.000Z`,
+            basePrice: 90000,
+          });
+        const showPayload = createRes.body as SingleShowApiResponse;
+        const showId = showPayload.data.id;
+
+        // Manually set status = 'reserved' but lockedUntil in the past
+        const pastDate = new Date(Date.now() - 5 * 60 * 1000);
+        await db
+          .update(showSeats)
+          .set({ status: "reserved", lockedUntil: pastDate })
+          .where(eq(showSeats.showId, showId));
+
+        const res = await request(getHttpServer()).get(
+          `/api/v1/shows/${showId}/seats`,
+        );
+
+        expect(res.status).toBe(200);
+        const body = res.body as ShowSeatsApiResponse;
+        expect(body.data.summary.available).toBe(1);
+        expect(body.data.summary.reserved).toBe(0);
+        expect(body.data.seats[0]?.status).toBe("available");
+      });
+    });
+
+    describe("when validating input constraints and show existence", () => {
+      it("should return 404 Not Found when showId does not exist", async () => {
+        const nonExistentId = uuidv7();
+        const res = await request(getHttpServer()).get(
+          `/api/v1/shows/${nonExistentId}/seats`,
+        );
+
+        expect(res.status).toBe(404);
+        const body = res.body as unknown as Rfc9457ErrorResponse;
+        expect(body.status).toBe(404);
+      });
+
+      it("should return 400 Bad Request when showId is not a valid UUIDv7", async () => {
+        const res = await request(getHttpServer()).get(
+          "/api/v1/shows/not-a-valid-uuid/seats",
+        );
+
+        expect(res.status).toBe(400);
+        const body = res.body as unknown as Rfc9457ErrorResponse;
+        expect(body.status).toBe(400);
+        expect(body.title).toBe("Bad Request");
       });
     });
   });

@@ -10,7 +10,7 @@ export type PayOSWebhookData = WebhookData;
 export function sortAndFormatPayloadData(
   data: Record<string, unknown>,
 ): string {
-  const sortedKeys = Object.keys(data).sort();
+  const sortedKeys = Object.keys(data).toSorted();
   const pairs: string[] = [];
 
   for (const key of sortedKeys) {

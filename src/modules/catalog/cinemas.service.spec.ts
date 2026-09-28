@@ -1,21 +1,15 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { CinemasService } from "./cinemas.service";
 import type { DrizzleDB } from "@/database/database.module";
-import type { I18nService } from "nestjs-i18n";
-import { createMockDb, createMockI18nService } from "../../../test/mocks";
+import { createMockDb } from "../../../test/mocks";
 
 describe("CinemasService (Unit)", () => {
   let service: CinemasService;
   const mockDb = createMockDb();
-  const mockI18nService = createMockI18nService();
 
   beforeEach(() => {
     mockDb.clearAll();
-    mockI18nService.clearAll();
-    service = new CinemasService(
-      mockDb as unknown as DrizzleDB,
-      mockI18nService as unknown as I18nService,
-    );
+    service = new CinemasService(mockDb as unknown as DrizzleDB);
   });
 
   describe("findCinemas", () => {

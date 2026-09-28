@@ -1,22 +1,19 @@
 import { UsersService } from "./users.service";
 import type { DrizzleDB } from "@/database/database.module";
 import { beforeEach, describe, expect, it } from "bun:test";
-import { ForbiddenException, NotFoundException } from "@nestjs/common";
-import type { I18nService } from "nestjs-i18n";
-import { createMockDb, createMockI18nService } from "../../../test/mocks";
+import {
+  I18nForbiddenException,
+  I18nNotFoundException,
+} from "@/common/exceptions";
+import { createMockDb } from "../../../test/mocks";
 
 describe("UsersService", () => {
   let service: UsersService;
   const mockDb = createMockDb();
-  const mockI18nService = createMockI18nService();
 
   beforeEach(() => {
     mockDb.clearAll();
-    mockI18nService.clearAll();
-    service = new UsersService(
-      mockDb as unknown as DrizzleDB,
-      mockI18nService as unknown as I18nService,
-    );
+    service = new UsersService(mockDb as unknown as DrizzleDB);
   });
 
   describe("when retrieving user profile", () => {
@@ -60,7 +57,7 @@ describe("UsersService", () => {
       expect(result.status).toBe("pending_verification");
     });
 
-    it("should throw ForbiddenException when user status is suspended", () => {
+    it("should throw I18nForbiddenException when user status is suspended", () => {
       const mockUser = {
         id: "123e4567-e89b-12d3-a456-426614174000",
         email: "user@example.com",
@@ -72,11 +69,11 @@ describe("UsersService", () => {
       mockDb.setSelectResult([mockUser]);
 
       expect(service.getProfile(mockUser.id)).rejects.toThrow(
-        ForbiddenException,
+        I18nForbiddenException,
       );
     });
 
-    it("should throw ForbiddenException when user status is inactive", () => {
+    it("should throw I18nForbiddenException when user status is inactive", () => {
       const mockUser = {
         id: "123e4567-e89b-12d3-a456-426614174000",
         email: "user@example.com",
@@ -88,15 +85,15 @@ describe("UsersService", () => {
       mockDb.setSelectResult([mockUser]);
 
       expect(service.getProfile(mockUser.id)).rejects.toThrow(
-        ForbiddenException,
+        I18nForbiddenException,
       );
     });
 
-    it("should throw NotFoundException when user does not exist", () => {
+    it("should throw I18nNotFoundException when user does not exist", () => {
       mockDb.setSelectResult([]);
 
       expect(service.getProfile("non-existent-id")).rejects.toThrow(
-        NotFoundException,
+        I18nNotFoundException,
       );
     });
   });

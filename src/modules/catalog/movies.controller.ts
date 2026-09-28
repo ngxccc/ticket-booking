@@ -23,8 +23,8 @@ import {
   MovieDetailParamDto,
   MovieDetailQueryDto,
   MovieListQueryDto,
+  type PaginationMetaDto,
   MovieResponseDto,
-  PaginationMetaDto,
 } from "./dto";
 
 @ApiTags(CATALOG_ROUTES.MOVIES)

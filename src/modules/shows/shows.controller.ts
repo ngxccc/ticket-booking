@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Query,
   UseGuards,
@@ -28,13 +29,16 @@ import { SHOWS_ROUTES } from "./shows.routes";
 import { ShowsService } from "./shows.service";
 import {
   CreateShowDto,
-  ShowResponseDto,
   CreateShowBatchDto,
-  BatchShowResponseDto,
   ShowScheduleQueryDto,
+  ShowSeatsParamDto,
+  ShowResponseDto,
+  BatchShowResponseDto,
   ShowScheduleItemDto,
+  ShowSeatsResponseDto,
+  type ShowSeatsResponseDtoType,
 } from "./dto";
-
+import { I18nLang } from "nestjs-i18n";
 @ApiTags(SHOWS_ROUTES.BASE)
 @Controller({ path: SHOWS_ROUTES.BASE, version: "1" })
 @UseGuards(CustomThrottlerGuard)
@@ -56,6 +60,26 @@ export class ShowsController {
   ): Promise<ApiResponse<ShowScheduleItemDto[]>> {
     const showsList = await this.showsService.findShows(query);
     return apiSuccess(showsList);
+  }
+
+  @Get(SHOWS_ROUTES.SEATS)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      "Get showtime seating chart matrix and real-time seat availability",
+    description:
+      "Public endpoint to retrieve complete 2D seating layout coordinates, dimensions, pricing calculation, and live availability status for a showtime.",
+  })
+  @ApiOkResponseGeneric(ShowSeatsResponseDto)
+  @ApiBadRequestResponseRfc9457()
+  @ApiNotFoundResponseRfc9457()
+  @ApiTooManyRequestsResponseRfc9457()
+  async getShowSeats(
+    @Param() param: ShowSeatsParamDto,
+    @I18nLang() lang: string,
+  ): Promise<ApiResponse<ShowSeatsResponseDtoType>> {
+    const seatingChart = await this.showsService.getShowSeats(param.id, lang);
+    return apiSuccess(seatingChart);
   }
 
   @Post()

@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   HttpCode,
@@ -7,6 +6,7 @@ import {
   Logger,
   Post,
 } from "@nestjs/common";
+import { I18nBadRequestException } from "@/common/exceptions";
 import { ApiBody, ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { ApiBadRequestResponseRfc9457 } from "@/common/decorators";
 import {
@@ -14,8 +14,7 @@ import {
   PayOSWebhookResponseDto,
 } from "./dto/payos-webhook.dto";
 import { ConfigService } from "@nestjs/config";
-import { I18nService } from "nestjs-i18n";
-import type { I18nTranslations } from "@/generated/i18n.generated";
+
 import {
   isPayOSTimestampValid,
   verifyPayOSSignature,
@@ -28,10 +27,7 @@ import { LOG_EVENTS } from "@/common/constants/event.constant";
 export class PayOSWebhookController {
   private readonly logger = new Logger(PayOSWebhookController.name);
 
-  constructor(
-    private readonly configService: ConfigService,
-    private readonly i18n: I18nService<I18nTranslations>,
-  ) {}
+  constructor(private readonly configService: ConfigService) {}
 
   @Post(BOOKING_ROUTES.PAYOS_WEBHOOK)
   @HttpCode(HttpStatus.OK)
@@ -57,8 +53,8 @@ export class PayOSWebhookController {
       this.logger.warn(
         `PAYOS_WEBHOOK_INVALID_SIGNATURE: Webhook signature verification failed for orderCode ${String(payload.data.orderCode)}`,
       );
-      throw new BadRequestException(
-        this.i18n.t("booking.PAYOS_WEBHOOK_INVALID_SIGNATURE"),
+      throw new I18nBadRequestException(
+        "booking.PAYOS_WEBHOOK_INVALID_SIGNATURE",
       );
     }
 
@@ -70,8 +66,8 @@ export class PayOSWebhookController {
       this.logger.warn(
         `PAYOS_WEBHOOK_STALE_TIMESTAMP: Webhook timestamp skew exceeds 5 minutes for orderCode ${String(payload.data.orderCode)}`,
       );
-      throw new BadRequestException(
-        this.i18n.t("booking.PAYOS_WEBHOOK_STALE_TIMESTAMP"),
+      throw new I18nBadRequestException(
+        "booking.PAYOS_WEBHOOK_STALE_TIMESTAMP",
       );
     }
 

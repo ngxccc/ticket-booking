@@ -3,7 +3,7 @@ import { SentryService } from "./sentry.service";
 import { SENTRY_BREADCRUMB_CATEGORY } from "@/common/constants/sentry.constant";
 import type { OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import Redis from "ioredis";
+import type Redis from "ioredis";
 import Redlock, { type Lock, type Options as RedlockOptions } from "redlock";
 import {
   createRedisClient,
