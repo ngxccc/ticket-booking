@@ -56,7 +56,7 @@
     "@nestjs/throttler": "^6.7.0",
     "@payos/node": "^2.0.5",
     "@scalar/nestjs-api-reference": "^1.2.21",
-    "@sentry/nestjs": "^10.75.2",
+    "@sentry/nestjs": "^11.0.0",
     "@t3-oss/env-core": "^0.13.11",
     "bullmq": "^6.3.8",
     "drizzle-orm": "^1.0.0-rc.5-5935859",
