@@ -46,12 +46,14 @@ jobs:
       - name: E2E Tests
         run: bun run test:e2e
 
+      - name: Format Check (Oxfmt)
+        run: bun run format:check
+
       - name: Fast Linting (Oxlint)
-        run: bun run lint:fast
+        run: bunx oxlint --type-aware --deny-warnings -f github
 
       - name: Deep Linting (ESLint)
-        run: bun run lint:eslint
-
+        run: bunx eslint . --cache --cache-location .eslintcache
       - name: Type-Checking
         run: bun run check-types
 
