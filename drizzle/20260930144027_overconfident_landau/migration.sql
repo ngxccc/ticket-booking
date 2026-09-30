@@ -53,7 +53,9 @@ CREATE TABLE "movie_translations" (
 	"movie_id" uuid,
 	"language_code" varchar(10),
 	"title" varchar(255) NOT NULL,
-	"description" text,
+	"description" text DEFAULT '' NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "movie_translations_pkey" PRIMARY KEY("movie_id","language_code")
 );
 --> statement-breakpoint
@@ -75,7 +77,12 @@ CREATE TABLE "cinemas" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"name" varchar(255) NOT NULL,
-	"address" varchar(255)
+	"city" varchar(100) NOT NULL,
+	"ward" varchar(100) NOT NULL,
+	"street_address" varchar(255) NOT NULL,
+	"postal_code" varchar(10),
+	"latitude" numeric(10,8),
+	"longitude" numeric(11,8)
 );
 --> statement-breakpoint
 CREATE TABLE "halls" (
@@ -215,6 +222,9 @@ CREATE UNIQUE INDEX "users_reset_password_token_uidx" ON "users" ("reset_passwor
 CREATE INDEX "users_reset_password_expires_at_idx" ON "users" ("reset_password_expires_at") WHERE "reset_password_token" IS NOT NULL;--> statement-breakpoint
 CREATE INDEX "users_phone_number_idx" ON "users" ("phone_number");--> statement-breakpoint
 CREATE INDEX "movie_genres_genre_id_idx" ON "movie_genres" ("genre_id");--> statement-breakpoint
+CREATE INDEX "movie_translations_title_idx" ON "movie_translations" ("title");--> statement-breakpoint
+CREATE INDEX "cinemas_city_ward_idx" ON "cinemas" ("city","ward");--> statement-breakpoint
+CREATE INDEX "cinemas_name_idx" ON "cinemas" ("name");--> statement-breakpoint
 CREATE INDEX "halls_cinema_id_idx" ON "halls" ("cinema_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "seats_hall_id_seat_number_uidx" ON "seats" ("hall_id","seat_number");--> statement-breakpoint
 CREATE INDEX "seats_seat_type_id_idx" ON "seats" ("seat_type_id");--> statement-breakpoint

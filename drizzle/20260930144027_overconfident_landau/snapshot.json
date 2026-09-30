@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "373e4dc5-dbf3-4150-84b7-a90b177dceeb",
+  "id": "23072fa6-8706-476e-8242-a42d2eba7258",
   "prevIds": ["00000000-0000-0000-0000-000000000000"],
   "ddl": [
     {
@@ -597,12 +597,38 @@
     {
       "type": "text",
       "typeSchema": null,
-      "notNull": false,
+      "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "''",
       "generated": null,
       "identity": null,
       "name": "description",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "movie_translations"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "movie_translations"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "movie_translations"
@@ -790,14 +816,79 @@
       "table": "cinemas"
     },
     {
+      "type": "varchar(100)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "city",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "cinemas"
+    },
+    {
+      "type": "varchar(100)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "ward",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "cinemas"
+    },
+    {
       "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "street_address",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "cinemas"
+    },
+    {
+      "type": "varchar(10)",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "address",
+      "name": "postal_code",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "cinemas"
+    },
+    {
+      "type": "numeric(10,8)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "latitude",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "cinemas"
+    },
+    {
+      "type": "numeric(11,8)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "longitude",
       "entityType": "columns",
       "schema": "public",
       "table": "cinemas"
@@ -2189,6 +2280,76 @@
       "entityType": "indexes",
       "schema": "public",
       "table": "movie_genres"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "title",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "movie_translations_title_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "movie_translations"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "city",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "ward",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "cinemas_city_ward_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "cinemas"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "name",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "cinemas_name_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "cinemas"
     },
     {
       "nameExplicit": true,

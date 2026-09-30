@@ -151,9 +151,26 @@ async function main(): Promise<void> {
       "Show Seats (Tier 3)": { Count: summary.showSeats },
     });
   } catch (error) {
+    const pgCause =
+      error instanceof Error && "cause" in error
+        ? (error.cause as {
+            message?: string;
+            detail?: string;
+            code?: string;
+            constraint?: string;
+          })
+        : undefined;
+
     console.error(
-      `\n\x1b[1m\x1b[31m[FAILURE]\x1b[0m Database seeding failed: ${error instanceof Error ? error.message : String(error)}\n`,
+      `\n\x1b[1m\x1b[31m[FAILURE]\x1b[0m Database seeding failed: ${error instanceof Error ? error.message : String(error)}`,
     );
+    if (pgCause) {
+      console.error(
+        `\x1b[1m\x1b[31m[PG DETAIL]\x1b[0m Code: ${pgCause.code ?? "N/A"} | Constraint: ${pgCause.constraint ?? "N/A"} | Message: ${pgCause.message ?? "N/A"} | Detail: ${pgCause.detail ?? "N/A"}\n`,
+      );
+    } else {
+      console.error("");
+    }
     process.exit(1);
   } finally {
     await pool.end();
