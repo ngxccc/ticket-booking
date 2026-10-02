@@ -53,7 +53,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
     const lang = I18nContext.current(host)?.lang;
 
-    let status: HttpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+    let status: number = HttpStatus.INTERNAL_SERVER_ERROR;
     let title = "Internal Server Error";
     let detail: string;
     let invalidParams: InvalidParam[] = [];
@@ -130,12 +130,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let eventId: string | undefined;
 
     // Zero-noise telemetry: Capture 5xx server errors and unhandled exceptions in Sentry while filtering standard 4xx client errors.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison -- status is dynamically extracted from HttpException.getStatus() as a primitive number
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
-      const user = (
-        request as unknown as {
-          user?: { id?: string; email?: string; role?: string };
-        }
-      ).user;
+      const user = request.user;
 
       eventId = this.sentryService?.captureException(exception, {
         tags: {
@@ -153,7 +150,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           },
         },
         user: user
-          ? { id: user.id, email: user.email, role: user.role }
+          ? { id: user.sub, email: user.email, role: user.role }
           : undefined,
       });
     } else {
