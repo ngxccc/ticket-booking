@@ -138,12 +138,12 @@ All engineers must audit against these criteria prior to submitting Pull Request
 
 ## 8. Verification & Standard Mapping Matrix
 
-| Domain Category              | Standard Benchmark        | Automated Verification Test                                             |
-| :--------------------------- | :------------------------ | :---------------------------------------------------------------------- |
-| **Inventory Concurrency**    | OWASP API4, ASVS V10.2    | `test/load/booking-concurrency.k6.ts`, `test/integration/shows.spec.ts` |
-| **BOLA / IDOR Defense**      | OWASP API1, ASVS V4.1     | `src/modules/booking/booking.service.spec.ts` (INV-5)                   |
-| **Webhook HMAC Validation**  | ASVS V13.2, PCI-DSS Req 6 | `src/common/utils/payos-crypto.util.spec.ts`                            |
-| **Virtual Seat Status**      | ASVS V10.2                | `test/integration/shows.spec.ts` (INV-3)                                |
-| **DTO Mass Assignment**      | OWASP API3, ASVS V5.1     | `src/common/dto/create-zod-dto.util.ts` (`.strict()`)                   |
-| **Timing Attack Defense**    | ASVS V6.2                 | `src/common/utils/crypto.util.ts` (`timingSafeEqual`)                   |
-| **Type & Lint Static Proof** | ASVS V14.2                | `bun run check-types` && `bun run lint`                                 |
+| Domain Category              | Standard Benchmark        | Automated Verification Test                                                             |
+| :--------------------------- | :------------------------ | :-------------------------------------------------------------------------------------- |
+| **Inventory Concurrency**    | OWASP API4, ASVS V10.2    | `test/load/suites/booking-concurrency/scenario.k6.ts`, `test/integration/shows.spec.ts` |
+| **BOLA / IDOR Defense**      | OWASP API1, ASVS V4.1     | `src/modules/booking/booking.service.spec.ts` (INV-5)                                   |
+| **Webhook HMAC Validation**  | ASVS V13.2, PCI-DSS Req 6 | `src/common/utils/payos-crypto.util.spec.ts`                                            |
+| **Virtual Seat Status**      | ASVS V10.2                | `test/integration/shows.spec.ts` (INV-3)                                                |
+| **DTO Mass Assignment**      | OWASP API3, ASVS V5.1     | `src/common/dto/create-zod-dto.util.ts` (`.strict()`)                                   |
+| **Timing Attack Defense**    | ASVS V6.2                 | `src/common/utils/crypto.util.ts` (`timingSafeEqual`)                                   |
+| **Type & Lint Static Proof** | ASVS V14.2                | `bun run check-types` && `bun run lint`                                                 |

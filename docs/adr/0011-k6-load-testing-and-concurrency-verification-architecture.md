@@ -42,7 +42,7 @@ Simulating mass contention on a single shared VIP seat (Hot Seat Contention) in 
 We decided to establish a 4-tier Load & Stress Testing Architecture:
 
 1. **Pre-Generated Token Pool with `k6/data` (`SharedArray`)**:
-   - A TypeScript setup script (`test/load/seed.ts`) executed via Bun seeds test data and pre-generates 500–2,000 unique user accounts directly into PostgreSQL.
+   - A TypeScript setup script (`test/load/suites/booking-concurrency/seed.ts`) executed via Bun seeds test data and pre-generates 500–2,000 unique user accounts directly into PostgreSQL.
    - Signs $N$ valid JWT access tokens offline using the project's `JWT_SECRET` and writes a compact fixture file (`test/load/fixtures/booking-fixtures.json`).
    - The k6 script loads this file once in the `init` context using `SharedArray`, sharing memory read-only across all Goja JS runtimes with zero RAM duplication and zero Auth HTTP overhead.
 2. **Multi-Scenario Architecture (Lock Contention vs. Rate Limiting)**:
@@ -55,11 +55,11 @@ We decided to establish a 4-tier Load & Stress Testing Architecture:
      - Uses `per-vu-iterations` executor with 1 VU sending 30 rapid requests from a single static IP.
      - **Invariants**: First 10 requests pass, subsequent requests return `HTTP 429 Too Many Requests` formatted according to RFC 9457.
 3. **TypeScript-to-JS Bundling Pipeline**:
-   - Authors write k6 test suites in TypeScript (`test/load/booking-concurrency.k6.ts`) utilizing strong types from OpenAPI contracts.
-   - Test runner bundles TypeScript via `bun build test/load/booking-concurrency.k6.ts --target=browser --outfile dist/load-test.js` in $<50\text{ms}$.
+   - Authors write k6 test suites in TypeScript (`test/load/suites/booking-concurrency/scenario.k6.ts`) utilizing strong types from OpenAPI contracts.
+   - Test runner bundles TypeScript via `bun build test/load/suites/booking-concurrency/scenario.k6.ts --target=browser --outfile test/load/.dist/booking-concurrency.k6.js` in $<50\text{ms}$.
    - Executes via native `k6` binary if present, with automatic fallback to Docker (`grafana/k6:latest`).
 4. **Post-Test Invariant Verifier & Cleanup**:
-   - `test/load/verify-and-teardown.ts` directly inspects PostgreSQL (`SELECT count(*) FROM bookings`, `show_seats.status`) and Redis locks to mathematically verify zero overselling, then purges test data cleanly.
+   - `test/load/suites/booking-concurrency/teardown.ts` directly inspects PostgreSQL (`SELECT count(*) FROM bookings`, `show_seats.status`) and Redis locks to mathematically verify zero overselling, then purges test data cleanly.
 5. **CI/CD Separation of Concerns**:
    - **PR Verification (`ci.yml`)**: Kept fast and deterministic without running heavy k6 stress tests.
    - **Performance Workflow (`.github/workflows/performance.yml`)**: Dedicated workflow triggered via `workflow_dispatch` (manual pre-release testing with configurable `VUS`) and nightly scheduled cron runs for continuous performance regression tracking.

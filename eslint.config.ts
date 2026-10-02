@@ -11,6 +11,7 @@ export default defineConfig(
     "dist/**",
     "src/generated/**",
     "test/generated/**",
+    "test/load/.dist/",
   ]),
 
   eslintJs.configs.recommended,

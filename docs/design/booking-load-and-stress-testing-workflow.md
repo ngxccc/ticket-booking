@@ -28,18 +28,18 @@ This document is the **Single Source of Truth (SSOT)** describing the architectu
 
 ## Architecture & Work Breakdown Structure (WBS)
 
-| WBS Code  | Component / Artifact                       | Level             | Technical Implementation & Boundary                                    | Output / Target                                      |
-| :-------- | :----------------------------------------- | :---------------- | :--------------------------------------------------------------------- | :--------------------------------------------------- |
-| **1.0**   | **Test Data Seeder & Token Factory**       | **L2: Setup**     | TypeScript DB seed script executed via Bun                             | `test/load/seed.ts`                                  |
-| **1.1.1** | DAG Fixture Provisioning                   | L3: Logic         | Creates Movie, Cinema, Hall, Seat Type, Seats, Show, ShowSeats         | Database tables                                      |
-| **1.1.2** | User Batch Creation & Token Signing        | L3: Logic         | Inserts 500–2,000 users and signs JWT tokens with `JWT_SECRET`         | `test/load/fixtures/booking-fixtures.json`           |
-| **2.0**   | **K6 Test Suite & Scenarios**              | **L2: Execution** | TypeScript k6 test script with strong typing                           | `test/load/booking-concurrency.k6.ts`                |
-| **2.1.1** | `hot_seat_burst` Scenario                  | L3: Scenario      | `per-vu-iterations` executor (500/2000 VUs, UUIDv7, `X-Forwarded-For`) | Custom metrics & HTTP 201/409                        |
-| **2.1.2** | `rate_limit_abuse` Scenario                | L3: Scenario      | `per-vu-iterations` executor (1 VU, 30 reqs, fixed IP)                 | Custom metrics & HTTP 429                            |
-| **3.0**   | **Post-Test Invariant Verifier & Cleanup** | **L2: Teardown**  | Post-test verification script inspecting DB state directly             | `test/load/verify-and-teardown.ts`                   |
-| **3.1.1** | Database Invariant Assertions              | L3: Validation    | `SELECT count(*) FROM bookings = 1`, `show_seats.status = 'reserved'`  | Invariant report                                     |
-| **3.1.2** | Redis Lock & DB Data Teardown              | L3: Cleanup       | Purges Redis `lock:show_seat:*` and deletes test show records          | Clean DB state                                       |
-| **4.0**   | **Orchestrator Pipeline & CI/CD**          | **L2: CI/CD**     | Unified npm script and GitHub Actions workflow                         | `package.json` & `.github/workflows/performance.yml` |
+| WBS Code  | Component / Artifact                       | Level             | Technical Implementation & Boundary                                    | Output / Target                                       |
+| :-------- | :----------------------------------------- | :---------------- | :--------------------------------------------------------------------- | :---------------------------------------------------- |
+| **1.0**   | **Test Data Seeder & Token Factory**       | **L2: Setup**     | TypeScript DB seed script executed via Bun                             | `test/load/suites/booking-concurrency/seed.ts`        |
+| **1.1.1** | DAG Fixture Provisioning                   | L3: Logic         | Creates Movie, Cinema, Hall, Seat Type, Seats, Show, ShowSeats         | Database tables                                       |
+| **1.1.2** | User Batch Creation & Token Signing        | L3: Logic         | Inserts 500–2,000 users and signs JWT tokens with `JWT_SECRET`         | `test/load/fixtures/booking-fixtures.json`            |
+| **2.0**   | **K6 Test Suite & Scenarios**              | **L2: Execution** | TypeScript k6 test script with strong typing                           | `test/load/suites/booking-concurrency/scenario.k6.ts` |
+| **2.1.1** | `hot_seat_burst` Scenario                  | L3: Scenario      | `per-vu-iterations` executor (500/2000 VUs, UUIDv7, `X-Forwarded-For`) | Custom metrics & HTTP 201/409                         |
+| **2.1.2** | `rate_limit_abuse` Scenario                | L3: Scenario      | `per-vu-iterations` executor (1 VU, 30 reqs, fixed IP)                 | Custom metrics & HTTP 429                             |
+| **3.0**   | **Post-Test Invariant Verifier & Cleanup** | **L2: Teardown**  | Post-test verification script inspecting DB state directly             | `test/load/suites/booking-concurrency/teardown.ts`    |
+| **3.1.1** | Database Invariant Assertions              | L3: Validation    | `SELECT count(*) FROM bookings = 1`, `show_seats.status = 'reserved'`  | Invariant report                                      |
+| **3.1.2** | Redis Lock & DB Data Teardown              | L3: Cleanup       | Purges Redis `lock:show_seat:*` and deletes test show records          | Clean DB state                                        |
+| **4.0**   | **Orchestrator Pipeline & CI/CD**          | **L2: CI/CD**     | Unified npm script and GitHub Actions workflow                         | `package.json` & `.github/workflows/performance.yml`  |
 
 ---
 
@@ -55,7 +55,7 @@ sequenceDiagram
     participant K6 as "Grafana k6 Engine"
     participant Redis as "Redis (Redlock & Throttler)"
     participant DB as "PostgreSQL (Drizzle ORM)"
-    participant Verifier as "Verifier (verify-and-teardown.ts)"
+    participant Verifier as "Verifier (teardown.ts)"
 
     Dev->>CLI: bun run test:load (VUS=500/2000)
     CLI->>SUT: Healthcheck ping (GET /api-json or :3000 TCP)
@@ -64,14 +64,14 @@ sequenceDiagram
     end
 
     Note over CLI,Seeder: Phase 1: Test Data Seeding
-    CLI->>Seeder: Execute seed.ts
+    CLI->>Seeder: Execute suites/booking-concurrency/seed.ts
     Seeder->>DB: Insert Movie, Cinema, Hall, Show, VIP Seats
     Seeder->>DB: Bulk insert N Test Users
     Seeder->>Seeder: Sign N JWT Access Tokens (offline via JWT_SECRET)
     Seeder->>CLI: Write test/load/fixtures/booking-fixtures.json
 
     Note over CLI,K6: Phase 2: Transpile & Load Testing
-    CLI->>CLI: bun build test/load/booking-concurrency.k6.ts -> dist/load-test.js
+    CLI->>CLI: bun build test/load/suites/booking-concurrency/scenario.k6.ts -> .dist/booking-concurrency.k6.js
     CLI->>K6: Run dist/load-test.js (Native binary or Docker fallback)
 
     par Scenario 1: Hot Seat Burst (t=0s to 10s)
@@ -96,7 +96,7 @@ sequenceDiagram
     K6-->>CLI: Output test metrics and assert Thresholds (p95, p99)
 
     Note over CLI,Verifier: Phase 3: Post-Test Invariant Verification & Teardown
-    CLI->>Verifier: Execute verify-and-teardown.ts
+    CLI->>Verifier: Execute suites/booking-concurrency/teardown.ts
     Verifier->>DB: Assert: Exactly 1 row in bookings for test show
     Verifier->>DB: Assert: Exactly 1 seat marked 'reserved' in show_seats
     Verifier->>Redis: Assert: Zero leaked lock:show_seat:* keys
