@@ -4,10 +4,10 @@ import { resolve } from "node:path";
 import { users, type NewUser, type User } from "@/database/schemas";
 import { env } from "@/env";
 import { TIME_IN_MS } from "@/common/constants/time.constant";
-import { createTestPool } from "../helpers/database.helper";
+import { createTestPool } from "../../../helpers/database.helper";
 import { createDrizzleClient } from "@/database/database.connection";
-import { generateTestToken } from "../helpers/auth.helper";
-import type { BookingLoadFixture, TestUserFixture } from "./fixtures/types";
+import { generateTestToken } from "../../../helpers/auth.helper";
+import type { BookingLoadFixture, TestUserFixture } from "../../shared/types";
 import {
   createMovie,
   createCinema,
@@ -16,7 +16,7 @@ import {
   createBatchSeats,
   createShow,
   createBatchShowSeats,
-} from "../factories";
+} from "../../../factories";
 
 const logger = new Logger("Seed");
 
@@ -141,7 +141,7 @@ export async function seedLoadTestData(): Promise<BookingLoadFixture> {
 
     const fixtureFilePath = resolve(
       process.cwd(),
-      "dist/booking-fixtures.json",
+      "test/load/.dist/booking-fixtures.json",
     );
     await Bun.write(fixtureFilePath, JSON.stringify(fixturePayload, null, 2));
 

@@ -4,14 +4,7 @@ import { Counter, Trend } from "k6/metrics";
 import { SharedArray } from "k6/data";
 import { vu } from "k6/execution";
 import { v7 as uuidv7 } from "uuid";
-import type { BookingLoadFixture } from "./fixtures/types";
-
-// SharedArray loads fixture data into shared memory once during init context, eliminating per-VU RAM duplication.
-const fixtureData = new SharedArray("booking_fixtures", () => {
-  const fixturePath = __ENV["FIXTURES_PATH"] ?? "./booking-fixtures.json";
-  const fileContent = open(fixturePath);
-  return [JSON.parse(fileContent) as BookingLoadFixture];
-});
+import type { BookingLoadFixture } from "../../shared/types";
 
 const defaultFixture: BookingLoadFixture = {
   targetUrl: "http://127.0.0.1:3000",
@@ -21,6 +14,18 @@ const defaultFixture: BookingLoadFixture = {
   totalVus: 500,
   users: [],
 };
+
+// SharedArray loads fixture data into shared memory once during init context, eliminating per-VU RAM duplication.
+const fixtureData = new SharedArray("booking_fixtures", () => {
+  const fixturePath = __ENV["FIXTURES_PATH"] ?? "./booking-fixtures.json";
+  try {
+    const fileContent = open(fixturePath);
+    return [JSON.parse(fileContent) as BookingLoadFixture];
+  } catch {
+    return [defaultFixture];
+  }
+});
+
 const fixture: BookingLoadFixture = fixtureData[0] ?? defaultFixture;
 const totalVus = fixture.totalVus;
 const p95Threshold = __ENV["P95_THRESHOLD"] ?? "1500";
@@ -176,6 +181,10 @@ export function rateLimitScenario(): void {
  */
 export function handleSummary(data: unknown) {
   return {
-    "dist/load-test-summary.json": JSON.stringify(data, null, 2),
+    "test-results/load/booking-concurrency-summary.json": JSON.stringify(
+      data,
+      null,
+      2,
+    ),
   };
 }
