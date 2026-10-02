@@ -1,4 +1,5 @@
 import type { DrizzleDB } from "@/database/database.module";
+import { TIME_IN_MS } from "@/common/constants/time.constant";
 import {
   shows,
   showSeats,
@@ -17,8 +18,10 @@ export async function createShow(
   const movieId = overrides.movieId ?? (await createMovie(db)).id;
   const hallId = overrides.hallId ?? (await createHall(db)).id;
 
-  const startTime = overrides.startTime ?? new Date(Date.now() + 86400000);
-  const endTime = overrides.endTime ?? new Date(startTime.getTime() + 7200000);
+  const startTime =
+    overrides.startTime ?? new Date(Date.now() + TIME_IN_MS.DAY);
+  const endTime =
+    overrides.endTime ?? new Date(startTime.getTime() + 2 * TIME_IN_MS.HOUR);
 
   const [show] = await db
     .insert(shows)

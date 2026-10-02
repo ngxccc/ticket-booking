@@ -24,6 +24,7 @@ import {
   linkMovieGenre,
 } from "../factories/movie.factory";
 import { createShow } from "../factories/show.factory";
+import { TIME_IN_MS } from "@/common/constants/time.constant";
 import type { ApiResponse } from "@/common/utils/api-response.util";
 import type {
   PaginationMetaDto,
@@ -112,8 +113,8 @@ describe("Catalog Module Integration - Movies", () => {
         );
         await createShow(db, {
           movieId: movieWithShow.id,
-          startTime: new Date(Date.now() + 3600000), // +1 hour
-          endTime: new Date(Date.now() + 7200000),
+          startTime: new Date(Date.now() + TIME_IN_MS.HOUR),
+          endTime: new Date(Date.now() + 2 * TIME_IN_MS.HOUR),
         });
 
         // Movie B has NO showtime -> not now-showing
