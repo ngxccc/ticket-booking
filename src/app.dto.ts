@@ -6,6 +6,10 @@ export const healthResponseSchema = z.object({
     description: "System operational health status indicator",
     example: "ok",
   }),
+  environment: z.string().optional().meta({
+    description: "Current application runtime environment",
+    example: "test",
+  }),
 });
 
 export type HealthResponseDtoType = z.infer<typeof healthResponseSchema>;

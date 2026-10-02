@@ -1,4 +1,5 @@
 import type { DrizzleDB } from "@/database/database.module";
+import { TIME_IN_MS } from "@/common/constants/time.constant";
 import { createUser } from "../factories/user.factory";
 import type { User } from "@/database/schemas";
 
@@ -35,7 +36,7 @@ export const UserMother = {
       role: "user",
       status: "pending_verification",
       verificationToken: crypto.randomUUID(),
-      verificationExpiresAt: new Date(Date.now() + 86400000),
+      verificationExpiresAt: new Date(Date.now() + TIME_IN_MS.DAY),
     });
   },
 } as const;

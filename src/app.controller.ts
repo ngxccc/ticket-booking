@@ -2,6 +2,7 @@ import { Controller, Get } from "@nestjs/common";
 import { ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { SkipThrottle } from "@nestjs/throttler";
 import { HealthResponseDto } from "./app.dto";
+import { env } from "@/env";
 
 @ApiTags("app")
 @SkipThrottle()
@@ -17,6 +18,9 @@ export class AppController {
     type: HealthResponseDto,
   })
   getHealth(): HealthResponseDto {
-    return { status: "ok" };
+    return {
+      status: "ok",
+      ...(env.NODE_ENV !== "production" ? { environment: env.NODE_ENV } : {}),
+    };
   }
 }

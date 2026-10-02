@@ -15,10 +15,10 @@ import {
   users,
 } from "@/database/schemas";
 import { createRedisClient } from "@/config/redis.config";
-import { createTestPool } from "../helpers/database.helper";
+import { createTestPool } from "../../../helpers/database.helper";
 import { createDrizzleClient } from "@/database/database.connection";
 import type { DrizzleDB } from "@/database/database.module";
-import type { BookingLoadFixture } from "./fixtures/types";
+import type { BookingLoadFixture } from "../../shared/types";
 import { REDIS_KEYS } from "@/modules/booking/booking.constants";
 
 const logger = new Logger("Verify");
@@ -187,7 +187,10 @@ export async function teardownTestData(
  * Main verification and teardown runner.
  */
 export async function runVerifyAndTeardown(): Promise<void> {
-  const fixturePath = resolve(process.cwd(), "dist/booking-fixtures.json");
+  const fixturePath = resolve(
+    process.cwd(),
+    "test/load/.dist/booking-fixtures.json",
+  );
   const fixtureFile = Bun.file(fixturePath);
 
   if (!(await fixtureFile.exists())) {

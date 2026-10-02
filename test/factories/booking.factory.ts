@@ -1,4 +1,5 @@
 import type { DrizzleDB } from "@/database/database.module";
+import { TIME_IN_MS } from "@/common/constants/time.constant";
 import {
   bookings,
   vouchers,
@@ -22,8 +23,8 @@ export async function createVoucher(
       code,
       discountType: "percentage",
       discountValue: 10,
-      startDate: new Date(Date.now() - 86400000),
-      endDate: new Date(Date.now() + 86400000 * 30),
+      startDate: new Date(Date.now() - TIME_IN_MS.DAY),
+      endDate: new Date(Date.now() + 30 * TIME_IN_MS.DAY),
       ...overrides,
     })
     .returning();

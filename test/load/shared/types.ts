@@ -13,3 +13,11 @@ export interface BookingLoadFixture {
   totalVus: number;
   users: TestUserFixture[];
 }
+
+export interface ShowsSeatsLoadFixture {
+  targetUrl: string;
+  standardShowId: string;
+  imaxShowId: string;
+  standardTotalSeats: number;
+  imaxTotalSeats: number;
+}

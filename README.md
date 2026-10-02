@@ -130,6 +130,25 @@ Micro-benchmarks executed on the Bun runtime measuring latency distribution perc
 | **ShowsBatch: 90 Slots Expansion &amp; Sort**<br>_(1D Flat Timeline + $O(N)$ sweep-line check)_  |   10,000   |  `0.038 ms`  | `0.035 ms` | `0.046 ms` | `0.059 ms` | **26,476 ops/sec** |
 | **ShowsBatch: DB Bulk 100 Shows + 20k Seats**<br>_(All-or-nothing Tx + 1k chunk pre-allocation)_ |     1      |  `2.100 s`   | `2.100 s`  | `2.100 s`  | `2.100 s`  | **9,571 rec/sec**  |
 
+### 3. Unified CLI Runner Quick Reference
+
+Both micro-benchmarks and k6 load tests share an interactive CLI orchestrator powered by `@clack/prompts`:
+
+```bash
+# Micro-Benchmarks
+bun run test:bench            # Interactive menu (choose benchmark)
+bun run test:bench ls         # List available micro-benchmarks
+bun run test:bench all        # Run all micro-benchmarks sequentially
+bun run test:bench seats      # Run shows-seats benchmark (shorthand)
+
+# k6 Load & Concurrency Tests
+bun run test:load             # Interactive menu (choose suite)
+bun run test:load ls          # List available load test suites
+bun run test:load all         # Run all suites sequentially with summary table
+bun run test:load seats       # Run shows-seats load test (shorthand)
+bun run test:load booking     # Run booking-concurrency load test (shorthand)
+```
+
 ## Environment Configuration
 
 Strictly validated on boot via Zod schema (`src/env.ts`):
@@ -186,13 +205,8 @@ bun run test:watch       # Run unit tests in watch mode
 bun run test:cov         # Run unit tests with code coverage
 bun run test:ci          # Run unit tests with coverage & JUnit report output
 bun run test:e2e         # Run integration tests against PostgreSQL & Redis
-bun run test:bench       # Run micro-benchmark performance runner
-bun run test:load        # Run end-to-end k6 concurrency & stress testing suite
-bun run test:load:build  # Compile k6 TypeScript test script to dist/
-bun run test:load:seed   # Provision load test fixtures and offline JWT tokens
-bun run test:load:run    # Execute k6 concurrency stress test scenarios
-bun run test:load:verify # Assert post-test database invariants and teardown
-
+bun run test:bench       # Interactive micro-benchmark runner (supports: ls, all, <name>)
+bun run test:load        # Interactive k6 load test runner (supports: ls, all, <name>)
 # Code Generation
 bun run i18n:generate    # Generate TypeScript definitions for translation keys
 bun run openapi:generate # Generate TypeScript types from OpenAPI schema
