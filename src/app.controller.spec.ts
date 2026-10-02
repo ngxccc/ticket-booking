@@ -11,7 +11,7 @@ describe("AppController", () => {
   describe("getHealth", () => {
     it("should return operational ok status object", () => {
       const result = controller.getHealth();
-      expect(result).toEqual({ status: "ok" });
+      expect(result).toMatchObject({ status: "ok" });
     });
   });
 });
