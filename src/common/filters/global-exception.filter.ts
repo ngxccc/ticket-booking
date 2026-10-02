@@ -53,7 +53,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
     const lang = I18nContext.current(host)?.lang;
 
-    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let status: HttpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
     let title = "Internal Server Error";
     let detail: string;
     let invalidParams: InvalidParam[] = [];
