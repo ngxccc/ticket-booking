@@ -9,6 +9,24 @@ describe("Sanitize Utilities", () => {
       expect(clean).toBe("Hello World");
     });
 
+    it("should completely strip self-closing tags with event handlers", () => {
+      const input = "<img src=x onerror=alert('XSS')>";
+      const sanitized = sanitizeString(input);
+      expect(sanitized).toBe("");
+    });
+
+    it("should handle mixed HTML and plain text safely", () => {
+      const input = "Hello <script>alert(1)</script> World";
+      const sanitized = sanitizeString(input);
+      expect(sanitized).toBe("Hello  World");
+    });
+
+    it("should successfully sanitize unclosed HTML tags", () => {
+      const input = "<script src=http://attacker.com/xss.js";
+      const sanitized = sanitizeString(input);
+      expect(sanitized).toBe("");
+    });
+
     it("should trim surrounding whitespace when input string contains extra padding", () => {
       const input = "   <b>Clean Text</b>   ";
       const clean = sanitizeString(input);
