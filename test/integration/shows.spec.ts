@@ -456,8 +456,11 @@ describe("Shows Module Integration", () => {
           .send({
             movieId: seededMovieId,
             hallId: seededHallId,
-            startDate: "2026-10-01",
-            endDate: "2026-10-02",
+            startDate: getFutureTimezoneDate(
+              1,
+              SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+            ),
+            endDate: getFutureTimezoneDate(2, SHOWS_CONSTANTS.DEFAULT_TIMEZONE),
             timeSlots: ["10:00", "14:00"],
             basePrice: 100000,
           });
@@ -472,8 +475,11 @@ describe("Shows Module Integration", () => {
           .send({
             movieId: seededMovieId,
             hallId: seededHallId,
-            startDate: "2026-10-01",
-            endDate: "2026-10-02",
+            startDate: getFutureTimezoneDate(
+              1,
+              SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+            ),
+            endDate: getFutureTimezoneDate(2, SHOWS_CONSTANTS.DEFAULT_TIMEZONE),
             timeSlots: ["10:00", "14:00"],
             basePrice: 100000,
           });
@@ -490,8 +496,11 @@ describe("Shows Module Integration", () => {
           .send({
             movieId: seededMovieId,
             hallId: seededHallId,
-            startDate: "2026-10-05",
-            endDate: "2026-10-01",
+            startDate: getFutureTimezoneDate(
+              5,
+              SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+            ),
+            endDate: getFutureTimezoneDate(1, SHOWS_CONSTANTS.DEFAULT_TIMEZONE),
             timeSlots: ["10:00", "14:00"],
             basePrice: 100000,
           });
@@ -506,8 +515,14 @@ describe("Shows Module Integration", () => {
           .send({
             movieId: seededMovieId,
             hallId: seededHallId,
-            startDate: "2026-10-01",
-            endDate: "2026-11-05",
+            startDate: getFutureTimezoneDate(
+              1,
+              SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+            ),
+            endDate: getFutureTimezoneDate(
+              35,
+              SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+            ),
             timeSlots: ["10:00"],
             basePrice: 100000,
           });
@@ -522,8 +537,14 @@ describe("Shows Module Integration", () => {
           .send({
             movieId: seededMovieId,
             hallId: seededHallId,
-            startDate: "2026-10-01",
-            endDate: "2026-10-25",
+            startDate: getFutureTimezoneDate(
+              1,
+              SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+            ),
+            endDate: getFutureTimezoneDate(
+              25,
+              SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+            ),
             timeSlots: ["08:00", "11:00", "14:00", "17:00", "20:00"],
             basePrice: 100000,
           });
@@ -538,8 +559,11 @@ describe("Shows Module Integration", () => {
           .send({
             movieId: seededMovieId,
             hallId: seededHallId,
-            startDate: "2026-10-01",
-            endDate: "2026-10-01",
+            startDate: getFutureTimezoneDate(
+              1,
+              SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+            ),
+            endDate: getFutureTimezoneDate(1, SHOWS_CONSTANTS.DEFAULT_TIMEZONE),
             timeSlots: ["10:00", "11:30"],
             basePrice: 100000,
           });
@@ -556,8 +580,11 @@ describe("Shows Module Integration", () => {
           .send({
             movieId: seededMovieId,
             hallId: seededHallId,
-            startDate: "2026-10-01",
-            endDate: "2026-10-02",
+            startDate: getFutureTimezoneDate(
+              1,
+              SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+            ),
+            endDate: getFutureTimezoneDate(2, SHOWS_CONSTANTS.DEFAULT_TIMEZONE),
             timeSlots: ["10:00", "15:00"],
             basePrice: 120000,
           });
@@ -586,13 +613,17 @@ describe("Shows Module Integration", () => {
         expect(dbShowSeats.every((s) => s.status === "available")).toBe(true);
       });
       it("should reject entire batch and rollback cleanly when one slot collides with existing DB schedule (409 Conflict)", async () => {
+        const singleShowDate = getFutureTimezoneDate(
+          3,
+          SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+        );
         await request(getHttpServer())
           .post("/api/v1/shows")
           .set("Authorization", `Bearer ${adminToken}`)
           .send({
             movieId: seededMovieId,
             hallId: seededHall2Id,
-            startTime: "2026-10-03T10:00:00+07:00",
+            startTime: `${singleShowDate}T10:00:00+07:00`,
             basePrice: 100000,
           });
 
@@ -602,12 +633,14 @@ describe("Shows Module Integration", () => {
           .send({
             movieId: seededMovieId,
             hallId: seededHall2Id,
-            startDate: "2026-10-02",
-            endDate: "2026-10-04",
+            startDate: getFutureTimezoneDate(
+              2,
+              SHOWS_CONSTANTS.DEFAULT_TIMEZONE,
+            ),
+            endDate: getFutureTimezoneDate(4, SHOWS_CONSTANTS.DEFAULT_TIMEZONE),
             timeSlots: ["10:00", "15:00"],
             basePrice: 100000,
           });
-
         expect(res.status).toBe(409);
 
         const hall2Shows = await db
