@@ -31,14 +31,15 @@ const logger = new Logger("SeedShowsSeats");
  * - 10% reserved (with active lockedUntil timestamp)
  * - 10% booked
  */
-async function provisionSeatingChart(
+async function provisionHallWithShows(
   db: DrizzleDB,
   movieId: string,
   cinemaId: string,
   rowCount: number,
   colsPerRow: number,
   label: string,
-): Promise<{ showId: string; totalSeats: number }> {
+  showCount = 10,
+): Promise<{ showIds: string[]; totalSeats: number }> {
   const totalSeats = rowCount * colsPerRow;
   const timestamp = Date.now().toString();
 
@@ -75,42 +76,50 @@ async function provisionSeatingChart(
   }
 
   const insertedSeats = await db.insert(seats).values(seatValues).returning();
+  const showIds: string[] = [];
+  const baseStartTime = Date.now() + TIME_IN_MS.DAY;
 
-  const show = await createShow(db, {
-    movieId,
-    hallId: hall.id,
-    startTime: new Date(Date.now() + TIME_IN_MS.DAY),
-    endTime: new Date(Date.now() + TIME_IN_MS.DAY + 2 * TIME_IN_MS.HOUR),
-    basePrice: 120000,
-  });
+  for (let i = 0; i < showCount; i++) {
+    const startTime = new Date(baseStartTime + i * 3 * TIME_IN_MS.HOUR);
+    const endTime = new Date(startTime.getTime() + 2 * TIME_IN_MS.HOUR);
 
-  const showSeatValues: NewShowSeat[] = insertedSeats.map((seat, index) => {
-    const mod = index % 10;
-    if (mod === 8) {
+    const show = await createShow(db, {
+      movieId,
+      hallId: hall.id,
+      startTime,
+      endTime,
+      basePrice: 120000,
+    });
+    showIds.push(show.id);
+
+    const showSeatValues: NewShowSeat[] = insertedSeats.map((seat, index) => {
+      const mod = index % 10;
+      if (mod === 8) {
+        return {
+          showId: show.id,
+          seatId: seat.id,
+          status: "reserved",
+          lockedUntil: new Date(Date.now() + 10 * TIME_IN_MS.MINUTE),
+        };
+      }
+      if (mod === 9) {
+        return {
+          showId: show.id,
+          seatId: seat.id,
+          status: "booked",
+        };
+      }
       return {
         showId: show.id,
         seatId: seat.id,
-        status: "reserved",
-        lockedUntil: new Date(Date.now() + 10 * TIME_IN_MS.MINUTE), // 10 minutes lock
+        status: "available",
       };
-    }
-    if (mod === 9) {
-      return {
-        showId: show.id,
-        seatId: seat.id,
-        status: "booked",
-      };
-    }
-    return {
-      showId: show.id,
-      seatId: seat.id,
-      status: "available",
-    };
-  });
+    });
 
-  await db.insert(showSeats).values(showSeatValues);
+    await db.insert(showSeats).values(showSeatValues);
+  }
 
-  return { showId: show.id, totalSeats };
+  return { showIds, totalSeats };
 }
 
 export async function seedShowsSeatsData(): Promise<ShowsSeatsLoadFixture> {
@@ -135,34 +144,47 @@ export async function seedShowsSeatsData(): Promise<ShowsSeatsLoadFixture> {
       name: `Benchmark Cinema ${Date.now().toString()}`,
     });
 
-    // 1. Standard Hall: 200 seats (10 rows x 20 cols)
-    const standard = await provisionSeatingChart(
+    // 1. Standard Hall: 200 seats (10 rows x 20 cols) with 10 staggered shows
+    const standard = await provisionHallWithShows(
       db,
       movie.id,
       cinema.id,
       10,
       20,
       "Standard",
+      10,
     );
 
-    // 2. IMAX Hall: 500 seats (20 rows x 25 cols)
-    const imax = await provisionSeatingChart(
+    // 2. IMAX Hall: 500 seats (20 rows x 25 cols) with 10 staggered shows
+    const imax = await provisionHallWithShows(
       db,
       movie.id,
       cinema.id,
       20,
       25,
       "IMAX",
+      10,
     );
+
+    const hotStandardShowId = standard.showIds[0] ?? "";
+    const hotImaxShowId = imax.showIds[0] ?? "";
+    const hotShowIds = [hotStandardShowId, hotImaxShowId];
+    const catalogShowIds = [
+      ...standard.showIds.slice(1),
+      ...imax.showIds.slice(1),
+    ];
+    const allShowIds = [...hotShowIds, ...catalogShowIds];
 
     const fixturePayload: ShowsSeatsLoadFixture = {
       targetUrl: env.TARGET_URL,
-      standardShowId: standard.showId,
-      imaxShowId: imax.showId,
+      standardShowId: hotStandardShowId,
+      imaxShowId: hotImaxShowId,
       standardTotalSeats: standard.totalSeats,
       imaxTotalSeats: imax.totalSeats,
+      hotShowIds,
+      catalogShowIds,
+      allShowIds,
     };
-
     const fixtureFilePath = resolve(
       process.cwd(),
       "test/load/.dist/shows-seats-fixtures.json",
@@ -170,10 +192,13 @@ export async function seedShowsSeatsData(): Promise<ShowsSeatsLoadFixture> {
     await Bun.write(fixtureFilePath, JSON.stringify(fixturePayload, null, 2));
 
     logger.log(
-      `Seeded Standard Show (${String(standard.totalSeats)} seats): ${standard.showId}`,
+      `Seeded Hot Standard Show (${String(standard.totalSeats)} seats): ${hotStandardShowId}`,
     );
     logger.log(
-      `Seeded IMAX Show (${String(imax.totalSeats)} seats): ${imax.showId}`,
+      `Seeded Hot IMAX Show (${String(imax.totalSeats)} seats): ${hotImaxShowId}`,
+    );
+    logger.log(
+      `Total shows provisioned: ${String(allShowIds.length)} (2 hot, ${String(catalogShowIds.length)} catalog)`,
     );
     logger.log(`Fixtures written to ${fixtureFilePath}`);
 

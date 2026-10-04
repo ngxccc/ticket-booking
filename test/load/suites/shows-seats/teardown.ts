@@ -40,9 +40,11 @@ export async function teardownShowsSeatsData(): Promise<void> {
 
   try {
     logger.log("Cleaning up shows seating chart benchmark data...");
-    const targetShowIds = [fixture.standardShowId, fixture.imaxShowId].filter(
-      Boolean,
-    );
+    const targetShowIds = (
+      fixture.allShowIds.length > 0
+        ? fixture.allShowIds
+        : [fixture.standardShowId, fixture.imaxShowId]
+    ).filter(Boolean);
 
     if (targetShowIds.length > 0) {
       // Find associated halls and movies
@@ -55,8 +57,8 @@ export async function teardownShowsSeatsData(): Promise<void> {
         .from(shows)
         .where(inArray(shows.id, targetShowIds));
 
-      const hallIds = targetShows.map((s) => s.hallId);
-      const movieIds = targetShows.map((s) => s.movieId);
+      const hallIds = Array.from(new Set(targetShows.map((s) => s.hallId)));
+      const movieIds = Array.from(new Set(targetShows.map((s) => s.movieId)));
 
       // Cascading manual cleanup in dependency order
       await db

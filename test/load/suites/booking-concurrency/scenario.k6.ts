@@ -20,9 +20,18 @@ const fixtureData = new SharedArray("booking_fixtures", () => {
   const fixturePath = __ENV["FIXTURES_PATH"] ?? "./booking-fixtures.json";
   try {
     const fileContent = open(fixturePath);
-    return [JSON.parse(fileContent) as BookingLoadFixture];
-  } catch {
-    return [defaultFixture];
+    const parsed = JSON.parse(fileContent) as BookingLoadFixture;
+    if (!parsed.showId || !parsed.targetSeatId) {
+      throw new Error(
+        `Seeded showId or targetSeatId is missing in fixture at ${fixturePath}`,
+      );
+    }
+    return [parsed];
+  } catch (err) {
+    throw new Error(
+      `Failed to load k6 fixture from ${fixturePath}: ${err instanceof Error ? err.message : String(err)}`,
+      { cause: err },
+    );
   }
 });
 
