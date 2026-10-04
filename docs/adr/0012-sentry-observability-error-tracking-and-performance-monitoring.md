@@ -11,7 +11,7 @@ Deciders: Team / Core Architecture
 - **Feature**: `infrastructure`
 - **Topic**: `Sentry SDK Integration, Zero-Noise Error Filtering, Breadcrumb Aggregation, PII Sanitization, and Log-Trace Correlation`
 - **Target Module**: `src/common/services/sentry.service.ts`, `src/common/filters/global-exception.filter.ts`, `src/common/interceptors/logging.interceptor.ts`, `src/modules/outbox/outbox.service.ts`, `src/database/database.module.ts`
-- **Spec Reference**: Issue #71, `ADR-0005` (Pino Logging Library Selection), `ADR-0004` (Payment Confirmation Architecture), `docs/design/sentry-observability-workflow.md`
+- **Spec Reference**: Issue #71, `ADR-0005` (Pino Logging Library Selection), `ADR-0004` (Payment Confirmation Architecture), `docs/design/sentry-observability.md`
 
 ---
 

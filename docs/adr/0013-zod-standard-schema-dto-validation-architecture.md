@@ -11,7 +11,7 @@ Deciders: Team / Core Architecture
 - **Feature**: `api-infrastructure`
 - **Topic**: `DTO Schema Validation, Zod v4, Standard Schema Integration, RFC 9457 Flattening, Strict Whitelisting, and i18n Localization`
 - **Target Module**: `src/common/pipes/zod-validation.pipe.ts`, `src/common/schemas/zod-primitives.ts`, `src/common/filters/global-exception.filter.ts`, `src/modules/*/dto/`, `test/benchmarks/`
-- **Spec Reference**: Issue #79, `ADR-0012` (Sentry Observability Architecture), `ADR-0003` (Route Constants vs Router Module), `docs/design/zod-dto-validation-workflow.md`
+- **Spec Reference**: Issue #79, `ADR-0012` (Sentry Observability Architecture), `ADR-0003` (Route Constants vs Router Module), `docs/design/zod-dto-validation.md`
 
 ---
 

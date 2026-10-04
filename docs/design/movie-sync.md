@@ -17,11 +17,11 @@ This process describes how the Admin Dashboard interacts with TheMovieDB (TMDB) 
 
 ## Architecture & Work Breakdown Structure (WBS)
 
-| WBS ID | Component / Feature Name | Level | Detailed Description / Task | Output / Artifact |
-| :--- | :--- | :--- | :--- | :--- |
-| **1.0** | **Movie Management** | **L1: Module** | TMDB API movie data integration | `src/modules/movies` |
-| **1.1** | **TMDB Search & Autofill** | **L2: Feature** | Search & autofill movie details | Admin Dashboard UI |
-| **1.2** | **Movie Persistence** | **L2: Feature** | Submit payload & persist to PostgreSQL DB | `POST /api/movies` |
+| WBS ID  | Component / Feature Name   | Level           | Detailed Description / Task               | Output / Artifact    |
+| :------ | :------------------------- | :-------------- | :---------------------------------------- | :------------------- |
+| **1.0** | **Movie Management**       | **L1: Module**  | TMDB API movie data integration           | `src/modules/movies` |
+| **1.1** | **TMDB Search & Autofill** | **L2: Feature** | Search & autofill movie details           | Admin Dashboard UI   |
+| **1.2** | **Movie Persistence**      | **L2: Feature** | Submit payload & persist to PostgreSQL DB | `POST /api/movies`   |
 
 ---
 

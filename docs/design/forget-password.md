@@ -17,11 +17,11 @@ This document describes the operational flow for password recovery when a user f
 
 ## Architecture & Work Breakdown Structure (WBS)
 
-| WBS ID | Component / Feature Name | Level | Detailed Description / Task | Output / Artifact |
-| :--- | :--- | :--- | :--- | :--- |
-| **1.0** | **Auth Module** | **L1: Module** | Authentication & user credentials management | `src/modules/auth` |
-| **1.1** | **Forget Password** | **L2: Feature** | Generate reset token & push outbox email event | `POST /api/auth/forget-password` |
-| **1.1.1** | **Reset Password** | **L3: Logic** | Verify reset token & update user password | `POST /api/auth/reset-password` |
+| WBS ID    | Component / Feature Name | Level           | Detailed Description / Task                    | Output / Artifact                |
+| :-------- | :----------------------- | :-------------- | :--------------------------------------------- | :------------------------------- |
+| **1.0**   | **Auth Module**          | **L1: Module**  | Authentication & user credentials management   | `src/modules/auth`               |
+| **1.1**   | **Forget Password**      | **L2: Feature** | Generate reset token & push outbox email event | `POST /api/auth/forget-password` |
+| **1.1.1** | **Reset Password**       | **L3: Logic**   | Verify reset token & update user password      | `POST /api/auth/reset-password`  |
 
 ---
 

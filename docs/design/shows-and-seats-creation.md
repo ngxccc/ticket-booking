@@ -30,22 +30,11 @@ This document serves as the **Single Source of Truth (SSOT)** describing the ope
 
 ---
 
-## Architecture & Work Breakdown Structure (WBS)
+## Architecture
 
-| WBS Code  | Component / Feature              | Level             | Description / Task                                                                                                                  | Output / Artifact                                |
-| :-------- | :------------------------------- | :---------------- | :---------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------- |
-| **1.0**   | **Shows Module**                 | **L1: Module**    | Core show & seat management module                                                                                                  | `src/modules/shows/`                             |
-| **1.1**   | **Single Show Creation**         | **L2: Component** | Create single showtime with pre-allocated seats                                                                                     | `POST /shows`                                    |
-| **1.1.1** | DTO Validation                   | L3: Logic         | Validate `movieId`, `hallId`, `startTime`, `basePrice`                                                                              | `src/modules/shows/dto/create-show.dto.ts`       |
-| 1.1.1.1   | Schedule Overlap Check           | L4: Execution     | Validate interval overlap + 15m cleaning buffer                                                                                     | `src/modules/shows/shows.service.ts`             |
-| 1.1.1.2   | Seat Pre-allocation              | L4: Execution     | Chunked Bulk Insert into `show_seats` (1k rows/chunk)                                                                               | `src/modules/shows/shows.service.ts`             |
-| **1.2**   | **Batch Show Creation**          | **L2: Component** | Create recurring showtimes across date range                                                                                        | `POST /shows/batch`                              |
-| **1.2.1** | Batch Generator & DTO Validation | L3: Logic         | Validate `movieId`, `hallId`, `startDate`, `endDate`, `timeSlots` ($\le 30\text{d}$, $\le 10\text{ slots}$, $\le 100\text{ shows}$) | `src/modules/shows/dto/create-show-batch.dto.ts` |
-| 1.2.1.1   | 1D Flat Timeline Expansion       | L4: Execution     | Chronological expansion, lead-time $\ge 10\text{m}$, intra-batch collision check                                                    | `src/modules/shows/shows.service.ts`             |
-| 1.2.1.2   | All-or-Nothing Transaction       | L4: Execution     | Single DB transaction; rollback on any collision                                                                                    | `src/modules/shows/shows.service.ts`             |
-| 1.2.1.3   | Chunked Pre-allocation           | L4: Execution     | Bulk insert `show_seats` in 1,000-row chunks                                                                                        | `src/modules/shows/shows.service.ts`             |
-| **1.3**   | **DB Exclusion Constraint**      | **L2: Component** | PostgreSQL kernel-level schedule protection                                                                                         | `src/database/schemas/shows.schema.ts`           |
-| 1.3.1.1   | GiST Index Exclusion             | L4: Execution     | `tsrange(start_time, end_time + 15m)` constraint                                                                                    | `drizzle/migrations/`                            |
+- **Single Show Creation**: Validated showtime creation with pre-allocated seats (`POST /shows`).
+- **Batch Show Creation**: Recurring timeline generator with intra-batch collision validation (`POST /shows/batch`).
+- **PostgreSQL Exclusion Constraint**: Kernel-level schedule collision prevention via GiST range exclusion.
 
 ---
 

@@ -44,39 +44,32 @@ Streamlined two-tier administrative hierarchy for Vietnam venues:
 - `movie_translations`: Localization table (`movieId`, `languageCode` [`'vi' | 'en'`], `title`, `description`).
 - `movie_genres` & `genres`: Many-to-many relationship linking movies to structured genre records (`id`, `name`).
 
-### 2. Work Breakdown Structure (WBS) Table
-
-| WBS Code | Component / Feature    | Level           | Description / Task                                            | Output / Artifact                           |
-| :------- | :--------------------- | :-------------- | :------------------------------------------------------------ | :------------------------------------------ |
-| **1.0**  | **Catalog Module**     | **L1: Module**  | Public discovery domain module                                | `src/modules/catalog/`                      |
-| **1.1**  | **Database Schema**    | **L2: DB**      | Refactor `cinemas` table with `city`, `ward`, `streetAddress` | `src/database/schemas/cinemas.schema.ts`    |
-| **1.2**  | **Movie Listing API**  | **L2: API**     | `GET /movies` with query filters & i18n fallback              | `src/modules/catalog/movies.controller.ts`  |
-| **1.3**  | **Movie Details API**  | **L2: API**     | `GET /movies/:id` with UUIDv7 validation & 404 guard          | `src/modules/catalog/movies.controller.ts`  |
-| **1.4**  | **Cinema Listing API** | **L2: API**     | `GET /cinemas` with city/ward/name filters & `totalHalls`     | `src/modules/catalog/cinemas.controller.ts` |
-| **1.5**  | **Test Suites**        | **L2: Quality** | Unit & Integration BDD suites (`(INV-1..5)`)                  | `test/integration/movies.spec.ts`           |
-
 ---
 
 ## Operational Flow & Invariants
 
-```text
-Client Request (GET /movies?status=now-showing&genreId=019fa8bc...&page=2&limit=20&lang=en)
-  │
-  ▼
-ZodValidationPipe (Strict Whitelist + Kebab-Case Enum Validation)
-  │
-  ▼
-MoviesController ──► MoviesService.findMovies()
-  │
-  ├─► Schedule Invariant (INV-1): EXISTS (SELECT 1 FROM shows WHERE shows.movie_id = movies.id AND start_time >= NOW())
-  │
-  ├─► Localization Fallback (INV-2): COALESCE(requested_trans.title, fallback_vi.title)
-  │
-  ├─► SQL Wildcard Sanitization (INV-3): Escape '%', '_', and '\\'
-  │
-  ├─► Deterministic Ordering: ORDER BY release_date DESC, created_at DESC, id ASC
-  │
-  └─► Pagination (INV-4): LIMIT limit OFFSET (page - 1) * limit, Envelope { success: true, data: [...], meta: { page, limit, total, totalPages } }
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client
+    participant Controller as MoviesController
+    participant Pipe as ZodValidationPipe
+    participant Service as MoviesService
+    participant DB as PostgreSQL
+
+    Client->>Controller: GET /movies?status=now-showing&lang=en
+    Controller->>Pipe: Validate Query Parameters
+    alt Invalid Parameter
+        Pipe-->>Client: HTTP 400 Bad Request (RFC 9457 Problem Details)
+    else Valid Query
+        Pipe->>Controller: Validated Query DTO
+        Controller->>Service: findMovies(query)
+        Service->>DB: Query Movies with Translations & Genres
+        DB-->>Service: Filtered Movie Rows
+        Service->>Service: Apply Localization Fallback & Paginated Metadata
+        Service-->>Controller: PaginatedMoviesResponseDto
+        Controller-->>Client: HTTP 200 OK (ApiResponse Envelope)
+    end
 ```
 
 ### Domain Invariants Matrix

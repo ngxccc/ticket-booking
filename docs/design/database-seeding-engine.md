@@ -90,25 +90,12 @@ graph TD
 
 ---
 
-## Architecture & Work Breakdown Structure (WBS)
+## Architecture
 
-| WBS Code | Component / Module         | Level             | Description / Task                                                                | Output / Artifact                                     |
-| :------- | :------------------------- | :---------------- | :-------------------------------------------------------------------------------- | :---------------------------------------------------- |
-| **1.0**  | **Database Seeding Core**  | **L1: Engine**    | Typesafe seeding infrastructure and CLI runner                                    | `src/database/seeds/`                                 |
-| **1.1**  | **Constants & Fixtures**   | **L2: Data**      | Curated realistic master data and password hashes                                 | `src/database/seeds/data/`, `constants/`              |
-| 1.1.1    | Seed Constants             | L3: Config        | Password hashes, static slot times, batch chunk sizes                             | `src/database/seeds/constants/seed.constant.ts`       |
-| 1.1.2    | Reference Fixtures         | L3: Fixtures      | Master genres, seat types, default system users (admin/staff/user)                | `src/database/seeds/data/reference.data.ts`           |
-| 1.1.3    | Catalog Fixtures           | L3: Fixtures      | Authentic VN Cinemas (HCM, HN, DN), Hall types, Movies + Translations (`vi`/`en`) | `src/database/seeds/data/catalog.data.ts`             |
-| **1.2**  | **Tiered Seeders**         | **L2: Execution** | Modular execution logic per domain tier                                           | `src/database/seeds/tiers/`                           |
-| 1.2.1    | Tier 1 Seeder (Reference)  | L3: Seeder        | Seed `genres`, `seat_types`, `users` with upsert idempotency                      | `src/database/seeds/tiers/tier1-reference.seeder.ts`  |
-| 1.2.2    | Tier 2 Seeder (Catalog)    | L3: Seeder        | Seed `cinemas`, `halls`, `seats` ($8 \times 10$ matrix), `movies`, translations   | `src/database/seeds/tiers/tier2-catalog.seeder.ts`    |
-| 1.2.3    | Tier 3 Seeder (Schedule)   | L3: Seeder        | Generate dynamic relative $T+0 \to T+6$ `shows` and bulk preallocate `show_seats` | `src/database/seeds/tiers/tier3-schedule.seeder.ts`   |
-| **1.3**  | **Orchestrator & CLI**     | **L2: Runner**    | CLI entrypoint, argument parsing, environment safety guard, and reporting         | `src/database/seeds/index.ts`, `seed.orchestrator.ts` |
-| 1.3.1    | Seed Orchestrator          | L3: Pipeline      | Coordinates DAG execution, measures execution timing, returns structured summary  | `src/database/seeds/seed.orchestrator.ts`             |
-| 1.3.2    | CLI Entrypoint             | L3: CLI           | Parses `--scope` and `--reset`, provides colored CLI logging and error formatting | `src/database/seeds/index.ts`                         |
-| **1.4**  | **Verification & Quality** | **L2: Tests**     | Integration test asserting data integrity, idempotency, and schedule validity     | `test/integration/database-seeding.spec.ts`           |
-| 1.4.1    | Seeding Integration Test   | L3: Quality       | Verifies row creation, FK integrity, consecutive run idempotency, and `INV-1`     | `test/integration/database-seeding.spec.ts`           |
-| 1.4.2    | Package Scripts & Docs     | L3: Config        | Add `"db:seed"` to `package.json` and document usage in `README.md`               | `package.json`, `README.md`                           |
+- **Core Seeding Infrastructure**: Typesafe pipeline runner in `src/database/seeds/`.
+- **Reference & Catalog Fixtures**: Static fixtures and curated master data in `src/database/seeds/data/`.
+- **Tiered Modular Execution**: Multi-tier DAG runners (`tier1-reference`, `tier2-catalog`, `tier3-schedule`) in `src/database/seeds/tiers/`.
+- **CLI Entrypoint & Safety Guard**: Environment gating and argument parsing in `src/database/seeds/index.ts`.
 
 ---
 

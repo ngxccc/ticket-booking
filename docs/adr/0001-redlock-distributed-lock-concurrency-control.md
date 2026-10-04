@@ -11,7 +11,7 @@ Deciders: Team / Core Architecture
 - **Feature**: `booking`
 - **Topic**: `Distributed Lock Mechanism for Show Seat Reservation`
 - **Target Module**: `src/modules/booking/` & `src/common/redis/`
-- **Spec Reference**: `docs/design/booking-core-concurrency-workflow.md`
+- **Spec Reference**: `docs/design/booking-core-concurrency.md`
 
 ---
 

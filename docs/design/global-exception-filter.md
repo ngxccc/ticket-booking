@@ -27,14 +27,14 @@ Architectural goals of **`GlobalExceptionFilter`**:
 
 ## Architecture & Work Breakdown Structure (WBS)
 
-| WBS ID | Component / Feature Name | Level | Detailed Description / Task | Output / Artifact |
-| :--- | :--- | :--- | :--- | :--- |
-| **1.0** | **Global Exception Infrastructure** | **L1: Module** | System-wide error handling & RFC 9457 standardization | `src/common/filters` |
-| **1.1** | **Filter & Validation Component** | **L2: Component** | Global exception filter & DTO error flattening | `GlobalExceptionFilter` |
-| **1.1.1** | **Core Filter Implementation** | **L3: Logic** | Catch `HttpException` / `Error`, set `application/problem+json` header | `src/common/filters/global-exception.filter.ts` |
-| 1.1.1.1 | Unit Test Suite | L4: Execution | Unit testing logic for 400, 401, 500 status codes | `src/common/filters/global-exception.filter.spec.ts` |
-| **1.1.2** | **App Bootstrap Integration** | **L3: Logic** | Register `ValidationPipe.exceptionFactory` & global filter | `src/main.ts` & `test/helpers/app.helper.ts` |
-| 1.1.2.1 | E2E Integration Suite | L4: Execution | Supertest E2E specs testing full HTTP exception pipeline | `test/global-exception.e2e-spec.ts` |
+| WBS ID    | Component / Feature Name            | Level             | Detailed Description / Task                                            | Output / Artifact                                    |
+| :-------- | :---------------------------------- | :---------------- | :--------------------------------------------------------------------- | :--------------------------------------------------- |
+| **1.0**   | **Global Exception Infrastructure** | **L1: Module**    | System-wide error handling & RFC 9457 standardization                  | `src/common/filters`                                 |
+| **1.1**   | **Filter & Validation Component**   | **L2: Component** | Global exception filter & DTO error flattening                         | `GlobalExceptionFilter`                              |
+| **1.1.1** | **Core Filter Implementation**      | **L3: Logic**     | Catch `HttpException` / `Error`, set `application/problem+json` header | `src/common/filters/global-exception.filter.ts`      |
+| 1.1.1.1   | Unit Test Suite                     | L4: Execution     | Unit testing logic for 400, 401, 500 status codes                      | `src/common/filters/global-exception.filter.spec.ts` |
+| **1.1.2** | **App Bootstrap Integration**       | **L3: Logic**     | Register `ValidationPipe.exceptionFactory` & global filter             | `src/main.ts` & `test/helpers/app.helper.ts`         |
+| 1.1.2.1   | E2E Integration Suite               | L4: Execution     | Supertest E2E specs testing full HTTP exception pipeline               | `test/global-exception.e2e-spec.ts`                  |
 
 ---
 

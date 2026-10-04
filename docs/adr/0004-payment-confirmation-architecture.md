@@ -11,7 +11,7 @@ Deciders: Team / Core Architecture
 - **Feature**: `booking`
 - **Topic**: `Payment Confirmation & Ticket Issuance Architecture`
 - **Target Module**: `src/modules/booking/` & `src/modules/outbox/`
-- **Spec Reference**: `docs/design/booking-payment-confirmation-workflow.md`
+- **Spec Reference**: `docs/design/booking-payment-confirmation.md`
 
 ---
 
@@ -98,7 +98,7 @@ We adopted **Option A (PostgreSQL Transaction + Pessimistic Locking + Transactio
 
 ## System Invariants Binding
 
-Implementation MUST adhere to system invariants specified in `docs/design/booking-payment-confirmation-workflow.md`:
+Implementation MUST adhere to system invariants specified in `docs/design/booking-payment-confirmation.md`:
 
 - `INV-1`: Atomicity & Anti-Double-Processing via DB Pessimistic Locking (`SELECT ... FOR UPDATE`).
 - `INV-2`: Transactional Dual-Write Outbox (Zero Event Loss).

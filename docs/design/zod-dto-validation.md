@@ -39,23 +39,6 @@ flowchart TD
     Filter -->|Extract & Translate i18n Tokens| Response["RFC 9457 JSON Response<br/>(400 Bad Request)"]
 ```
 
-### Work Breakdown Structure (WBS)
-
-| WBS Code | Component / Task                | Level             | Detailed Description                                                              | Output / Artifact                              |
-| :------- | :------------------------------ | :---------------- | :-------------------------------------------------------------------------------- | :--------------------------------------------- |
-| **1.0**  | **Zod Core Infrastructure**     | **L1: Module**    | Core Zod validation pipe, primitives & OpenAPI bridge                             | `src/common/pipes/`, `src/common/schemas/`     |
-| **1.1**  | **Zod Primitives & Sanitizers** | **L2: Component** | Common reusable Zod schemas (`zEmail`, `zPassword`, `zPhone`, `zSanitizedString`) | `src/common/schemas/zod-primitives.ts`         |
-| 1.1.1    | Primitives Unit Tests           | L3: Execution     | Unit tests covering regex, edge bounds, and HTML sanitization                     | `src/common/schemas/zod-primitives.spec.ts`    |
-| **1.2**  | **ZodValidationPipe**           | **L2: Component** | Custom Pipe transforming Zod errors to RFC 9457 `invalidParams`                   | `src/common/pipes/zod-validation.pipe.ts`      |
-| 1.2.1    | ValidationPipe Unit Tests       | L3: Execution     | Unit tests verifying dot-notation path mapping and RFC 9457 payload format        | `src/common/pipes/zod-validation.pipe.spec.ts` |
-| **2.0**  | **Module DTO Migration**        | **L1: Module**    | Migrate all HTTP DTOs across application domains                                  | `src/modules/*/dto/`                           |
-| **2.1**  | **Auth Module DTOs**            | **L2: Component** | Migrate `RegisterDto`, `LoginDto`, `ChangePasswordDto`, `ResetPasswordDto`        | `src/modules/auth/dto/`                        |
-| **2.2**  | **Shows Module DTOs**           | **L2: Component** | Migrate `CreateShowDto`, `CreateShowBatchDto` with time slot regex                | `src/modules/shows/dto/`                       |
-| **2.3**  | **Booking Module DTOs**         | **L2: Component** | Migrate `ReserveSeatsDto`, `ConfirmBookingDto`, `PayOSWebhookDataDto`             | `src/modules/booking/dto/`                     |
-| **3.0**  | **Benchmarking & Cleanup**      | **L1: Module**    | Performance baseline verification and package deprecation                         | `test/benchmarks/`, `package.json`             |
-| **3.1**  | **DTO Benchmark Suite**         | **L2: Component** | Benchmark throughput comparing class-validator vs Zod on 10k iterations           | `test/benchmarks/dto-validation.bench.ts`      |
-| **3.2**  | **Package Deprecation**         | **L2: Component** | Remove `class-validator`, `class-transformer`, and obsolete decorators            | `package.json`, `src/common/decorators/`       |
-
 ---
 
 ## 3. Operational Flow & Sequence Diagrams
