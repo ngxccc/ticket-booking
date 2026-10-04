@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Param,
@@ -64,6 +65,7 @@ export class ShowsController {
 
   @Get(SHOWS_ROUTES.SEATS)
   @HttpCode(HttpStatus.OK)
+  @Header("Cache-Control", "public, max-age=2, stale-while-revalidate=1")
   @ApiOperation({
     summary:
       "Get showtime seating chart matrix and real-time seat availability",

@@ -1087,6 +1087,7 @@ describe("Shows Module Integration", () => {
         expect(body.data.summary.available).toBe(4);
         expect(body.data.summary.reserved).toBe(0);
         expect(body.data.summary.booked).toBe(0);
+        expect(body.data.seatTypes).toHaveLength(2);
 
         // Itemized Seats assertions
         expect(body.data.seats).toHaveLength(4);

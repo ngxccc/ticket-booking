@@ -1,6 +1,7 @@
 import "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
+import compression from "compression";
 import { initSentry } from "./common/services/sentry.service";
 import { setupOpenApiAndScalar } from "./common/config/openapi.config";
 import { setupGlobalPrefix } from "./common/config/api-prefix.config";
@@ -19,6 +20,9 @@ async function bootstrap() {
 
   // Trust reverse proxy headers (e.g. X-Forwarded-For from Cloudflare/Nginx) so throttler correctly identifies client IPs behind WAF/CDN.
   app.set("trust proxy", 1);
+
+  // HTTP response compression for payloads exceeding 1KB (Gzip/Deflate)
+  app.use(compression({ threshold: 1024 }));
 
   // Enable shutdown hooks explicitly so NestJS can trigger onApplicationShutdown across Sentry and background workers.
   app.enableShutdownHooks();
