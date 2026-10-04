@@ -1,4 +1,5 @@
-import { Inject, Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable, Logger, Optional } from "@nestjs/common";
+import { ShowsService } from "../shows/shows.service";
 import {
   I18nBadRequestException,
   I18nConflictException,
@@ -47,8 +48,9 @@ export class BookingService {
     private readonly redlockService: RedlockService,
     @InjectQueue(QUEUE_NAMES.BOOKING)
     private readonly bookingQueue: Queue,
+    @Optional()
+    private readonly showsService?: ShowsService,
   ) {}
-
   async reserveSeats(
     userId: string,
     dto: ReserveSeatsDto,
@@ -214,6 +216,10 @@ export class BookingService {
           jobId: REDIS_KEYS.cancelBookingJobId(result.bookingId),
         },
       );
+      // Deterministic Cache Invalidation: Invalidate show seating cache upon reserving seats
+      if (this.showsService) {
+        await this.showsService.invalidateShowSeatsCache(dto.showId);
+      }
 
       // 5. Cache Idempotency Key (60s)
       if (idempotencyKey) {
@@ -258,8 +264,8 @@ export class BookingService {
     }
 
     // 2. Database Transaction with Pessimistic Locking & Statement Timeout (INV-1, INV-5, INV-8)
+    let confirmedShowId: string | undefined;
     const result = await this.db.transaction(async (tx) => {
-      // Statement Timeout Guard (INV-8: 3000ms)
       await tx.execute(sql`SET LOCAL statement_timeout = 3000`);
 
       // Fetch booking row with SELECT ... FOR UPDATE (INV-1) and Strict Ownership (INV-5)
@@ -281,8 +287,7 @@ export class BookingService {
       if (!booking) {
         throw new I18nNotFoundException("booking.BOOKING_NOT_FOUND");
       }
-
-      // Check if already confirmed (Idempotent 200 OK)
+      confirmedShowId = booking.showId;
       if (booking.status === "confirmed") {
         const [existingPayment] = await tx
           .select({
@@ -461,8 +466,12 @@ export class BookingService {
         })),
       };
     });
+    // Deterministic Cache Invalidation: Invalidate show seating cache upon booking confirmation
+    if (this.showsService && confirmedShowId) {
+      await this.showsService.invalidateShowSeatsCache(confirmedShowId);
+    }
 
-    // 3. Post-Transaction: Remove Delayed BullMQ Cancellation Job (INV-3)
+    // 3. Post-Transaction: Remove Delayed BullMQ Cancellation Job
     try {
       const job = await this.bookingQueue.getJob(
         REDIS_KEYS.cancelBookingJobId(result.bookingId),

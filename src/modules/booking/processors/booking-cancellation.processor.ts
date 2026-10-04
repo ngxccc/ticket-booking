@@ -1,5 +1,6 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq";
-import { Inject, Logger } from "@nestjs/common";
+import { Inject, Logger, Optional } from "@nestjs/common";
+import { ShowsService } from "../../shows/shows.service";
 import type { Job } from "bullmq";
 import { and, eq, inArray } from "drizzle-orm";
 import {
@@ -20,6 +21,8 @@ export class BookingCancellationProcessor extends WorkerHost {
   constructor(
     @Inject(DATABASE_CONNECTION)
     private readonly db: DrizzleDB,
+    @Optional()
+    private readonly showsService?: ShowsService,
   ) {
     super();
   }
@@ -30,6 +33,7 @@ export class BookingCancellationProcessor extends WorkerHost {
       `Processing delayed booking cancellation for: ${bookingId}`,
     );
 
+    let targetShowId: string | undefined;
     await this.db.transaction(async (tx) => {
       // Mark booking as expired if still pending_payment
       const [updatedBooking] = await tx
@@ -41,7 +45,7 @@ export class BookingCancellationProcessor extends WorkerHost {
             eq(bookings.status, "pending_payment"),
           ),
         )
-        .returning({ id: bookings.id });
+        .returning({ id: bookings.id, showId: bookings.showId });
 
       if (!updatedBooking) {
         this.logger.debug(
@@ -49,6 +53,8 @@ export class BookingCancellationProcessor extends WorkerHost {
         );
         return;
       }
+
+      targetShowId = updatedBooking.showId;
 
       // Fetch linked tickets to find reserved show_seats
       const bookingTickets = await tx
@@ -78,5 +84,10 @@ export class BookingCancellationProcessor extends WorkerHost {
         `Successfully expired booking ${bookingId} and released seats`,
       );
     });
+
+    // Deterministic Cache Invalidation: Invalidate show seating cache upon expiring unconfirmed holds
+    if (this.showsService && targetShowId) {
+      await this.showsService.invalidateShowSeatsCache(targetShowId);
+    }
   }
 }

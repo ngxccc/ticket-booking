@@ -1,4 +1,10 @@
-import { HttpException, Inject, Injectable } from "@nestjs/common";
+import {
+  HttpException,
+  Inject,
+  Injectable,
+  Logger,
+  Optional,
+} from "@nestjs/common";
 import {
   I18nBadRequestException,
   I18nConflictException,
@@ -9,6 +15,10 @@ import {
   DATABASE_CONNECTION,
   type DrizzleDB,
 } from "@/database/database.module";
+import { REDIS_CLIENT } from "@/common/modules/redis.module";
+import { SentryService } from "@/common/services/sentry.service";
+import { SENTRY_BREADCRUMB_CATEGORY } from "@/common/constants/sentry.constant";
+import type Redis from "ioredis";
 import type {
   CreateShowDto,
   ShowResponseDto,
@@ -18,6 +28,7 @@ import type {
   ShowScheduleItemDto,
   ShowSeatsResponseDtoType,
   ShowSeatItemDtoType,
+  SeatTypeInfoDtoType,
 } from "./dto";
 import {
   cinemas,
@@ -32,16 +43,23 @@ import {
 import { and, asc, eq, gte, lte, sql } from "drizzle-orm";
 import { isPostgresErrorCode } from "@/common/utils/error.util";
 import { PG_ERROR_CODE } from "@/common/constants/error.constant";
-import { SHOWS_CONSTANTS } from "./shows.constants";
+import { SHOWS_CONSTANTS, SHOWS_REDIS_KEYS } from "./shows.constants";
 import { TIME_IN_MS } from "@/common/constants/time.constant";
 import { getTimezoneDayRange } from "@/common/utils/date.util";
 import { localizedMovieTitle } from "@/common/utils/movie-translation.util";
 
 @Injectable()
 export class ShowsService {
+  private readonly logger = new Logger(ShowsService.name);
+
   constructor(
     @Inject(DATABASE_CONNECTION)
     private readonly db: DrizzleDB,
+    @Optional()
+    @Inject(REDIS_CLIENT)
+    private readonly redis?: Redis,
+    @Optional()
+    private readonly sentryService?: SentryService,
   ) {}
   /**
    * Creates a single showtime and bulk pre-allocates all physical hall seats as available.
@@ -446,6 +464,46 @@ export class ShowsService {
     showId: string,
     lang = "vi",
   ): Promise<ShowSeatsResponseDtoType> {
+    if (this.redis) {
+      try {
+        const cacheKey = SHOWS_REDIS_KEYS.seatsCache(showId, lang);
+        const cachedJson = await this.redis.get(cacheKey);
+        if (cachedJson) {
+          const parsed = JSON.parse(cachedJson) as ShowSeatsResponseDtoType;
+          this.sentryService?.addBreadcrumb({
+            category: SENTRY_BREADCRUMB_CATEGORY.CACHE,
+            message: `Show seats cache hit for show ${showId} [${lang}]`,
+            level: "debug",
+            data: { showId, lang },
+          });
+          return {
+            ...parsed,
+            startTime: new Date(parsed.startTime),
+            endTime: new Date(parsed.endTime),
+            seats: parsed.seats.map((s) => ({
+              ...s,
+              lockedUntil: s.lockedUntil ? new Date(s.lockedUntil) : null,
+            })),
+          };
+        }
+        this.sentryService?.addBreadcrumb({
+          category: SENTRY_BREADCRUMB_CATEGORY.CACHE,
+          message: `Show seats cache miss for show ${showId} [${lang}]`,
+          level: "info",
+          data: { showId, lang },
+        });
+      } catch (err) {
+        // Fail-open resilience: log warning and continue directly to database query
+        this.logger.warn(
+          `Shows seats cache read failure for show ${showId}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        this.sentryService?.captureException(err, {
+          tags: { operation: "show_seats_cache_read", showId },
+          extra: { showId, lang },
+        });
+      }
+    }
+
     const computedStatus = sql<ShowSeatStatus>`
       CASE
         WHEN ${showSeats.status} = 'reserved' AND ${showSeats.lockedUntil} < NOW() THEN 'available'
@@ -501,6 +559,7 @@ export class ShowsService {
     let reserved = 0;
     let booked = 0;
 
+    const seatTypeMap = new Map<string, SeatTypeInfoDtoType>();
     const seatsPayload: ShowSeatItemDtoType[] = showSeatRows.map((r) => {
       if (r.status === "available") available++;
       else if (r.status === "reserved") reserved++;
@@ -510,23 +569,29 @@ export class ShowsService {
         firstRow.basePrice * Number(r.priceMultiplier),
       );
 
+      if (!seatTypeMap.has(r.seatTypeId)) {
+        seatTypeMap.set(r.seatTypeId, {
+          id: r.seatTypeId,
+          name: r.seatTypeName,
+          priceMultiplier: r.priceMultiplier,
+          finalPrice,
+        });
+      }
+
       return {
         id: r.seatId,
         row: r.row,
         number: r.number,
         seatNumber: r.seatNumber,
-        type: {
-          id: r.seatTypeId,
-          name: r.seatTypeName,
-          priceMultiplier: r.priceMultiplier,
-        },
+        seatTypeId: r.seatTypeId,
         finalPrice,
         status: r.status,
         lockedUntil: r.lockedUntil,
       };
     });
 
-    return {
+    const seatTypesPayload = Array.from(seatTypeMap.values());
+    const result: ShowSeatsResponseDtoType = {
       showId: firstRow.showId,
       movieId: firstRow.movieId,
       movieTitle: firstRow.movieTitle,
@@ -547,7 +612,59 @@ export class ShowsService {
         reserved,
         booked,
       },
+      seatTypes: seatTypesPayload,
       seats: seatsPayload,
     };
+
+    if (this.redis) {
+      try {
+        const cacheKey = SHOWS_REDIS_KEYS.seatsCache(showId, lang);
+        await this.redis.setex(
+          cacheKey,
+          SHOWS_CONSTANTS.SEATS_CACHE_TTL_SECONDS,
+          JSON.stringify(result),
+        );
+      } catch (err) {
+        // Fail-open resilience: log warning to avoid throwing 500 on cache write blips
+        this.logger.warn(
+          `Shows seats cache write failure for show ${showId}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        this.sentryService?.captureException(err, {
+          tags: { operation: "show_seats_cache_write", showId },
+          extra: { showId, lang },
+        });
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Deterministically invalidates cached seating charts for a given showId across all supported language locales.
+   *
+   * @param showId Show unique identifier (UUIDv7)
+   */
+  async invalidateShowSeatsCache(showId: string): Promise<void> {
+    if (!this.redis) return;
+    try {
+      const keys = SHOWS_CONSTANTS.SUPPORTED_LOCALES.map((lang) =>
+        SHOWS_REDIS_KEYS.seatsCache(showId, lang),
+      );
+      await this.redis.del(...keys);
+      this.sentryService?.addBreadcrumb({
+        category: SENTRY_BREADCRUMB_CATEGORY.CACHE,
+        message: `Invalidated show seats cache for show ${showId}`,
+        level: "info",
+        data: { showId, keys },
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Shows seats cache invalidation failure for show ${showId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      this.sentryService?.captureException(err, {
+        tags: { operation: "show_seats_cache_invalidate", showId },
+        extra: { showId },
+      });
+    }
   }
 }

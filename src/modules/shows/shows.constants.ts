@@ -19,4 +19,15 @@ export const SHOWS_CONSTANTS = {
   TIMEZONE_OFFSET: "+07:00",
   /** Chunk size for bulk inserting show_seats records */
   SEAT_PREALLOCATION_CHUNK_SIZE: 1000,
+  /** Short TTL duration in seconds for seating chart layout and availability cache */
+  SEATS_CACHE_TTL_SECONDS: 2,
+  /** Supported language locales for localized movie titles and seating charts */
+  SUPPORTED_LOCALES: ["vi", "en"] as const,
+} as const;
+
+export const SHOWS_REDIS_KEYS = {
+  /** Cache key format for show seating chart matrix partitioned by showId and language locale */
+  seatsCache: (showId: string, lang = "vi") => `shows:seats:${showId}:${lang}`,
+  /** Single-flight lock key to mitigate cache stampede on expired seating layouts */
+  seatsLockRefresh: (showId: string) => `lock:shows_seats_refresh:${showId}`,
 } as const;

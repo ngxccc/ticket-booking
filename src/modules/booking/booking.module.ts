@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { ShowsModule } from "../shows/shows.module";
 import { BullModule } from "@nestjs/bullmq";
 import { ScheduleModule } from "@nestjs/schedule";
 import { RedlockService } from "../../common/services/redlock.service";
@@ -22,6 +23,7 @@ import { QUEUE_NAMES } from "@/common/constants/queue.constants";
       },
     }),
     ScheduleModule.forRoot(),
+    ShowsModule,
   ],
   controllers: [BookingController, PayOSWebhookController],
   providers: [

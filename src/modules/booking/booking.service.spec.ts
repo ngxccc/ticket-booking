@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, mock, type Mock } from "bun:test";
+import type { ShowsService } from "../shows/shows.service";
 import {
   I18nBadRequestException,
   I18nConflictException,
@@ -36,7 +37,7 @@ describe("BookingService", () => {
   let mockRedis: typeof mockRedlockService.mockRedis;
   let mockTx: MockTx;
   let mockDb: MockDb;
-
+  let mockShowsService: { invalidateShowSeatsCache: Mock<() => Promise<void>> };
   beforeEach(() => {
     mockRedlockService = createMockRedlockService();
     mockRedis = mockRedlockService.mockRedis;
@@ -75,10 +76,15 @@ describe("BookingService", () => {
       transaction: mock((cb: (tx: MockTx) => Promise<unknown>) => cb(mockTx)),
     };
 
+    mockShowsService = {
+      invalidateShowSeatsCache: mock(() => Promise.resolve()),
+    };
+
     service = new BookingService(
       mockDb as unknown as DrizzleDB,
       mockRedlockService as unknown as RedlockService,
       mockBookingQueue as unknown as Queue,
+      mockShowsService as unknown as ShowsService,
     );
   });
 
@@ -340,6 +346,9 @@ describe("BookingService", () => {
         `idempotency:booking:${userId}:idempotency-key-xyz`,
         60,
         JSON.stringify(result),
+      );
+      expect(mockShowsService.invalidateShowSeatsCache).toHaveBeenCalledWith(
+        dto.showId,
       );
       expect(mockRedlockService.releaseLock).toHaveBeenCalled();
     });
@@ -657,6 +666,9 @@ describe("BookingService", () => {
         `idempotency:confirm:${userId}:idempotency-key-success`,
         60,
         JSON.stringify(result),
+      );
+      expect(mockShowsService.invalidateShowSeatsCache).toHaveBeenCalledWith(
+        mockBooking.showId,
       );
     });
   });

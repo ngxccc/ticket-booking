@@ -1,4 +1,5 @@
-import { Inject, Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable, Logger, Optional } from "@nestjs/common";
+import { ShowsService } from "../shows/shows.service";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { and, eq, inArray, lt } from "drizzle-orm";
 import {
@@ -14,6 +15,8 @@ export class BookingCronService {
   constructor(
     @Inject(DATABASE_CONNECTION)
     private readonly db: DrizzleDB,
+    @Optional()
+    private readonly showsService?: ShowsService,
   ) {}
 
   @Cron(CronExpression.EVERY_5_MINUTES)
@@ -21,10 +24,11 @@ export class BookingCronService {
     const now = new Date();
     this.logger.debug("Running backup cron cleanup for expired seat locks...");
 
+    const affectedShowIds: string[] = [];
     await this.db.transaction(async (tx) => {
       // 1. Identify expired reserved show seats
       const expiredSeats = await tx
-        .select({ id: showSeats.id })
+        .select({ id: showSeats.id, showId: showSeats.showId })
         .from(showSeats)
         .where(
           and(eq(showSeats.status, "reserved"), lt(showSeats.lockedUntil, now)),
@@ -35,6 +39,9 @@ export class BookingCronService {
       }
 
       const expiredSeatIds = expiredSeats.map((s) => s.id);
+      affectedShowIds.push(
+        ...Array.from(new Set(expiredSeats.map((s) => s.showId))),
+      );
 
       // 2. Find linked tickets to update associated pending_payment bookings
       const linkedTickets = await tx
@@ -71,5 +78,15 @@ export class BookingCronService {
         `Backup cron cleaned up ${String(expiredSeats.length)} orphaned reserved seats`,
       );
     });
+
+    // Deterministic Cache Invalidation: Invalidate show seating cache for all affected shows
+    if (this.showsService && affectedShowIds.length > 0) {
+      const showsService = this.showsService;
+      await Promise.allSettled(
+        affectedShowIds.map((showId) =>
+          showsService.invalidateShowSeatsCache(showId),
+        ),
+      );
+    }
   }
 }
