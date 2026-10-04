@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
+import { resolve as resolvePath } from "node:path";
 import { parseArgs } from "node:util";
 import {
   printCliList,
@@ -255,11 +256,13 @@ async function runSingleSuite(
     console.log(`\n⚡ [Runner] Executing k6 run on ${suite.distFile}...`);
     const k6Args = ["run"];
     if (suite.fixtureFile) {
-      k6Args.push("-e", `FIXTURES_PATH=${suite.fixtureFile}`);
+      k6Args.push(
+        "-e",
+        `FIXTURES_PATH=${resolvePath(process.cwd(), suite.fixtureFile)}`,
+      );
     }
     k6Args.push(suite.distFile);
     const k6Result = await runCommand("k6", k6Args);
-
     // Step 4: Teardown & Invariant Verification
     if (suite.teardownScript && !options.skipTeardown) {
       console.log(

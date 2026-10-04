@@ -11,6 +11,9 @@ const defaultFixture: ShowsSeatsLoadFixture = {
   imaxShowId: "",
   standardTotalSeats: 200,
   imaxTotalSeats: 500,
+  hotShowIds: [],
+  catalogShowIds: [],
+  allShowIds: [],
 };
 
 // Load fixture data into shared memory once during init context
@@ -18,9 +21,18 @@ const fixtureData = new SharedArray("shows_seats_fixtures", () => {
   const fixturePath = __ENV["FIXTURES_PATH"] ?? "./shows-seats-fixtures.json";
   try {
     const fileContent = open(fixturePath);
-    return [JSON.parse(fileContent) as ShowsSeatsLoadFixture];
-  } catch {
-    return [defaultFixture];
+    const parsed = JSON.parse(fileContent) as ShowsSeatsLoadFixture;
+    if (!parsed.standardShowId || !parsed.imaxShowId) {
+      throw new Error(
+        `Seeded show IDs are missing or empty in fixture at ${fixturePath}`,
+      );
+    }
+    return [parsed];
+  } catch (err) {
+    throw new Error(
+      `Failed to load k6 fixture from ${fixturePath}: ${err instanceof Error ? err.message : String(err)}`,
+      { cause: err },
+    );
   }
 });
 
@@ -55,7 +67,7 @@ export const options = {
       stages: [
         { duration: "5s", target: 25 }, // Warmup stage
         { duration: "10s", target: 100 }, // Medium concurrency
-        { duration: "10s", target: 200 }, // High concurrency (saturates pg.Pool max: 20)
+        { duration: "20s", target: 200 }, // Sustained peak concurrency over 10 cache TTL cycles
         { duration: "5s", target: 0 }, // Cool-down
       ],
       gracefulRampDown: "2s",
@@ -64,24 +76,23 @@ export const options = {
     },
     // Scenario 2: Flash Crowd Burst (Sudden spike of concurrent customers opening seating chart)
     flash_crowd_burst: {
-      executor: "per-vu-iterations",
+      executor: "constant-vus",
       vus: 100,
-      iterations: 1,
-      maxDuration: "10s",
+      duration: "10s",
       gracefulStop: "1s",
       exec: "burstScenario",
-      startTime: "32s",
+      startTime: "42s",
     },
-    // Scenario 3: Constant Throughput Test (Steady 50 RPS for 15s)
+    // Scenario 3: Constant Throughput Test (Steady 50 RPS for 30s)
     constant_throughput: {
       executor: "constant-arrival-rate",
       rate: 50,
       timeUnit: "1s",
-      duration: "15s",
+      duration: "30s",
       preAllocatedVUs: 30,
       maxVUs: 100,
       exec: "constantRateScenario",
-      startTime: "44s",
+      startTime: "52s",
     },
   },
   thresholds: {
@@ -93,19 +104,43 @@ export const options = {
   },
 };
 
-function executeRequest() {
-  const isImax = vu.idInTest % 2 === 0;
-  const showId = isImax ? fixture.imaxShowId : fixture.standardShowId;
+function selectTargetShow(): {
+  showId: string;
+  isImax: boolean;
+  isHot: boolean;
+} {
+  const hotShows =
+    fixture.hotShowIds.length > 0
+      ? fixture.hotShowIds
+      : [fixture.standardShowId, fixture.imaxShowId].filter(Boolean);
 
+  const catalogShows =
+    fixture.catalogShowIds.length > 0 ? fixture.catalogShowIds : hotShows;
+
+  // Pareto 80/20 rule: 80% traffic hits blockbuster hot shows; 20% hits long-tail catalog shows
+  const isHot = Math.random() < 0.8;
+  const targetPool = isHot ? hotShows : catalogShows;
+  const showId =
+    targetPool[Math.floor(Math.random() * targetPool.length)] ??
+    fixture.standardShowId;
+
+  const isImax = showId === fixture.imaxShowId || vu.idInTest % 2 === 0;
+  return { showId, isImax, isHot };
+}
+
+function executeRequest() {
+  const { showId, isImax, isHot } = selectTargetShow();
   const url = `${fixture.targetUrl}/api/v1/shows/${showId}/seats`;
   const params = {
     headers: {
       Accept: "application/json",
       "Accept-Language": "vi",
+      "Accept-Encoding": "gzip, deflate",
     },
     tags: {
       scenario: scenario.name,
       hall_type: isImax ? "imax_500" : "standard_200",
+      traffic_tier: isHot ? "hot_80" : "catalog_20",
     },
   };
 

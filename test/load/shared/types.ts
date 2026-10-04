@@ -20,4 +20,7 @@ export interface ShowsSeatsLoadFixture {
   imaxShowId: string;
   standardTotalSeats: number;
   imaxTotalSeats: number;
+  hotShowIds: string[];
+  catalogShowIds: string[];
+  allShowIds: string[];
 }
