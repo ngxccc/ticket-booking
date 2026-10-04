@@ -10,6 +10,7 @@ export const SENTRY_BREADCRUMB_CATEGORY = {
   AUTH: "auth",
   MAIL: "mail",
   OUTBOX: "outbox",
+  CACHE: "cache",
 } as const;
 
 export type SentryBreadcrumbCategory =

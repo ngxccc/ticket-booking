@@ -1,3 +1,4 @@
+import { RedisModule } from "./common/modules/redis.module";
 import { SentryModule } from "./common/modules/sentry.module";
 import { BullModule } from "@nestjs/bullmq";
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from "@nestjs/core";
@@ -80,6 +81,7 @@ const getRedisOptions = () =>
           : new ThrottlerStorageRedisService(getRedisOptions()),
     }),
     DatabaseModule,
+    RedisModule,
     SentryModule,
     AuthModule,
     UsersModule,
