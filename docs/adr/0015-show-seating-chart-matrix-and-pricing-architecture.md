@@ -48,12 +48,14 @@ We decided to establish a High-Performance Seating Chart & Live Availability Arc
    - Subsequent real-time state changes (`AVAILABLE` $\leftrightarrow$ `RESERVED` $\leftrightarrow$ `BOOKED`) are streamed via WebSocket room delta broadcasts (`show:${showId}`) per Issue #37, eliminating repeated HTTP polling.
 2. **Virtual Computed Status Invariant (Zero-Stale Holds)**:
    - The seating query computes real-time availability dynamically in SQL:
+
      ```sql
      CASE
        WHEN ss.status = 'reserved' AND ss.locked_until < NOW() THEN 'available'
        ELSE ss.status
      END AS computed_status
      ```
+
    - Guarantees immediate seat availability to incoming customers the exact millisecond a hold expires, decoupling user experience from background worker execution intervals.
 3. **Catalog Multiplier Standardization (Zero-Fraction Currency Policy - Option A)**:
    - Standardize all cinema catalog configurations such that:
