@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
+import type Redis from "ioredis";
+import type { SentryService } from "@/common/services/sentry.service";
 import { v7 as uuidv7 } from "uuid";
 import {
   I18nBadRequestException,
@@ -12,17 +14,43 @@ import {
   formatTimezoneDate,
   getFutureTimezoneDate,
 } from "@/common/utils/date.util";
-import { SHOWS_CONSTANTS } from "./shows.constants";
+import { SHOWS_CONSTANTS, SHOWS_REDIS_KEYS } from "./shows.constants";
 import { TIME_IN_MS } from "@/common/constants/time.constant";
 import type { CreateShowBatchDto, CreateShowDto } from "./dto";
 
 describe("ShowsService", () => {
   let service: ShowsService;
   const mockDb = createMockDb();
+  const mockRedis = {
+    get: mock((_key: string) => Promise.resolve(null as string | null)),
+    setex: mock((_key: string, _ttl: number, _val: string) =>
+      Promise.resolve("OK"),
+    ),
+    del: mock((..._keys: string[]) => Promise.resolve(1)),
+    clearAll() {
+      this.get.mockClear();
+      this.setex.mockClear();
+      this.del.mockClear();
+    },
+  };
+  const mockSentryService = {
+    addBreadcrumb: mock(() => undefined),
+    captureException: mock(() => undefined),
+    clearAll() {
+      this.addBreadcrumb.mockClear();
+      this.captureException.mockClear();
+    },
+  };
 
   beforeEach(() => {
     mockDb.clearAll();
-    service = new ShowsService(mockDb as unknown as DrizzleDB);
+    mockRedis.clearAll();
+    mockSentryService.clearAll();
+    service = new ShowsService(
+      mockDb as unknown as DrizzleDB,
+      mockRedis as unknown as Redis,
+      mockSentryService as unknown as SentryService,
+    );
   });
 
   describe("findShows", () => {
@@ -499,6 +527,8 @@ describe("ShowsService", () => {
       it("should compute seating chart matrix, dimensions, summary, and itemized final prices", async () => {
         const mockShowTime = new Date("2026-10-01T10:00:00.000Z");
         const mockEndTime = new Date("2026-10-01T12:00:00.000Z");
+        const standardTypeId = uuidv7();
+        const vipTypeId = uuidv7();
 
         const mockRows = [
           {
@@ -516,7 +546,7 @@ describe("ShowsService", () => {
             row: "A",
             number: 1,
             seatNumber: "A1",
-            seatTypeId: uuidv7(),
+            seatTypeId: standardTypeId,
             seatTypeName: "Standard",
             priceMultiplier: "1.00",
             status: "available",
@@ -537,7 +567,7 @@ describe("ShowsService", () => {
             row: "B",
             number: 2,
             seatNumber: "B2",
-            seatTypeId: uuidv7(),
+            seatTypeId: vipTypeId,
             seatTypeName: "VIP",
             priceMultiplier: "1.20",
             status: "reserved",
@@ -558,7 +588,7 @@ describe("ShowsService", () => {
             row: "B",
             number: 1,
             seatNumber: "B1",
-            seatTypeId: uuidv7(),
+            seatTypeId: vipTypeId,
             seatTypeName: "VIP",
             priceMultiplier: "1.20",
             status: "booked",
@@ -590,7 +620,172 @@ describe("ShowsService", () => {
         expect(result.seats).toHaveLength(3);
         expect(result.seats[0]?.finalPrice).toBe(100000);
         expect(result.seats[1]?.finalPrice).toBe(120000); // 100000 * 1.20
-        expect(result.seats[1]?.type.name).toBe("VIP");
+        expect(result.seatTypes).toHaveLength(2);
+        expect(result.seatTypes.find((t) => t.name === "VIP")?.finalPrice).toBe(
+          120000,
+        );
+        expect(result.seats[1]?.seatTypeId).toBeDefined();
+      });
+    });
+    describe("when Redis cache contains valid layout snapshot", () => {
+      it("should return deserialized seating chart and restore Date instances without querying database when cache hits", async () => {
+        const cachedPayload = {
+          showId: uuidv7(),
+          movieId: uuidv7(),
+          movieTitle: "Lật Mặt 7: Một Điều Ước",
+          cinemaId: uuidv7(),
+          cinemaName: "CGV Landmark 81",
+          hallId: uuidv7(),
+          hallName: "Cinema 01",
+          startTime: new Date().toISOString(),
+          endTime: new Date().toISOString(),
+          basePrice: 100000,
+          dimensions: { totalRows: 1, totalCols: 1 },
+          summary: { total: 1, available: 1, reserved: 0, booked: 0 },
+          seatTypes: [
+            {
+              id: uuidv7(),
+              name: "Standard",
+              priceMultiplier: "1.00",
+              finalPrice: 100000,
+            },
+          ],
+          seats: [
+            {
+              id: uuidv7(),
+              row: "A",
+              number: 1,
+              seatNumber: "A1",
+              seatTypeId: uuidv7(),
+              finalPrice: 100000,
+              status: "available" as const,
+              lockedUntil: null,
+            },
+          ],
+        };
+
+        mockRedis.get.mockImplementation(() =>
+          Promise.resolve(JSON.stringify(cachedPayload)),
+        );
+
+        const result = await service.getShowSeats(cachedPayload.showId, "vi");
+
+        expect(result.showId).toBe(cachedPayload.showId);
+        expect(result.movieTitle).toBe("Lật Mặt 7: Một Điều Ước");
+        expect(result.startTime).toBeInstanceOf(Date);
+        expect(result.endTime).toBeInstanceOf(Date);
+        expect(result.seats[0]?.status).toBe("available");
+        expect(mockDb.select).not.toHaveBeenCalled();
+        expect(mockRedis.get).toHaveBeenCalledWith(
+          SHOWS_REDIS_KEYS.seatsCache(cachedPayload.showId, "vi"),
+        );
+        expect(mockSentryService.addBreadcrumb).toHaveBeenCalledWith(
+          expect.objectContaining({
+            category: "cache",
+            level: "debug",
+          }),
+        );
+      });
+    });
+
+    describe("when Redis cache misses", () => {
+      it("should query database and write serialized snapshot to Redis with short TTL when cache misses", async () => {
+        const showId = uuidv7();
+        const mockRows = [
+          {
+            showId,
+            movieId: uuidv7(),
+            movieTitle: "Lật Mặt 7",
+            cinemaId: uuidv7(),
+            cinemaName: "CGV Landmark 81",
+            hallId: uuidv7(),
+            hallName: "Cinema 01",
+            startTime: new Date(),
+            endTime: new Date(),
+            basePrice: 100000,
+            seatId: uuidv7(),
+            row: "A",
+            number: 1,
+            seatNumber: "A1",
+            seatTypeId: uuidv7(),
+            seatTypeName: "Standard",
+            priceMultiplier: "1.00",
+            status: "available",
+            lockedUntil: null,
+          },
+        ];
+
+        mockRedis.get.mockImplementation(() => Promise.resolve(null));
+        mockDb.setSelectResult(mockRows);
+
+        const result = await service.getShowSeats(showId, "vi");
+
+        expect(result.showId).toBe(showId);
+        expect(mockRedis.setex).toHaveBeenCalledWith(
+          SHOWS_REDIS_KEYS.seatsCache(showId, "vi"),
+          SHOWS_CONSTANTS.SEATS_CACHE_TTL_SECONDS,
+          expect.any(String),
+        );
+      });
+    });
+
+    describe("when Redis client throws an error", () => {
+      it("should gracefully fall back to database query without throwing an error when Redis read fails", async () => {
+        const showId = uuidv7();
+        const mockRows = [
+          {
+            showId,
+            movieId: uuidv7(),
+            movieTitle: "Lật Mặt 7",
+            cinemaId: uuidv7(),
+            cinemaName: "CGV Landmark 81",
+            hallId: uuidv7(),
+            hallName: "Cinema 01",
+            startTime: new Date(),
+            endTime: new Date(),
+            basePrice: 100000,
+            seatId: uuidv7(),
+            row: "A",
+            number: 1,
+            seatNumber: "A1",
+            seatTypeId: uuidv7(),
+            seatTypeName: "Standard",
+            priceMultiplier: "1.00",
+            status: "available",
+            lockedUntil: null,
+          },
+        ];
+
+        mockRedis.get.mockImplementation(() =>
+          Promise.reject(new Error("Redis offline")),
+        );
+        mockDb.setSelectResult(mockRows);
+
+        const result = await service.getShowSeats(showId, "vi");
+
+        expect(result.showId).toBe(showId);
+        expect(result.seats).toHaveLength(1);
+        expect(mockSentryService.captureException).toHaveBeenCalledTimes(1);
+      });
+    });
+  });
+
+  describe("invalidateShowSeatsCache", () => {
+    describe("when invalidating seating chart cache", () => {
+      it("should delete cache keys for all configured supported locales when invoked", async () => {
+        const showId = uuidv7();
+        await service.invalidateShowSeatsCache(showId);
+
+        const expectedKeys = SHOWS_CONSTANTS.SUPPORTED_LOCALES.map((lang) =>
+          SHOWS_REDIS_KEYS.seatsCache(showId, lang),
+        );
+        expect(mockRedis.del).toHaveBeenCalledWith(...expectedKeys);
+        expect(mockSentryService.addBreadcrumb).toHaveBeenCalledWith(
+          expect.objectContaining({
+            category: "cache",
+            level: "info",
+          }),
+        );
       });
     });
   });
