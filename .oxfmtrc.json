@@ -10,6 +10,7 @@
     "**/dist/**",
     "**/build/**",
     ".*/**",
+    "!/.github/**",
     "src/generated/**",
     "test/generated/**"
   ]
