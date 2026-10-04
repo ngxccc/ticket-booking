@@ -15,6 +15,10 @@ export const seatTypeInfoSchema = z
       description: "Price multiplier factor formatted as decimal string",
       example: "1.00",
     }),
+    finalPrice: z.number().int().min(0).meta({
+      description: "Itemized final seat price for this category in VND",
+      example: 90000,
+    }),
   })
   .strict();
 
@@ -36,8 +40,9 @@ export const showSeatItemSchema = z
       description: "Column seat sequence number within row",
       example: 1,
     }),
-    type: seatTypeInfoSchema.meta({
-      description: "Seat category and pricing multiplier details",
+    seatTypeId: zUuidV7().meta({
+      description: "Referenced seat category type identifier (UUIDv7)",
+      example: "01923456-789a-7bc0-8123-456789abcdef",
     }),
     finalPrice: z.number().int().min(0).meta({
       description:
@@ -139,6 +144,10 @@ export const showSeatsResponseSchema = z
     summary: showSeatsSummarySchema.meta({
       description: "Aggregate summary of seat counts by availability state",
     }),
+    seatTypes: z.array(seatTypeInfoSchema).meta({
+      description:
+        "Itemized catalog of distinct physical seat categories in the hall",
+    }),
     seats: z.array(showSeatItemSchema).meta({
       description: "Itemized list of physical seats with live status",
     }),
@@ -147,7 +156,10 @@ export const showSeatsResponseSchema = z
 
 export type ShowSeatsResponseDtoType = z.infer<typeof showSeatsResponseSchema>;
 export type ShowSeatItemDtoType = z.infer<typeof showSeatItemSchema>;
+export type SeatTypeInfoDtoType = z.infer<typeof seatTypeInfoSchema>;
 
 export class ShowSeatsResponseDto extends createZodDto(
   showSeatsResponseSchema,
-) {}
+) {
+  public static readonly zodSchema = showSeatsResponseSchema;
+}
