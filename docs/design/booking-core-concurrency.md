@@ -25,15 +25,15 @@ This document is the **Single Source of Truth (SSOT)** describing the operationa
 
 ## Architecture & Work Breakdown Structure (WBS)
 
-| WBS ID | Level 2 (Subsystem) | Level 3 (Component/Task) | Level 4 (Technical Implementation & Boundary) |
-| :--- | :--- | :--- | :--- |
-| **1.0** | 1.1 DTO & Validation | 1.1.1 ReserveSeatsDto | Validates `@IsUUID("7")`, `@ArrayMinSize(1)`, `@ArrayMaxSize(6)` |
-| **1.1** | 1.2 Rate Limiting | 1.2.1 CustomThrottlerGuard | Bypassed in Dev/Test (`NODE_ENV !== "production"`), protects 10 req/min in Prod with 2s timeout |
-| **1.2** | 1.3 Concurrency Control | 1.3.1 Seat Sorting | `[...dto.seatIds].sort()` guarantees uniform lexicographical lock order |
-| | | 1.3.2 Redlock RAM Layer | Atomic lock `lock:show_seat:<id>` with 2000ms TTL |
-| | | 1.3.3 DB Pessimistic Lock | Transaction `SELECT ... FOR UPDATE` on `show_seats` table |
-| **1.3** | 1.4 Background Queue | 1.4.1 BullMQ Integration | Pushes 10-minute delayed job for auto-cancellation of expired bookings |
-| **1.4** | 1.5 Cron Cleanup | 1.5.1 BookingCronService | Scans and cancels pending bookings with `lockedUntil < NOW()` |
+| WBS ID  | Level 2 (Subsystem)     | Level 3 (Component/Task)   | Level 4 (Technical Implementation & Boundary)                                                   |
+| :------ | :---------------------- | :------------------------- | :---------------------------------------------------------------------------------------------- |
+| **1.0** | 1.1 DTO & Validation    | 1.1.1 ReserveSeatsDto      | Validates `@IsUUID("7")`, `@ArrayMinSize(1)`, `@ArrayMaxSize(6)`                                |
+| **1.1** | 1.2 Rate Limiting       | 1.2.1 CustomThrottlerGuard | Bypassed in Dev/Test (`NODE_ENV !== "production"`), protects 10 req/min in Prod with 2s timeout |
+| **1.2** | 1.3 Concurrency Control | 1.3.1 Seat Sorting         | `[...dto.seatIds].sort()` guarantees uniform lexicographical lock order                         |
+|         |                         | 1.3.2 Redlock RAM Layer    | Atomic lock `lock:show_seat:<id>` with 2000ms TTL                                               |
+|         |                         | 1.3.3 DB Pessimistic Lock  | Transaction `SELECT ... FOR UPDATE` on `show_seats` table                                       |
+| **1.3** | 1.4 Background Queue    | 1.4.1 BullMQ Integration   | Pushes 10-minute delayed job for auto-cancellation of expired bookings                          |
+| **1.4** | 1.5 Cron Cleanup        | 1.5.1 BookingCronService   | Scans and cancels pending bookings with `lockedUntil < NOW()`                                   |
 
 ---
 

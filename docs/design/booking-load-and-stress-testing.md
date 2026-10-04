@@ -26,20 +26,11 @@ This document is the **Single Source of Truth (SSOT)** describing the architectu
 
 ---
 
-## Architecture & Work Breakdown Structure (WBS)
+## Architecture
 
-| WBS Code  | Component / Artifact                       | Level             | Technical Implementation & Boundary                                    | Output / Target                                       |
-| :-------- | :----------------------------------------- | :---------------- | :--------------------------------------------------------------------- | :---------------------------------------------------- |
-| **1.0**   | **Test Data Seeder & Token Factory**       | **L2: Setup**     | TypeScript DB seed script executed via Bun                             | `test/load/suites/booking-concurrency/seed.ts`        |
-| **1.1.1** | DAG Fixture Provisioning                   | L3: Logic         | Creates Movie, Cinema, Hall, Seat Type, Seats, Show, ShowSeats         | Database tables                                       |
-| **1.1.2** | User Batch Creation & Token Signing        | L3: Logic         | Inserts 500–2,000 users and signs JWT tokens with `JWT_SECRET`         | `test/load/fixtures/booking-fixtures.json`            |
-| **2.0**   | **K6 Test Suite & Scenarios**              | **L2: Execution** | TypeScript k6 test script with strong typing                           | `test/load/suites/booking-concurrency/scenario.k6.ts` |
-| **2.1.1** | `hot_seat_burst` Scenario                  | L3: Scenario      | `per-vu-iterations` executor (500/2000 VUs, UUIDv7, `X-Forwarded-For`) | Custom metrics & HTTP 201/409                         |
-| **2.1.2** | `rate_limit_abuse` Scenario                | L3: Scenario      | `per-vu-iterations` executor (1 VU, 30 reqs, fixed IP)                 | Custom metrics & HTTP 429                             |
-| **3.0**   | **Post-Test Invariant Verifier & Cleanup** | **L2: Teardown**  | Post-test verification script inspecting DB state directly             | `test/load/suites/booking-concurrency/teardown.ts`    |
-| **3.1.1** | Database Invariant Assertions              | L3: Validation    | `SELECT count(*) FROM bookings = 1`, `show_seats.status = 'reserved'`  | Invariant report                                      |
-| **3.1.2** | Redis Lock & DB Data Teardown              | L3: Cleanup       | Purges Redis `lock:show_seat:*` and deletes test show records          | Clean DB state                                        |
-| **4.0**   | **Orchestrator Pipeline & CI/CD**          | **L2: CI/CD**     | Unified npm script and GitHub Actions workflow                         | `package.json` & `.github/workflows/performance.yml`  |
+- **Test Data Seeder & Token Factory**: Bun-driven seeding script generating isolated movie, cinema, hall, and user batches (`test/load/suites/booking-concurrency/seed.ts`).
+- **k6 Test Engine**: High-concurrency scenario runners (`hot_seat_burst`, `rate_limit_abuse`) executed via Goja runtime.
+- **Post-Test Verifier & Teardown**: Database and Redis state verification ensuring atomicity and cleanup (`test/load/suites/booking-concurrency/teardown.ts`).
 
 ---
 

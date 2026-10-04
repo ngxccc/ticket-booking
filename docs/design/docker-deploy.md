@@ -17,12 +17,12 @@ This document details the CI/CD pipeline, system configurations, and zero-downti
 
 ## Architecture & Work Breakdown Structure (WBS)
 
-| WBS ID | Component / Feature Name | Level | Detailed Description / Task | Output / Artifact |
-| :--- | :--- | :--- | :--- | :--- |
+| WBS ID  | Component / Feature Name  | Level                  | Detailed Description / Task                         | Output / Artifact                |
+| :------ | :------------------------ | :--------------------- | :-------------------------------------------------- | :------------------------------- |
 | **1.0** | **DevOps Infrastructure** | **L1: Infrastructure** | CI/CD pipeline & zero-downtime container deployment | `scripts/` & `.github/workflows` |
-| **1.1** | **Build & Package** | **L2: CI Build** | Compiles NestJS app & packages build artifact | `build.tar.gz` |
-| **1.2** | **Deploy & Switch** | **L2: CD Deploy** | Blue-Green zero-downtime container swap | `scripts/deploy-app.sh` |
-| **1.3** | **Proxy Reload** | **L2: Reverse Proxy** | Reloads Caddy proxy dynamically | `Caddyfile` |
+| **1.1** | **Build & Package**       | **L2: CI Build**       | Compiles NestJS app & packages build artifact       | `build.tar.gz`                   |
+| **1.2** | **Deploy & Switch**       | **L2: CD Deploy**      | Blue-Green zero-downtime container swap             | `scripts/deploy-app.sh`          |
+| **1.3** | **Proxy Reload**          | **L2: Reverse Proxy**  | Reloads Caddy proxy dynamically                     | `Caddyfile`                      |
 
 ---
 

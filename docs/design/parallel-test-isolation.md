@@ -47,27 +47,12 @@ This document serves as the **Single Source of Truth (SSOT)** describing the arc
 
 ---
 
-## Architecture & Work Breakdown Structure (WBS)
+## Architecture
 
-| WBS Code | Component / Feature                   | Level          | Description / Task                                                         | Output / Artifact                             |
-| :------- | :------------------------------------ | :------------- | :------------------------------------------------------------------------- | :-------------------------------------------- |
-| **0.0**  | **Global Pre-Flight Setup**           | **L1: Hook**   | Run once before test suites spawn via `bunfig.toml` preload                | `test/helpers/global-setup.ts`, `bunfig.toml` |
-| 0.1      | Global Extension Installation         | L2: DDL        | `CREATE EXTENSION IF NOT EXISTS btree_gist SCHEMA public;`                 | `test/helpers/global-setup.ts`                |
-| 0.2      | Orphan Schema Purge                   | L2: Tool       | Purge stale `test_*` schemas older than 1h                                 | `test/helpers/global-setup.ts`                |
-| 0.3      | Process Signal Handlers               | L2: Logic      | Register `SIGINT`/`SIGTERM` handlers to drop active worker schema on abort | `test/helpers/global-setup.ts`                |
-| 0.4      | Bunfig Preload Configuration          | L2: Config     | Configure `[test] preload = ["./test/helpers/global-setup.ts"]`            | `bunfig.toml`                                 |
-| **1.0**  | **Database Helper Isolation**         | **L1: Helper** | Schema-per-worker core infrastructure                                      | `test/helpers/database.helper.ts`             |
-| **1.1**  | Schema Provisioning & Teardown        | L2: Logic      | Dynamic schema creation, migration, and `DROP CASCADE`                     | `test/helpers/database.helper.ts`             |
-| **1.2**  | Safe Truncate with Sanitization       | L2: Logic      | `current_schema()` query, `sql.identifier()`, `RESTART IDENTITY`           | `test/helpers/database.helper.ts`             |
-| **1.3**  | Orphan Schema Garbage Collector       | L2: Tool       | Purge stale `test_*` schemas older than 1h                                 | `test/helpers/database.helper.ts`             |
-| **2.0**  | **App Test Helper & State Isolation** | **L1: Helper** | NestJS test harness enhancements                                           | `test/helpers/app.helper.ts`                  |
-| **2.1**  | Dynamic Pool & Redis Factory          | L2: Logic      | Inject worker schema pool and `keyPrefix` IoRedis                          | `test/helpers/app.helper.ts`                  |
-| **2.2**  | Scheduler & Queue Guardrails          | L2: Logic      | Disable background `@Cron` and scope BullMQ prefixes                       | `test/helpers/app.helper.ts`                  |
-| **3.0**  | **Test Suites Cutover**               | **L1: Tests**  | Migrate all integration test files to schema-per-worker                    | `test/integration/*.spec.ts`                  |
-| **3.1**  | Suite Lifecycle Modernization         | L2: Execution  | Integrate schema setup in `beforeAll` and drop in `afterAll`               | `test/integration/*.spec.ts`                  |
-| **4.0**  | **CI/CD tmpfs RAM-Disk Pipeline**     | **L1: CI**     | High-speed parallel workflow integration                                   | `.github/workflows/integration.yml`           |
-| **4.1**  | PostgreSQL tmpfs Mount & PGDATA       | L2: Infra      | Configure `/var/lib/postgresql/data` tmpfs and `PGDATA` subpath            | `.github/workflows/integration.yml`           |
-| **4.2**  | Max Concurrency Cutover               | L2: Infra      | Remove `--max-concurrency=1` and enforce $< 15\text{s}$ suite target       | `package.json`, `integration.yml`             |
+- **Global Pre-Flight Setup**: Preload hook executing extension installation and stale schema purging via `test/helpers/global-setup.ts`.
+- **Database Helper Isolation**: Schema-per-worker lifecycle and safe truncation routines in `test/helpers/database.helper.ts`.
+- **Application Test Harness**: NestJS test module factory with schema-isolated database pools and scoped Redis key prefixes in `test/helpers/app.helper.ts`.
+- **CI/CD tmpfs RAM-Disk Pipeline**: Kernel-level memory filesystem configuration in `.github/workflows/integration.yml`.
 
 ---
 

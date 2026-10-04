@@ -48,6 +48,6 @@
 
 ### B. Traceability Chain
 
-1. **Spec**: Define invariant logic in `docs/design/<feature>-workflow.md`.
+1. **Spec**: Define invariant logic in `docs/design/<feature>.md`.
 2. **Code**: Guard invariant conditions in domain services with anchor comments `// Invariant: INV-X`.
 3. **Tests**: Every invariant MUST have dedicated negative test cases asserting rejection upon violation.

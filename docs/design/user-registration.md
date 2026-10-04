@@ -21,22 +21,22 @@ This document describes the operational flow for user registration in the Ticket
 
 ## Architecture & Work Breakdown Structure (WBS)
 
-| WBS ID | Component / Feature Name | Level | Detailed Description / Task | Output / Artifact |
-| :--- | :--- | :--- | :--- | :--- |
-| **1.0** | **Auth Module** | **L1: Module** | Authentication & user credentials management | `src/modules/auth` |
-| **1.1** | **Register Feature** | **L2: Feature** | New user account registration | `POST /api/auth/register` |
-| **1.1.1** | **Input DTO & Sanitize** | **L3: Logic** | Sanitize XSS & validate DTO schema | `RegisterDto` |
-| 1.1.1.1 | Sanitize Inputs | L4: Execution | Sanitize HTML/script content in name and email | `src/common/utils/sanitize.util.ts` |
-| 1.1.1.2 | DTO Field Validation | L4: Execution | Validate Email format, password, and phone number | `src/modules/auth/dto/register.dto.ts` |
-| **1.1.2** | **User Existence & Crypto** | **L3: Logic** | Check email uniqueness & hash password | `AuthService.register()` |
-| 1.1.2.1 | Check Email Uniqueness | L4: Execution | Query `SELECT id FROM users WHERE email` ($O(1)$) | DB Index `users_email_uidx` |
-| 1.1.2.2 | Password Hashing | L4: Execution | Hash password using Node.js `crypto.scrypt` | `src/common/utils/crypto.util.ts` |
-| **1.1.3** | **Data Layer & DB Write** | **L3: Logic** | Transaction inserting user & outbox event | `src/database/schemas` |
-| 1.1.3.1 | Single DB Insert | L4: Execution | Insert user with `status="pending_verification"` | `src/database/schemas/auth.schema.ts` |
-| 1.1.3.2 | Transactional Outbox | L4: Execution | Insert `auth.verification_email_requested` outbox event | `src/database/schemas/outbox.schema.ts` |
-| **1.1.4** | **Notification & Queue** | **L3: Logic** | Relay worker pushes job to BullMQ queue | `OutboxService` & `BullMQ` |
-| 1.1.4.1 | Outbox Relay Worker | L4: Execution | Scans `outbox_events` every 5s and pushes to BullMQ | `src/modules/outbox/outbox.service.ts` |
-| 1.1.4.2 | Mail Processor | L4: Execution | Consumes BullMQ job to send email via Resend SDK | `src/modules/mail/mail.processor.ts` |
+| WBS ID    | Component / Feature Name    | Level           | Detailed Description / Task                             | Output / Artifact                       |
+| :-------- | :-------------------------- | :-------------- | :------------------------------------------------------ | :-------------------------------------- |
+| **1.0**   | **Auth Module**             | **L1: Module**  | Authentication & user credentials management            | `src/modules/auth`                      |
+| **1.1**   | **Register Feature**        | **L2: Feature** | New user account registration                           | `POST /api/auth/register`               |
+| **1.1.1** | **Input DTO & Sanitize**    | **L3: Logic**   | Sanitize XSS & validate DTO schema                      | `RegisterDto`                           |
+| 1.1.1.1   | Sanitize Inputs             | L4: Execution   | Sanitize HTML/script content in name and email          | `src/common/utils/sanitize.util.ts`     |
+| 1.1.1.2   | DTO Field Validation        | L4: Execution   | Validate Email format, password, and phone number       | `src/modules/auth/dto/register.dto.ts`  |
+| **1.1.2** | **User Existence & Crypto** | **L3: Logic**   | Check email uniqueness & hash password                  | `AuthService.register()`                |
+| 1.1.2.1   | Check Email Uniqueness      | L4: Execution   | Query `SELECT id FROM users WHERE email` ($O(1)$)       | DB Index `users_email_uidx`             |
+| 1.1.2.2   | Password Hashing            | L4: Execution   | Hash password using Node.js `crypto.scrypt`             | `src/common/utils/crypto.util.ts`       |
+| **1.1.3** | **Data Layer & DB Write**   | **L3: Logic**   | Transaction inserting user & outbox event               | `src/database/schemas`                  |
+| 1.1.3.1   | Single DB Insert            | L4: Execution   | Insert user with `status="pending_verification"`        | `src/database/schemas/auth.schema.ts`   |
+| 1.1.3.2   | Transactional Outbox        | L4: Execution   | Insert `auth.verification_email_requested` outbox event | `src/database/schemas/outbox.schema.ts` |
+| **1.1.4** | **Notification & Queue**    | **L3: Logic**   | Relay worker pushes job to BullMQ queue                 | `OutboxService` & `BullMQ`              |
+| 1.1.4.1   | Outbox Relay Worker         | L4: Execution   | Scans `outbox_events` every 5s and pushes to BullMQ     | `src/modules/outbox/outbox.service.ts`  |
+| 1.1.4.2   | Mail Processor              | L4: Execution   | Consumes BullMQ job to send email via Resend SDK        | `src/modules/mail/mail.processor.ts`    |
 
 ---
 

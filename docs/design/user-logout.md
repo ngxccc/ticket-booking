@@ -17,11 +17,11 @@ This document describes the operational flow for user logout (Logout Flow). Upon
 
 ## Architecture & Work Breakdown Structure (WBS)
 
-| WBS ID | Component / Feature Name | Level | Detailed Description / Task | Output / Artifact |
-| :--- | :--- | :--- | :--- | :--- |
-| **1.0** | **Auth Module** | **L1: Module** | Authentication & session lifecycle management | `src/modules/auth` |
-| **1.1** | **Logout Feature** | **L2: Feature** | Revoke current user session endpoint | `POST /api/auth/logout` |
-| **1.1.1** | **Token Hash & DB Delete** | **L3: Logic** | Hash incoming refresh token & delete DB record | `AuthService.logout()` |
+| WBS ID    | Component / Feature Name   | Level           | Detailed Description / Task                    | Output / Artifact       |
+| :-------- | :------------------------- | :-------------- | :--------------------------------------------- | :---------------------- |
+| **1.0**   | **Auth Module**            | **L1: Module**  | Authentication & session lifecycle management  | `src/modules/auth`      |
+| **1.1**   | **Logout Feature**         | **L2: Feature** | Revoke current user session endpoint           | `POST /api/auth/logout` |
+| **1.1.1** | **Token Hash & DB Delete** | **L3: Logic**   | Hash incoming refresh token & delete DB record | `AuthService.logout()`  |
 
 ---
 

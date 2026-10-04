@@ -17,11 +17,11 @@ This document describes the operational flow for changing passwords of authentic
 
 ## Architecture & Work Breakdown Structure (WBS)
 
-| WBS ID | Component / Feature Name | Level | Detailed Description / Task | Output / Artifact |
-| :--- | :--- | :--- | :--- | :--- |
-| **1.0** | **Auth Module** | **L1: Module** | Authentication & security management | `src/modules/auth` |
-| **1.1** | **Change Password** | **L2: Feature** | Change password & revoke all active sessions | `POST /api/auth/change-password` |
-| **1.1.1** | **Verify & Revoke** | **L3: Logic** | Verify current password & delete all refresh tokens | `AuthService.changePassword()` |
+| WBS ID    | Component / Feature Name | Level           | Detailed Description / Task                         | Output / Artifact                |
+| :-------- | :----------------------- | :-------------- | :-------------------------------------------------- | :------------------------------- |
+| **1.0**   | **Auth Module**          | **L1: Module**  | Authentication & security management                | `src/modules/auth`               |
+| **1.1**   | **Change Password**      | **L2: Feature** | Change password & revoke all active sessions        | `POST /api/auth/change-password` |
+| **1.1.1** | **Verify & Revoke**      | **L3: Logic**   | Verify current password & delete all refresh tokens | `AuthService.changePassword()`   |
 
 ---
 

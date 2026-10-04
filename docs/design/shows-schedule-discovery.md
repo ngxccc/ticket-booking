@@ -61,26 +61,6 @@ flowchart TD
     Controller -->|HTTP 200 OK (Envelope)| Client
 ```
 
-### Work Breakdown Structure (4-Level WBS)
-
-| WBS Code  | Component / Feature        | Level             | Description / Task                                                                      | Output / Artifact                                     |
-| :-------- | :------------------------- | :---------------- | :-------------------------------------------------------------------------------------- | :---------------------------------------------------- |
-| **1.0**   | **Shows Module**           | **L1: Module**    | Core show schedule management module                                                    | `src/modules/shows/`                                  |
-| **1.1**   | **Showtime Discovery API** | **L2: Component** | Public schedule discovery endpoint (`GET /shows`)                                       | `src/modules/shows/shows.controller.ts`               |
-| **1.1.1** | Query DTO & Validation     | L3: Logic         | Zod schema validating `movieId`, `cinemaId`, `date`, `lang`                             | `src/modules/shows/dto/show-schedule-query.dto.ts`    |
-| 1.1.1.1   | Date Horizon Guard         | L4: Execution     | Validate $today \le date \le today + 14d$ in `Asia/Ho_Chi_Minh`                         | `src/modules/shows/dto/show-schedule-query.dto.ts`    |
-| 1.1.1.2   | UUIDv7 Syntax Validator    | L4: Execution     | Strict Zod validation for optional `movieId` and `cinemaId`                             | `src/modules/shows/dto/show-schedule-query.dto.ts`    |
-| **1.1.2** | Response DTO & Contract    | L3: Logic         | Response DTO with embedded movie, cinema, hall metadata                                 | `src/modules/shows/dto/show-schedule-response.dto.ts` |
-| **1.1.3** | Schedule Query Engine      | L3: Logic         | Service method querying shows with SQL conditional aggregation                          | `src/modules/shows/shows.service.ts`                  |
-| 1.1.3.1   | Day Boundary Resolver      | L4: Execution     | Compute UTC `[startOfDay, endOfDay]` for Vietnam calendar date                          | `src/modules/shows/shows.service.ts`                  |
-| 1.1.3.2   | Real-time Seat Aggregation | L4: Execution     | `LEFT JOIN show_seats` with non-locking active/expired count                            | `src/modules/shows/shows.service.ts`                  |
-| 1.1.3.3   | Filter Composition         | L4: Execution     | Compose dynamic `WHERE` clauses for `movieId`, `cinemaId`, `date`, `startTime >= now()` | `src/modules/shows/shows.service.ts`                  |
-| 1.1.3.4   | i18n Translation Join      | L4: Execution     | Left join `movie_translations` matching `lang` with fallback                            | `src/modules/shows/shows.service.ts`                  |
-| **1.1.4** | Automated Testing Suite    | L3: Logic         | Unit and integration tests covering all invariants & edge cases                         | `test/integration/shows.spec.ts`                      |
-| 1.1.4.1   | Positive Filter Specs      | L4: Execution     | Verify movie-filter, cinema-filter, date-filter, and combinations                       | `test/integration/shows.spec.ts`                      |
-| 1.1.4.2   | Real-time Seat Count Specs | L4: Execution     | Verify seat count with available, booked, and expired locks                             | `test/integration/shows.spec.ts`                      |
-| 1.1.4.3   | Boundary & Error Specs     | L4: Execution     | Verify 400 on past date, 400 on >14d date, 400 on malformed UUID                        | `test/integration/shows.spec.ts`                      |
-
 ---
 
 ## Operational Flow

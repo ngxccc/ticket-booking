@@ -17,14 +17,14 @@ This document describes the design and operational flow for user authentication 
 
 ## Architecture & Work Breakdown Structure (WBS)
 
-| WBS ID | Component / Feature Name | Level | Detailed Description / Task | Output / Artifact |
-| :--- | :--- | :--- | :--- | :--- |
-| **1.0** | **Auth Module** | **L1: Module** | Authentication & credentials management | `src/modules/auth` |
-| **1.1** | **Login Feature** | **L2: Feature** | User account authentication endpoint | `POST /api/auth/login` |
-| **1.1.1** | **Input Validation** | **L3: Logic** | Validate email & password DTO schema | `LoginDto` |
-| **1.1.2** | **Credential Verification** | **L3: Logic** | Scrypt timing-safe password hash comparison | `AuthService.login()` |
-| **1.1.3** | **Token & Session** | **L3: Logic** | Issue Access JWT & persist hashed Refresh Token | `refresh_tokens` DB table |
-| **1.1.4** | **Rate Limiting** | **L3: Security** | `CustomThrottlerGuard` restricting to 5 req/min per IP | `CustomThrottlerGuard` |
+| WBS ID    | Component / Feature Name    | Level            | Detailed Description / Task                            | Output / Artifact         |
+| :-------- | :-------------------------- | :--------------- | :----------------------------------------------------- | :------------------------ |
+| **1.0**   | **Auth Module**             | **L1: Module**   | Authentication & credentials management                | `src/modules/auth`        |
+| **1.1**   | **Login Feature**           | **L2: Feature**  | User account authentication endpoint                   | `POST /api/auth/login`    |
+| **1.1.1** | **Input Validation**        | **L3: Logic**    | Validate email & password DTO schema                   | `LoginDto`                |
+| **1.1.2** | **Credential Verification** | **L3: Logic**    | Scrypt timing-safe password hash comparison            | `AuthService.login()`     |
+| **1.1.3** | **Token & Session**         | **L3: Logic**    | Issue Access JWT & persist hashed Refresh Token        | `refresh_tokens` DB table |
+| **1.1.4** | **Rate Limiting**           | **L3: Security** | `CustomThrottlerGuard` restricting to 5 req/min per IP | `CustomThrottlerGuard`    |
 
 ---
 

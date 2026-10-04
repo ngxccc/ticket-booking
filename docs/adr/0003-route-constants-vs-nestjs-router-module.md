@@ -1,7 +1,7 @@
 # 3. Route Constants vs NestJS Router Module
 
 Date: 2026-07-15  
-Deciders: Team / Core Architecture  
+Deciders: Team / Core Architecture
 
 ### Metadata
 
@@ -11,7 +11,7 @@ Deciders: Team / Core Architecture
 - **Feature**: `auth`
 - **Topic**: `Route Constants vs NestJS Router Module Selection`
 - **Target Module**: `src/modules/auth/` & `src/common/constants/`
-- **Spec Reference**: `docs/design/user-registration-workflow.md`
+- **Spec Reference**: `docs/design/user-registration.md`
 
 ---
 
@@ -34,8 +34,8 @@ We evaluated two route management strategies:
 
 ## Considered Options
 
-- **Option A (Chosen)**: Static Route Constants (`as const`) — *Chosen for context decoupling in BullMQ workers and compile-time type safety*
-- **Option B**: Dynamic NestJS RouterModule — *Rejected because dynamic NestJS app tree reflection causes circular dependency risks and runtime typos*
+- **Option A (Chosen)**: Static Route Constants (`as const`) — _Chosen for context decoupling in BullMQ workers and compile-time type safety_
+- **Option B**: Dynamic NestJS RouterModule — _Rejected because dynamic NestJS app tree reflection causes circular dependency risks and runtime typos_
 
 ---
 
@@ -79,12 +79,12 @@ export const AUTH_ROUTES = {
 
 ## Decision Comparison Matrix
 
-| Evaluation Criteria | Option A: Static Route Constants (`as const`) (CHOSEN) | Option B: NestJS RouterModule |
-| :--- | :--- | :--- |
-| **Context Decoupling (BullMQ Worker)** | ⚡⚡⚡ Full (Zero HTTP engine dependency) | 🔴 Complex (Requires reflection/tree query) |
-| **Compile-time Type Safety** | 🔒 100% (Build fails on typo) | ⚠️ Runtime only (Fails with 404 in prod) |
-| **Frontend Code Sharing** | 🟢 Easy export (Pure TS object) | 🔴 Cannot export outside NestJS Decorators |
-| **Maintenance Overhead** | 🟡 Extra constant file per module | 🟢 Dynamic module configuration |
+| Evaluation Criteria                    | Option A: Static Route Constants (`as const`) (CHOSEN) | Option B: NestJS RouterModule               |
+| :------------------------------------- | :----------------------------------------------------- | :------------------------------------------ |
+| **Context Decoupling (BullMQ Worker)** | ⚡⚡⚡ Full (Zero HTTP engine dependency)              | 🔴 Complex (Requires reflection/tree query) |
+| **Compile-time Type Safety**           | 🔒 100% (Build fails on typo)                          | ⚠️ Runtime only (Fails with 404 in prod)    |
+| **Frontend Code Sharing**              | 🟢 Easy export (Pure TS object)                        | 🔴 Cannot export outside NestJS Decorators  |
+| **Maintenance Overhead**               | 🟡 Extra constant file per module                      | 🟢 Dynamic module configuration             |
 
 ---
 

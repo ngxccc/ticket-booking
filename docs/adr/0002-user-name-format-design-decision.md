@@ -1,7 +1,7 @@
 # 2. Single Field User Full Name Format Design
 
 Date: 2026-07-05  
-Deciders: Team / Core Architecture  
+Deciders: Team / Core Architecture
 
 ### Metadata
 
@@ -11,7 +11,7 @@ Deciders: Team / Core Architecture
 - **Feature**: `auth`
 - **Topic**: `Single Field User Full Name Format Design`
 - **Target Module**: `src/modules/auth/` & Database Schema (`users` table)
-- **Spec Reference**: `docs/design/user-registration-workflow.md`
+- **Spec Reference**: `docs/design/user-registration.md`
 
 ---
 
@@ -38,8 +38,8 @@ System design considerations:
 
 ## Considered Options
 
-- **Option A (Chosen)**: Single field (`fullName` / `name`) + Application Helper — *Chosen for optimal sign-up UX and zero DB schema migration debt*
-- **Option B**: Split columns (`firstName` + `lastName`) in DB — *Rejected because it causes UX friction for Vietnamese users and requires DB migration*
+- **Option A (Chosen)**: Single field (`fullName` / `name`) + Application Helper — _Chosen for optimal sign-up UX and zero DB schema migration debt_
+- **Option B**: Split columns (`firstName` + `lastName`) in DB — _Rejected because it causes UX friction for Vietnamese users and requires DB migration_
 
 ---
 
@@ -85,13 +85,13 @@ export function extractFirstName(fullName: string): string {
 
 ## Decision Comparison Matrix
 
-| Evaluation Criteria | Option A: Single Field (`fullName`) (CHOSEN) | Option B: Split (`firstName` + `lastName`) |
-| :--- | :--- | :--- |
-| **Sign-up Experience (UX)** | ⚡⚡⚡ Best (Single input field) | ⚡ Lower (Forced 2 inputs) |
-| **Multicultural Support (i18n)** | 🌍 Full compatibility across all regions | ⚠️ High friction for Vietnamese names |
-| **Database Migration** | 🟢 Zero schema changes required | 🔴 Requires altering `users` table |
-| **API Code Complexity** | 🟢 Simple (Single property payload) | 🔴 Requires string concatenation |
-| **Personalization** | 🟡 Handled via application helper | 🟢 Direct column access |
+| Evaluation Criteria              | Option A: Single Field (`fullName`) (CHOSEN) | Option B: Split (`firstName` + `lastName`) |
+| :------------------------------- | :------------------------------------------- | :----------------------------------------- |
+| **Sign-up Experience (UX)**      | ⚡⚡⚡ Best (Single input field)             | ⚡ Lower (Forced 2 inputs)                 |
+| **Multicultural Support (i18n)** | 🌍 Full compatibility across all regions     | ⚠️ High friction for Vietnamese names      |
+| **Database Migration**           | 🟢 Zero schema changes required              | 🔴 Requires altering `users` table         |
+| **API Code Complexity**          | 🟢 Simple (Single property payload)          | 🔴 Requires string concatenation           |
+| **Personalization**              | 🟡 Handled via application helper            | 🟢 Direct column access                    |
 
 ---
 
