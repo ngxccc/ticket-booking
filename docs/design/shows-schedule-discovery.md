@@ -53,12 +53,12 @@ Following the implementation of single and batch show creation (`POST /shows`, `
 
 ```mermaid
 flowchart TD
-    Client["Web / Mobile Client"] -->|GET /api/v1/shows?movieId=&cinemaId=&date=&lang=| Controller["ShowsController"]
-    Controller -->|ShowScheduleQueryDto (Zod Validated)| Service["ShowsService"]
-    Service -->|Single SQL Query with JOINs & GROUP BY| DB[("PostgreSQL\n(Drizzle ORM)")]
-    DB -->|Aggregated Show Rows + Seat Counts| Service
-    Service -->|ApiResponse<ShowScheduleItemDto[]>| Controller
-    Controller -->|HTTP 200 OK (Envelope)| Client
+    Client["Web / Mobile Client"] -->|"GET /api/v1/shows?movieId=&cinemaId=&date=&lang="| Controller["ShowsController"]
+    Controller -->|"ShowScheduleQueryDto (Zod Validated)"| Service["ShowsService"]
+    Service -->|"Single SQL Query with JOINs & GROUP BY"| DB[("PostgreSQL (Drizzle ORM)")]
+    DB -->|"Aggregated Show Rows + Seat Counts"| Service
+    Service -->|"ApiResponse&lt;ShowScheduleItemDto[]&gt;"| Controller
+    Controller -->|"HTTP 200 OK (Envelope)"| Client
 ```
 
 ---
