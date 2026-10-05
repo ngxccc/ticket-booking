@@ -650,7 +650,7 @@ export class ShowsService {
       const keys = SHOWS_CONSTANTS.SUPPORTED_LOCALES.map((lang) =>
         SHOWS_REDIS_KEYS.seatsCache(showId, lang),
       );
-      await this.redis.del(...keys);
+      await this.redis.unlink(...keys);
       this.sentryService?.addBreadcrumb({
         category: SENTRY_BREADCRUMB_CATEGORY.CACHE,
         message: `Invalidated show seats cache for show ${showId}`,
