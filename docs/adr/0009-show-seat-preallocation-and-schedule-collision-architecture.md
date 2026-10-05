@@ -25,13 +25,18 @@ We decided to implement:
    - Database-level enforcement using a PostgreSQL Exclusion Constraint (`GiST` index over `tsrange(start_time, end_time + interval '15 minutes', '[)')`).
 3. **All-or-Nothing Transactional Batch Processing**: Batch show creation (`POST /shows/batch`) executes inside a single DB transaction that rolls back completely if any single generated showtime encounters a schedule collision.
 
-## Consequences
+## Positive Consequences
 
 - Seat maps for published shows are immediately queryable without runtime allocation latency or dynamic seat synthesis overhead.
 - High-concurrency seat reservation operates directly via atomic `UPDATE show_seats` / `SELECT FOR UPDATE` on pre-existing primary key rows.
 - Schedule collisions are impossible even if concurrent admin operations bypass NestJS application validation.
 
-### Explicit Tradeoffs
+## Negative Consequences / Risks
+
+- Increased initial database row storage overhead for pre-allocated seat inventories.
+- Hard batch rollbacks require resubmission of entire show generation requests upon collision.
+
+## Explicit Tradeoffs
 
 - **Derived `endTime` vs Admin Input**: `endTime` is strictly derived by the backend from `startTime + movies.durationMinutes` (omitted from `CreateShowDto`). This preserves movie duration invariants and eliminates human entry error, while storing `end_time` physically in `shows` to power the PostgreSQL GiST exclusion constraint and range queries.
 - **Storage Pre-allocation vs Storage Efficiency**: Pre-allocating 50–300 `show_seats` rows per show requires ~10KB database storage per showtime, accepted for zero-latency seat map reads and safe concurrency locking.

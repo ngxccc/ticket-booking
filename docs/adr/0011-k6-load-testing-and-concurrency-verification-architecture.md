@@ -3,22 +3,15 @@
 Date: 2026-08-28
 Deciders: Team / Core Architecture
 
-### Metadata
-
-- **ID**: `ADR-0011`
 - **Status**: `Accepted`
 - **Date**: `2026-08-28`
 - **Feature**: `booking`
 - **Topic**: `Grafana k6 High-Concurrency Stress Testing, Token Distribution, and Rate Limit Isolation`
 - **Target Module**: `test/load/`, `src/modules/booking/` & `.github/workflows/`
 
----
-
 ## Status
 
 Accepted
-
----
 
 ## Context
 
@@ -34,8 +27,6 @@ Simulating mass contention on a single shared VIP seat (Hot Seat Contention) in 
    Seat reservations mutate state (`show_seats.status = 'reserved'`). Subsequent test runs on the same show will fail with 100% 409 responses unless clean data fixtures and deterministic teardown are provisioned before and after each run.
 4. **CI/CD Pipeline Execution Economics**:
    Running a full 2,000-VU stress test on every PR commit creates long feedback loops and causes false-positive latency failures due to virtualized CPU jitter on shared GitHub Actions runners.
-
----
 
 ## Decision
 
@@ -64,39 +55,29 @@ We decided to establish a 4-tier Load & Stress Testing Architecture:
    - **PR Verification (`ci.yml`)**: Kept fast and deterministic without running heavy k6 stress tests.
    - **Performance Workflow (`.github/workflows/performance.yml`)**: Dedicated workflow triggered via `workflow_dispatch` (manual pre-release testing with configurable `VUS`) and nightly scheduled cron runs for continuous performance regression tracking.
 
----
-
-## Consequences
-
-### Positive Consequences
+## Positive Consequences
 
 - Guarantees 100% empirical verification of Redlock and PostgreSQL `FOR UPDATE` lock integrity under 500–2,000 concurrent requests.
 - Zero memory leakage and zero Auth bottleneck during stress tests via `SharedArray` token caching.
 - Isolated test scenarios eliminate false positives between rate limiting (429) and lock contention (409).
 - Clean separation between PR feedback speed and deep performance regression auditing in CI/CD.
 
-### Negative Consequences
+## Negative Consequences / Risks
 
 - Running full 2,000-VU tests locally requires opening 2,000 concurrent TCP sockets (requires reasonable OS `ulimit -n`).
 - Scenario 2 (Rate Limiting) requires the SUT server to be executed with `NODE_ENV=production` or Doppler staging config to bypass the dev environment throttler exemption.
 
----
-
-### Explicit Tradeoffs
+## Explicit Tradeoffs
 
 - **Offline Token Signing vs HTTP Login**: Offline signing eliminates Auth CPU exhaustion during load tests, sacrificing realistic Auth endpoint traffic in exchange for pure focus on Booking concurrency.
 - **`per-vu-iterations` vs `ramping-vus`**: Choosing `per-vu-iterations` forces instantaneous microsecond lock collisions at $t=0$, which is essential for testing race conditions, rather than gradual traffic modeling.
 - **Latency Threshold Alignment (ADR 0006)**: Because Redlock is configured with 3 retries ($\sim 600\text{ms}$ delay for micro-collisions per ADR 0006), the $p95$ threshold for pure single-seat contention is configured to $\le 700\text{ms}$ and $p99 \le 800\text{ms}$, reflecting the true architectural behavior.
-
----
 
 ## Decision Drivers
 
 - **Zero Overselling / Double-Booking Guarantee**: Absolute requirement that exactly 1 user books the seat.
 - **Observability**: Clear metric tagging and RFC 9457 structured error assertions.
 - **Reproducibility**: Predictable seed and teardown lifecycle across local dev, Docker, and CI.
-
----
 
 ## Validation & Verification
 

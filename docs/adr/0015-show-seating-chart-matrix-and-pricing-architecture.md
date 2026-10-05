@@ -1,11 +1,8 @@
 # 15. Showtime Seating Chart Matrix, Live Availability Computation, and Pricing Architecture
 
-Date: 2026-09-27  
+Date: 2026-09-27
 Deciders: Team / Core Architecture
 
-### Metadata
-
-- **ID**: `ADR-0015`
 - **Status**: `Accepted`
 - **Date**: `2026-09-27`
 - **Feature**: `shows`
@@ -13,13 +10,9 @@ Deciders: Team / Core Architecture
 - **Target Module**: `src/modules/shows/shows.controller.ts`, `src/modules/shows/shows.service.ts`, `src/modules/shows/dto/show-seats-response.dto.ts`, `src/database/schemas/`
 - **Spec Reference**: Issue #93, Issue #37, Issue #128, `docs/standards/api-design-and-error-handling.md`, `ADR-0009` (Show Seat Preallocation and Schedule Collision)
 
----
-
 ## Status
 
 Accepted
-
----
 
 ## Context
 
@@ -35,8 +28,6 @@ Serving seating chart matrixes introduces four core engineering challenges:
    In Vietnam, physical currency does not circulate denominations below 1,000 VND. Calculating seat prices via non-standard multipliers (e.g., $90,000 \times 1.15 = 103,500$ VND) introduces fractional change dilemmas at POS physical counters.
 4. **Query Latency under High Concurrency**:
    Seating charts involve joining 6 distinct database entities (`shows`, `movies`, `halls`, `cinemas`, `show_seats`, `seats`, `seat_types`). Inefficient multi-step queries or unindexed scans degrade read performance during ticket release surges.
-
----
 
 ## Decision
 
@@ -71,27 +62,19 @@ We decided to establish a High-Performance Seating Chart & Live Availability Arc
      - `summary`: `{ total: N, available: A, reserved: R, booked: B }` for instant UI badge counters without client-side array filtering.
      - `seats`: Itemized flat array of all hall seats with coordinates, type, price, and status.
 
----
-
-## Consequences
-
-### Positive Consequences
+## Positive Consequences
 
 - **Instant Lapsed Seat Reallocation**: Customers can immediately reserve expired seats without waiting for scheduled cleanup cronjobs.
 
-### Negative Consequences
+## Negative Consequences / Risks
 
 - **Dynamic SQL Computation**: The `CASE WHEN` expression is evaluated on each row during the select query, requiring CPU cycles during high read concurrency (mitigated by future Redis caching in #128).
 - **Strict Catalog Discipline**: Cinema administrators must adhere to the standardized multiplier guidelines to preserve zero-fraction pricing.
 
----
-
-### Explicit Tradeoffs
+## Explicit Tradeoffs
 
 - **Virtual SQL Status Computation vs Cleanup Cronjob Dependency**: Evaluating `CASE WHEN ss.status = 'reserved' AND ss.locked_until < NOW()` dynamically consumes minor PostgreSQL CPU cycles per query in exchange for 100% instant seat availability when locks lapse, completely decoupling customer experience from worker latency.
 - **Catalog Multiplier Discipline (Option A) vs Arbitrary Floating Multipliers**: Constraining multipliers to standardized clean multiples (`1.00`, `1.20`, `1.50`, `2.00`) limits administrative flexibility in setting arbitrary percentages (e.g. `1.17`) in exchange for mathematically guaranteed integer VND pricing across all payment channels.
-
----
 
 ## Validation & Verification
 

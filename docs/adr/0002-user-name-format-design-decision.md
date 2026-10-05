@@ -1,11 +1,8 @@
 # 2. Single Field User Full Name Format Design
 
-Date: 2026-07-05  
+Date: 2026-07-05
 Deciders: Team / Core Architecture
 
-### Metadata
-
-- **ID**: `ADR-0002`
 - **Status**: `Accepted`
 - **Date**: `2026-07-05`
 - **Feature**: `auth`
@@ -13,13 +10,9 @@ Deciders: Team / Core Architecture
 - **Target Module**: `src/modules/auth/` & Database Schema (`users` table)
 - **Spec Reference**: `docs/design/user-registration.md`
 
----
-
 ## Status
 
 Accepted
-
----
 
 ## Context
 
@@ -34,14 +27,10 @@ System design considerations:
 - **Registration Conversion (UX)**: Additional form fields increase registration drop-off rates.
 - **Email Personalization**: The application requires personalized email greetings (e.g., "Hello Nam," rather than "Hello Nguyễn Văn Nam,").
 
----
-
 ## Considered Options
 
 - **Option A (Chosen)**: Single field (`fullName` / `name`) + Application Helper — _Chosen for optimal sign-up UX and zero DB schema migration debt_
 - **Option B**: Split columns (`firstName` + `lastName`) in DB — _Rejected because it causes UX friction for Vietnamese users and requires DB migration_
-
----
 
 ## Decision
 
@@ -51,15 +40,7 @@ We decided to **maintain a single `name` (or `fullName`) string field representi
 
 Personalization is handled via a **lightweight application helper function (`extractFirstName`)** at the application layer when generating emails or notifications:
 
-```typescript
-export function extractFirstName(fullName: string): string {
-  const trimmed = fullName.trim();
-  const parts = trimmed.split(/\s+/);
-  return parts[parts.length - 1] ?? "";
-}
-```
-
----
+- **Implementation Reference**: Handled in application utilities via `extractFirstName(fullName: string)` to isolate name splitting logic from database schemas.
 
 ## Evaluated Architectural Options & Comparison
 
@@ -81,8 +62,6 @@ export function extractFirstName(fullName: string): string {
   - Requires string concatenation whenever rendering full names in UI.
   - Increases SQL migration and DTO validation complexity.
 
----
-
 ## Decision Comparison Matrix
 
 | Evaluation Criteria              | Option A: Single Field (`fullName`) (CHOSEN) | Option B: Split (`firstName` + `lastName`) |
@@ -93,23 +72,20 @@ export function extractFirstName(fullName: string): string {
 | **API Code Complexity**          | 🟢 Simple (Single property payload)          | 🔴 Requires string concatenation           |
 | **Personalization**              | 🟡 Handled via application helper            | 🟢 Direct column access                    |
 
----
-
-## Consequences
-
-### Positive Outcomes
+## Positive Consequences
 
 1. **Optimized Conversion Rate**: Users complete registration via a single input field.
 2. **Zero Schema Migration Debt**: Maintains a clean `users` schema without Drizzle migrations.
 3. **Global Compatibility**: 100% compatible with both Vietnamese and international naming conventions.
 
-### Explicit Tradeoffs
+## Negative Consequences / Risks
+
+- None identified beyond explicit operational tradeoffs.
+
+## Explicit Tradeoffs
 
 - **Parsing Assumptions**: Given name extraction relies on the last word in the string (valid for 95%+ of Vietnamese and English names).
 
 ---
 
-## Status & Approval
-
-- **Status**: Accepted & Implemented.
 - **Target Location**: `docs/adr/0002-user-name-format-design-decision.md`

@@ -54,14 +54,19 @@ We decided to implement a unified, multi-tier isolation architecture:
    - In GitHub Actions workflow (`.github/workflows/integration.yml`), configure the PostgreSQL service container with `PGDATA: /var/lib/postgresql/data/pgdata` and mount `--tmpfs /var/lib/postgresql/data:rw` with performance parameters (`-c fsync=off -c synchronous_commit=off -c full_page_writes=off`).
    - Remove `--max-concurrency=1` to unleash full multi-core CPU parallel test execution across all integration test suites.
 
-## Consequences
+## Positive Consequences
 
 - Integration test suites execute fully in parallel across all available CPU cores with zero deadlock or race condition risk.
 - Local test execution time is reduced from ~40s down to $< 5\text{s}$.
 - CI integration test pipeline runs in volatile memory (`tmpfs`), completing in $< 15\text{s}$.
 - Distributed locking and transaction boundaries are verified against real Redis and PostgreSQL instances with zero cross-worker interference.
 
-### Explicit Tradeoffs
+## Negative Consequences / Risks
+
+- Adds ~50–80ms of DDL schema provisioning setup overhead per test suite file.
+- Requires explicit teardown listeners and orphan schema garbage collection to prevent disk clutter on aborted runs.
+
+## Explicit Tradeoffs
 
 - **Real Redis with `keyPrefix` vs Mocking in Integration Tests**:
   Mocking Redis in integration tests would run faster but would eliminate test coverage for real distributed concurrency (Redlock mutexes, TTL expiration, race condition defense in `POST /bookings/reserve`). Using real Redis with `keyPrefix` preserves 100% fidelity while guaranteeing zero cross-worker key corruption.
