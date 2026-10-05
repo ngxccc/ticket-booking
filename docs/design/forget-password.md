@@ -1,8 +1,10 @@
 ---
-title: Forget Password Workflow Spec
-docType: feature-workflow
-status: implemented
+title: "Forget Password Workflow Spec"
+docType: "feature-workflow"
+status: "implemented"
 date: 2026-07-17
+author: "Team / Core Architecture"
+version: "1.0.0"
 ---
 
 # Forget Password Workflow Spec
@@ -15,13 +17,11 @@ This document describes the operational flow for password recovery when a user f
 
 ---
 
-## Architecture & Work Breakdown Structure (WBS)
+## Architecture
 
-| WBS ID    | Component / Feature Name | Level           | Detailed Description / Task                    | Output / Artifact                |
-| :-------- | :----------------------- | :-------------- | :--------------------------------------------- | :------------------------------- |
-| **1.0**   | **Auth Module**          | **L1: Module**  | Authentication & user credentials management   | `src/modules/auth`               |
-| **1.1**   | **Forget Password**      | **L2: Feature** | Generate reset token & push outbox email event | `POST /api/auth/forget-password` |
-| **1.1.1** | **Reset Password**       | **L3: Logic**   | Verify reset token & update user password      | `POST /api/auth/reset-password`  |
+- **Password Recovery Gateway**: Generates cryptographically secure, time-bounded reset tokens (15m TTL).
+- **Transactional Outbox Eventing**: Emits `auth.reset_password_email_requested` events to BullMQ workers without dual-write race conditions.
+- **Constant-Time User Enumeration Defense**: Returns consistent responses irrespective of account existence.
 
 ---
 

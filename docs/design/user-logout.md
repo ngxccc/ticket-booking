@@ -1,8 +1,10 @@
 ---
-title: Logout User Workflow Spec
-docType: feature-workflow
-status: implemented
+title: "Logout User Workflow Spec"
+docType: "feature-workflow"
+status: "implemented"
 date: 2026-07-17
+author: "Team / Core Architecture"
+version: "1.0.0"
 ---
 
 # Logout User Workflow Spec
@@ -15,13 +17,10 @@ This document describes the operational flow for user logout (Logout Flow). Upon
 
 ---
 
-## Architecture & Work Breakdown Structure (WBS)
+## Architecture
 
-| WBS ID    | Component / Feature Name   | Level           | Detailed Description / Task                    | Output / Artifact       |
-| :-------- | :------------------------- | :-------------- | :--------------------------------------------- | :---------------------- |
-| **1.0**   | **Auth Module**            | **L1: Module**  | Authentication & session lifecycle management  | `src/modules/auth`      |
-| **1.1**   | **Logout Feature**         | **L2: Feature** | Revoke current user session endpoint           | `POST /api/auth/logout` |
-| **1.1.1** | **Token Hash & DB Delete** | **L3: Logic**   | Hash incoming refresh token & delete DB record | `AuthService.logout()`  |
+- **Session Revocation Endpoint**: Validates JWT session claims and hashes the incoming refresh token.
+- **Immediate State Invalidation**: Deletes matching hashed refresh token rows from PostgreSQL to prevent subsequent token refreshment.
 
 ---
 

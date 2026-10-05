@@ -1,8 +1,10 @@
 ---
-title: Zod Standard Schema DTO Validation & RFC 9457 Transformation Workflow
-docType: infrastructure-workflow
-status: approved
+title: "Zod Standard Schema DTO Validation & RFC 9457 Transformation Workflow"
+docType: "infrastructure-workflow"
+status: "approved"
 date: 2026-08-30
+author: "Team / Core Architecture"
+version: "1.0.0"
 ---
 
 # Zod Standard Schema DTO Validation & RFC 9457 Transformation Workflow
@@ -27,7 +29,7 @@ Migrating from the legacy reflection-based `class-validator` + `class-transforme
 
 ---
 
-## 2. Architecture & Work Breakdown Structure (WBS)
+## 2. Architecture
 
 ```mermaid
 flowchart TD

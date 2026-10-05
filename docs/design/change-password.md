@@ -1,8 +1,10 @@
 ---
-title: Change Password Workflow Spec
-docType: feature-workflow
-status: implemented
+title: "Change Password Workflow Spec"
+docType: "feature-workflow"
+status: "implemented"
 date: 2026-07-17
+author: "Team / Core Architecture"
+version: "1.0.0"
 ---
 
 # Change Password Workflow Spec
@@ -15,13 +17,10 @@ This document describes the operational flow for changing passwords of authentic
 
 ---
 
-## Architecture & Work Breakdown Structure (WBS)
+## Architecture
 
-| WBS ID    | Component / Feature Name | Level           | Detailed Description / Task                         | Output / Artifact                |
-| :-------- | :----------------------- | :-------------- | :-------------------------------------------------- | :------------------------------- |
-| **1.0**   | **Auth Module**          | **L1: Module**  | Authentication & security management                | `src/modules/auth`               |
-| **1.1**   | **Change Password**      | **L2: Feature** | Change password & revoke all active sessions        | `POST /api/auth/change-password` |
-| **1.1.1** | **Verify & Revoke**      | **L3: Logic**   | Verify current password & delete all refresh tokens | `AuthService.changePassword()`   |
+- **Credentials Management**: Validates current password using timing-safe Scrypt hash comparison and hashes the new secret.
+- **Global Session Invalidation**: Atomically deletes all user refresh tokens inside PostgreSQL transaction to terminate active sessions.
 
 ---
 

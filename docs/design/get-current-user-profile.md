@@ -1,8 +1,10 @@
 ---
-title: Get Current User Profile Workflow Spec
-docType: feature-workflow
-status: implemented
+title: "Get Current User Profile Workflow Spec"
+docType: "feature-workflow"
+status: "implemented"
 date: 2026-07-17
+author: "Team / Core Architecture"
+version: "1.0.0"
 ---
 
 # Get Current User Profile Workflow Spec
@@ -15,13 +17,10 @@ This document describes the operational flow for retrieving the current authenti
 
 ---
 
-## Architecture & Work Breakdown Structure (WBS)
+## Architecture
 
-| WBS ID    | Component / Feature Name | Level           | Detailed Description / Task                       | Output / Artifact              |
-| :-------- | :----------------------- | :-------------- | :------------------------------------------------ | :----------------------------- |
-| **1.0**   | **Users Module**         | **L1: Module**  | User profile management & preferences             | `src/modules/users`            |
-| **1.1**   | **Get Profile**          | **L2: Feature** | Fetch current user account details                | `GET /api/users/me`            |
-| **1.1.1** | **Guard & Derive**       | **L3: Logic**   | `JwtAuthGuard` verification & derive `isVerified` | `UsersController.getProfile()` |
+- **User Profile Service**: Retrieves sanitized account metadata via `JwtAuthGuard` session context.
+- **Strict Column Projection**: Excludes password hashes and sensitive credential fields at the query layer.
 
 ---
 

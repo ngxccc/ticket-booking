@@ -1,8 +1,10 @@
 ---
-title: Movie Data Integration & TMDB Sync Service Workflow
-docType: feature-workflow
-status: approved
+title: "Movie Data Integration & TMDB Sync Service Workflow"
+docType: "feature-workflow"
+status: "approved"
 date: 2026-07-04
+author: "Team / Core Architecture"
+version: "1.0.0"
 ---
 
 # Movie Data Integration & TMDB Sync Service Workflow
@@ -15,13 +17,10 @@ This process describes how the Admin Dashboard interacts with TheMovieDB (TMDB) 
 
 ---
 
-## Architecture & Work Breakdown Structure (WBS)
+## Architecture
 
-| WBS ID  | Component / Feature Name   | Level           | Detailed Description / Task               | Output / Artifact    |
-| :------ | :------------------------- | :-------------- | :---------------------------------------- | :------------------- |
-| **1.0** | **Movie Management**       | **L1: Module**  | TMDB API movie data integration           | `src/modules/movies` |
-| **1.1** | **TMDB Search & Autofill** | **L2: Feature** | Search & autofill movie details           | Admin Dashboard UI   |
-| **1.2** | **Movie Persistence**      | **L2: Feature** | Submit payload & persist to PostgreSQL DB | `POST /api/movies`   |
+- **Catalog Synchronization Service**: Administrative pipeline consuming TMDB API movie details and mapping bilingual metadata.
+- **Local Persistence & Asset Caching**: Stores movie metadata in PostgreSQL to isolate frontend clients from external rate limits.
 
 ---
 

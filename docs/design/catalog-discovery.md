@@ -1,8 +1,10 @@
 ---
-title: Catalog Discovery SSOT Operational Workflow
-docType: feature-workflow
-status: approved
+title: "Catalog Discovery SSOT Operational Workflow"
+docType: "feature-workflow"
+status: "approved"
 date: 2026-08-30
+author: "Team / Core Architecture"
+version: "1.0.0"
 ---
 
 # Catalog Discovery SSOT Operational Workflow
@@ -21,7 +23,7 @@ The catalog discovery module provides public, high-throughput REST endpoints all
 
 ---
 
-## Architecture & Work Breakdown Structure (WBS)
+## Architecture
 
 ### 1. Database Schema Specifications
 

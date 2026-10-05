@@ -1,8 +1,10 @@
 ---
-title: Shows and Seats Creation SSOT Operational Workflow
-docType: feature-workflow
-status: approved
+title: "Shows and Seats Creation SSOT Operational Workflow"
+docType: "feature-workflow"
+status: "approved"
 date: 2026-08-20
+author: "Team / Core Architecture"
+version: "1.0.0"
 ---
 
 # Shows and Seats Creation SSOT Operational Workflow

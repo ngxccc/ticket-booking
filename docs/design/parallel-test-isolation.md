@@ -1,8 +1,10 @@
 ---
-title: Parallel Test Isolation and CI RAM-Disk SSOT Operational Workflow
-docType: feature-workflow
-status: approved
+title: "Parallel Test Isolation and CI RAM-Disk SSOT Operational Workflow"
+docType: "feature-workflow"
+status: "approved"
 date: 2026-08-27
+author: "Team / Core Architecture"
+version: "1.0.0"
 ---
 
 # Parallel Test Isolation and CI RAM-Disk SSOT Operational Workflow
