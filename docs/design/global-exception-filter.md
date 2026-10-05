@@ -9,10 +9,6 @@ version: "1.0.0"
 
 # GlobalExceptionFilter Implementation & Workflow Audit Guide
 
-**Status**: ✅ Approved  
-**Scope**: Cross-cutting / Global Error Handling Infrastructure  
-**Source Location**: `src/common/filters/global-exception.filter.ts`
-
 ---
 
 ## Overview & Context

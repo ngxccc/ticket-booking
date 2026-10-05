@@ -9,11 +9,6 @@ version: "1.0.0"
 
 # Sentry Observability, Error Tracking & Performance Monitoring Workflow
 
-**Status**: ✅ Approved  
-**Scope**: Cross-cutting / System Observability, APM & Error Tracking  
-**Source Location**: `src/common/services/sentry.service.ts`, `src/common/filters/global-exception.filter.ts`, `src/common/interceptors/logging.interceptor.ts`, `src/modules/outbox/outbox.service.ts`, `src/database/database.module.ts`  
-**ADR Reference**: `docs/adr/0012-sentry-observability-error-tracking-and-performance-monitoring.md`
-
 ---
 
 ## 1. Overview & Context
@@ -125,7 +120,7 @@ sequenceDiagram
 | **`INV-7`**  | **Zero-Overhead Telemetry Bypassing**           | High-frequency Kubernetes `/health` probes (100 Hz) exhausting CPU & Tracing quota   | `tracesSampler` performs O(1) prefix check to immediately drop `/health`, `/metrics`, `/reference`.            |
 | **`INV-8`**  | **Graceful Flush Timeout Ceiling**              | Fatal server shutdown exiting before asynchronous Sentry HTTPS buffers drain         | `SentryService.onApplicationShutdown` awaits `Sentry.flush(2000)` with a strict 2s ceiling.                    |
 | **`INV-9`**  | **Fail-Safe Telemetry Isolation Guard**         | Exception inside Sentry SDK or SentryService crashing the NestJS HTTP error filter   | Sentry capture calls are wrapped defensively so telemetry failures never disrupt HTTP responses.               |
-| **`INV-10`** | **Deterministic Release Signature Guard**       | Environment variable missing locally causing "undefined" release tracking tags       | Deterministic fallback: `${npm_package_name}@${version}+${RENDER_GIT_COMMIT \|\| GITHUB_SHA \|\| 'local'}`.    |
+| **`INV-10`** | **Deterministic Release Signature Guard**       | Environment variable missing locally causing "undefined" release tracking tags       | Deterministic fallback: `package_name@version+commit` (or 'local').                                            |
 | **`INV-11`** | **Bounded Breadcrumb Payload Size Guard**       | 10MB bulk insert query string causing V8 heap memory exhaustion in breadcrumbs       | SQL strings hard-truncated to 300 characters; parameter arrays record length only.                             |
 | **`INV-12`** | **Cross-Tenant Context Isolation Guard**        | Request A's `userId` or `requestId` leaking into Request B's concurrent error report | User and request tags bound strictly to request scope via `Sentry.withScope`, never global scope.              |
 | **`INV-13`** | **Memory Ceiling & Ring Buffer Guard**          | High-frequency loops pushing thousands of breadcrumbs into Node.js heap              | `maxBreadcrumbs` strictly capped at 50 with duplicate loop suppression in `beforeBreadcrumb`.                  |
