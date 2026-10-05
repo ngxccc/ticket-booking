@@ -1,18 +1,8 @@
 # 5. Pino Logging Library Selection & Architecture Comparison
 
+Status: Accepted
 Date: 2026-08-01
 Deciders: Team / Core Architecture
-
-- **Status**: `Accepted`
-- **Date**: `2026-08-01`
-- **Feature**: `infrastructure`
-- **Topic**: `Pino Logging Library Selection & Architecture Comparison`
-- **Target Module**: `src/app.module.ts`, `src/main.ts`, `src/common/interceptors/logging.interceptor.ts`
-- **Spec Reference**: `docs/adr/0004-payment-confirmation-architecture.md` (System Invariant `INV-8`)
-
-## Status
-
-Accepted
 
 ## Context
 
@@ -94,4 +84,3 @@ We selected **Pino** (via `nestjs-pino` and `pino-pretty`) as the official loggi
 ## Explicit Tradeoffs
 
 - **Development Formatting Dependency**: Requires `pino-pretty` as a dev-dependency for human-readable local development logs.
-- **Target Location**: `docs/adr/0005-pino-logging-library-selection.md`

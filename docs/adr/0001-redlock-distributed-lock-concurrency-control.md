@@ -1,18 +1,8 @@
 # 1. Distributed Lock Mechanism for Show Seat Reservation
 
+Status: Accepted
 Date: 2026-07-04
 Deciders: Team / Core Architecture
-
-- **Status**: `Accepted`
-- **Date**: `2026-07-04`
-- **Feature**: `booking`
-- **Topic**: `Distributed Lock Mechanism for Show Seat Reservation`
-- **Target Module**: `src/modules/booking/` & `src/common/redis/`
-- **Spec Reference**: `docs/design/booking-core-concurrency.md`
-
-## Status
-
-Accepted
 
 ## Context
 
@@ -94,7 +84,3 @@ Uses the `redlock` (v5) package wrapped inside `RedlockService` with a local typ
 
 - `INV-1`: Atomicity & Anti-Double-Booking Guard (Redlock RAM Filter + DB Pessimistic Lock).
 - `INV-7`: Redis Fail-Closed Degradation to DB Transaction.
-
----
-
-- **Target Location**: `docs/adr/0001-redlock-distributed-lock-concurrency-control.md`

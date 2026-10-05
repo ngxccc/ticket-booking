@@ -1,10 +1,8 @@
 # 10. Schema-per-Worker PostgreSQL Test Isolation and CI RAM-Disk Architecture
 
+Status: Accepted
 Date: 2026-08-27
-
-## Status
-
-Accepted
+Deciders: Team / Core Architecture
 
 ## Context
 

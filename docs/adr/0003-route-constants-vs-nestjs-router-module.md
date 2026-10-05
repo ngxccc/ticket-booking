@@ -1,18 +1,8 @@
 # 3. Route Constants vs NestJS Router Module
 
+Status: Accepted
 Date: 2026-07-15
 Deciders: Team / Core Architecture
-
-- **Status**: `Accepted`
-- **Date**: `2026-07-15`
-- **Feature**: `auth`
-- **Topic**: `Route Constants vs NestJS Router Module Selection`
-- **Target Module**: `src/modules/auth/` & `src/common/constants/`
-- **Spec Reference**: `docs/design/user-registration.md`
-
-## Status
-
-Accepted
 
 ## Context
 
@@ -78,7 +68,3 @@ We chose **Option A: Feature-level Static Route Constants** with the `as const` 
 ## Explicit Tradeoffs
 
 - **Static File Overhead**: Developers add a route constant file when introducing new modules.
-
----
-
-- **Target Location**: `docs/adr/0003-route-constants-vs-nestjs-router-module.md`

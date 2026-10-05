@@ -1,17 +1,8 @@
 # 11. Grafana k6 Load Testing Architecture & Concurrency Verification Suite
 
+Status: Accepted
 Date: 2026-08-28
 Deciders: Team / Core Architecture
-
-- **Status**: `Accepted`
-- **Date**: `2026-08-28`
-- **Feature**: `booking`
-- **Topic**: `Grafana k6 High-Concurrency Stress Testing, Token Distribution, and Rate Limit Isolation`
-- **Target Module**: `test/load/`, `src/modules/booking/` & `.github/workflows/`
-
-## Status
-
-Accepted
 
 ## Context
 

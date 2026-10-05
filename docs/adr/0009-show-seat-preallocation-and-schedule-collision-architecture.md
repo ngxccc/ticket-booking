@@ -1,10 +1,8 @@
 # 9. Show Seat Preallocation and Schedule Collision Architecture
 
+Status: Accepted
 Date: 2026-08-20
-
-## Status
-
-Accepted
+Deciders: Team / Core Architecture
 
 ## Context
 

@@ -1,18 +1,8 @@
 # 14. Global Route Prefix /api, Native NestJS URI Versioning v1, and Scalar Documentation Architecture
 
+Status: Accepted
 Date: 2026-09-27
 Deciders: Team / Core Architecture
-
-- **Status**: `Accepted`
-- **Date**: `2026-09-27`
-- **Feature**: `api-infrastructure`
-- **Topic**: `Global Route Prefixing (/api), Native NestJS URI Versioning (v1), System Route Exclusions, Scalar Interactive Reference UI (/api/docs), OpenAPI 3.1 Spec Endpoint (/openapi.json)`
-- **Target Module**: `src/common/config/api-prefix.config.ts`, `src/common/config/openapi.config.ts`, `src/app.controller.ts`, `src/main.ts`, `test/helpers/app.helper.ts`, `src/modules/*/*.controller.ts`
-- **Spec Reference**: Issue #112, PR #127, `docs/standards/api-design-and-error-handling.md`, `ADR-0003` (Route Constants vs NestJS Router Module)
-
-## Status
-
-Accepted
 
 ## Context
 

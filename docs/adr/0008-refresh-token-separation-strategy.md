@@ -1,17 +1,8 @@
 # 8. Refresh Token Separation into Dedicated Table Strategy
 
+Status: Accepted
 Date: 2026-07-04
 Deciders: Team / Core Security
-
-- **Status**: `Accepted`
-- **Date**: `2026-07-04`
-- **Feature**: `auth`
-- **Topic**: `Refresh Token Separation into Dedicated Table Strategy (Multi-Device Sessions & RTR)`
-- **Target Module**: `src/modules/auth/` & `src/database/schemas/`
-
-## Status
-
-Accepted
 
 ## Context
 

@@ -1,17 +1,8 @@
 # 7. Selection of Node.js Native Scrypt for Password Hashing
 
+Status: Accepted
 Date: 2026-07-28
 Deciders: Team / Core Security
-
-- **Status**: `Accepted`
-- **Date**: `2026-07-28`
-- **Feature**: `auth`
-- **Topic**: `Password Hashing Algorithm Selection (Node.js Native Scrypt vs Bcrypt / Argon2)`
-- **Target Module**: `src/modules/auth/` & `src/common/crypto/`
-
-## Status
-
-Accepted
 
 ## Context
 

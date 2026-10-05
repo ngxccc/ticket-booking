@@ -1,17 +1,8 @@
 # 6. Concurrency Control Micro-Collisions & Retry Trade-offs
 
+Status: Accepted
 Date: 2026-07-28
 Deciders: Team / Core Architecture
-
-- **Status**: `Accepted`
-- **Date**: `2026-07-28`
-- **Feature**: `booking`
-- **Topic**: `Concurrency Control Micro-Collisions, Redlock Parameters & Retry Trade-offs`
-- **Target Module**: `src/modules/booking/` & `src/common/redis/`
-
-## Status
-
-Accepted
 
 ## Context
 
