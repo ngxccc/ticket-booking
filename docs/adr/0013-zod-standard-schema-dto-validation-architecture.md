@@ -1,11 +1,8 @@
 # 13. Zod Standard Schema DTO Validation, Sanitization, and RFC 9457 Flattening Architecture
 
-Date: 2026-08-30  
+Date: 2026-08-30
 Deciders: Team / Core Architecture
 
-### Metadata
-
-- **ID**: `ADR-0013`
 - **Status**: `Accepted`
 - **Date**: `2026-08-30`
 - **Feature**: `api-infrastructure`
@@ -13,13 +10,9 @@ Deciders: Team / Core Architecture
 - **Target Module**: `src/common/pipes/zod-validation.pipe.ts`, `src/common/schemas/zod-primitives.ts`, `src/common/filters/global-exception.filter.ts`, `src/modules/*/dto/`, `test/benchmarks/`
 - **Spec Reference**: Issue #79, `ADR-0012` (Sentry Observability Architecture), `ADR-0003` (Route Constants vs Router Module), `docs/design/zod-dto-validation.md`
 
----
-
 ## Status
 
 Accepted
-
----
 
 ## Context
 
@@ -35,8 +28,6 @@ The legacy validation infrastructure built upon `class-validator` + `class-trans
    Reusing and composing partial DTOs via NestJS utility helpers (`PartialType`, `IntersectionType`, `OmitType`) frequently drops decorator metadata across multi-level inheritance, leading to subtle runtime validation bugs.
 4. **Standard Schema decouping in NestJS v12**:
    NestJS v12 natively adopts the **Standard Schema** specification (`@standard-schema/spec`), enabling schema-first validation libraries (Zod, Valibot, ArkType) to integrate seamlessly without vendor lock-in or heavyweight reflection frameworks.
-
----
 
 ## Decision
 
@@ -70,16 +61,19 @@ We decided to establish a Schema-First DTO Validation and Sanitization Architect
 8. **Single-Constraint Schema Synthesis (`.refine()`)**:
    - Multi-assertion validation primitives (such as password complexity in `zPassword()`) utilize Zod `.refine()` predicates rather than chained `.regex()` calls. This eliminates redundant JSON Schema `allOf` composite wrappers and ensures clean, single-line parameter documentation in Scalar UI without sacrificing runtime security.
 
----
-
-## Consequences
+## Positive Consequences
 
 - **Guaranteed Type Safety**: TypeScript types and validation schemas are physically impossible to drift.
 - **Improved CPU & Memory Profile**: Eliminates `reflect-metadata` scanning and class instantiation on every HTTP request cycle.
 - **Zero API Breaking Change**: Clients receive identical RFC 9457 Problem Details responses (`application/problem+json`) with localized error strings.
 - **Clean Deprecation**: Completely removes `class-validator` and `class-transformer` from `package.json`.
 
-### Explicit Tradeoffs
+## Negative Consequences / Risks
+
+- Requires explicit schema definition rather than simple property class decorators.
+- Legacy `class-validator` patterns in old tests must be systematically migrated to Zod schemas.
+
+## Explicit Tradeoffs
 
 - **Zod Schema Declaration vs Class Syntax**: Developers define schemas functionally with Zod rather than adding decorators to class properties.
 - **Custom Coercion Rules vs Implicit Casting**: Query parameters require explicit primitive helpers (`zNumericString`) instead of implicit `class-transformer` `@Type()` coercion.

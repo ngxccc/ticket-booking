@@ -1,11 +1,8 @@
 # 3. Route Constants vs NestJS Router Module
 
-Date: 2026-07-15  
+Date: 2026-07-15
 Deciders: Team / Core Architecture
 
-### Metadata
-
-- **ID**: `ADR-0003`
 - **Status**: `Accepted`
 - **Date**: `2026-07-15`
 - **Feature**: `auth`
@@ -13,13 +10,9 @@ Deciders: Team / Core Architecture
 - **Target Module**: `src/modules/auth/` & `src/common/constants/`
 - **Spec Reference**: `docs/design/user-registration.md`
 
----
-
 ## Status
 
 Accepted
-
----
 
 ## Context
 
@@ -30,14 +23,10 @@ We evaluated two route management strategies:
 1. **Option A (Route Constants)**: Declare route paths as static TypeScript constants (`as const`) imported by Controllers and Mail Services alike.
 2. **Option B (NestJS RouterModule)**: Define dynamic route prefixes via NestJS Module decorators.
 
----
-
 ## Considered Options
 
 - **Option A (Chosen)**: Static Route Constants (`as const`) — _Chosen for context decoupling in BullMQ workers and compile-time type safety_
 - **Option B**: Dynamic NestJS RouterModule — _Rejected because dynamic NestJS app tree reflection causes circular dependency risks and runtime typos_
-
----
 
 ## Decision
 
@@ -45,15 +34,7 @@ We evaluated two route management strategies:
 
 We chose **Option A: Feature-level Static Route Constants** with the `as const` modifier to lock literal types.
 
-```typescript
-// src/modules/auth/auth.routes.ts
-export const AUTH_ROUTES = {
-  BASE: "auth",
-  VERIFY_EMAIL: "verify-email",
-} as const;
-```
-
----
+- **Implementation Reference**: Exported from `src/modules/<feature>/<feature>.routes.ts` (e.g. `src/modules/auth/auth.routes.ts` defining `AUTH_ROUTES`) locking routes as literal type dictionaries (`as const`).
 
 ## Evaluated Architectural Options & Comparison
 
@@ -75,8 +56,6 @@ export const AUTH_ROUTES = {
   - Runtime errors: Typos in route string literals pass compilation, failing only when users hit 404 on Production.
   - Cannot export route configurations to frontend applications.
 
----
-
 ## Decision Comparison Matrix
 
 | Evaluation Criteria                    | Option A: Static Route Constants (`as const`) (CHOSEN) | Option B: NestJS RouterModule               |
@@ -86,23 +65,20 @@ export const AUTH_ROUTES = {
 | **Frontend Code Sharing**              | 🟢 Easy export (Pure TS object)                        | 🔴 Cannot export outside NestJS Decorators  |
 | **Maintenance Overhead**               | 🟡 Extra constant file per module                      | 🟢 Dynamic module configuration             |
 
----
-
-## Consequences
-
-### Positive Outcomes
+## Positive Consequences
 
 1. **Compile-time Type Safety**: Eliminates magic string route typos prior to deployment.
 2. **Context Independence for Workers**: Enables BullMQ workers to build action URLs without instantiating HTTP containers.
 3. **Frontend SDK Export**: Route constant objects can be shared directly with Next.js API client SDKs.
 
-### Explicit Tradeoffs
+## Negative Consequences / Risks
+
+- None identified beyond explicit operational tradeoffs.
+
+## Explicit Tradeoffs
 
 - **Static File Overhead**: Developers add a route constant file when introducing new modules.
 
 ---
 
-## Status & Approval
-
-- **Status**: Accepted & Implemented.
 - **Target Location**: `docs/adr/0003-route-constants-vs-nestjs-router-module.md`

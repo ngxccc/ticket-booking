@@ -1,11 +1,8 @@
 # 12. Sentry Observability, Error Tracking, Breadcrumb Aggregation, and Performance Monitoring Architecture
 
-Date: 2026-08-29  
+Date: 2026-08-29
 Deciders: Team / Core Architecture
 
-### Metadata
-
-- **ID**: `ADR-0012`
 - **Status**: `Accepted`
 - **Date**: `2026-08-29`
 - **Feature**: `infrastructure`
@@ -13,13 +10,9 @@ Deciders: Team / Core Architecture
 - **Target Module**: `src/common/services/sentry.service.ts`, `src/common/filters/global-exception.filter.ts`, `src/common/interceptors/logging.interceptor.ts`, `src/modules/outbox/outbox.service.ts`, `src/database/database.module.ts`
 - **Spec Reference**: Issue #71, `ADR-0005` (Pino Logging Library Selection), `ADR-0004` (Payment Confirmation Architecture), `docs/design/sentry-observability.md`
 
----
-
 ## Status
 
 Accepted
-
----
 
 ## Context
 
@@ -35,8 +28,6 @@ Simulating mass contention on seats and background asynchronous operations intro
    70% of fatal failures in e-commerce and ticketing backends occur outside the HTTP request lifecycle (e.g., mail dispatch failure, Outbox relay worker timeout, payment webhook retry exhaustion). An HTTP-only exception filter leaves background workers completely unmonitored.
 4. **Disjointed Traceability (Client Error $\leftrightarrow$ Sentry Dashboard $\leftrightarrow$ Pino NDJSON Logs)**:
    When a client encounters an `HTTP 500 Internal Server Error`, support teams need an unambiguous, correlated identifier linking the client's RFC 9457 Problem Details payload directly to Sentry error events and Pino stdout logs.
-
----
 
 ## Decision
 
@@ -61,31 +52,23 @@ We decided to establish an Enterprise-Grade Sentry Observability & Error Trackin
    - **Graceful Shutdown**: `SentryService` implements `onApplicationShutdown` and awaits `Sentry.flush(2000)` to ensure all in-flight buffers are dispatched before the container terminates.
    - **Release Signature Tracking**: Automatically binds `release: ${npm_package_name}@${npm_package_version}+${commitSha}` using environment variables (`RENDER_GIT_COMMIT` / `GITHUB_SHA`).
 
----
-
-## Consequences
-
-### Positive Consequences
+## Positive Consequences
 
 - Guarantees instant root-cause identification for production crashes with full stack traces, breadcrumb timelines, and correlated Pino logs.
 - Eliminates alert fatigue and preserves free-tier quotas during high-concurrency load testing (500–2,000 VUs).
 - 100% compliance with OWASP PII data protection standards via automated payload scrubbing.
 - Automatic suspect commit attribution and regression tracking across Render deployments.
 
-### Negative Consequences
+## Negative Consequences / Risks
 
 - Minor memory allocation overhead for maintaining rolling breadcrumb ring buffers (capped at 50 entries).
 - Outgoing HTTPS network requests for Sentry event ingestion during 5xx server failures.
 
----
-
-### Explicit Tradeoffs
+## Explicit Tradeoffs
 
 - **Zero-Noise 4xx Suppression vs Immediate Error Visibility**: By dropping 4xx errors from Sentry alerts, we eliminate alert fatigue and preserve free-tier quotas at the expense of not having Sentry-level alerts for sudden spikes in 400 Bad Request client errors (which are instead monitored via Prometheus/Grafana or Pino logs).
 - **PII Sanitization Overhead vs Zero Data Leakage**: Recursive object deep-scrubbing introduces minor CPU overhead on error serialization to guarantee zero leakage of user passwords, tokens, or payment credentials.
 - **In-Flight Buffer Flush Ceiling vs Process Exit Latency**: Bounded 2-second timeout on `Sentry.flush()` guarantees containers shut down promptly during deployments without hanging the CI/CD pipeline while maximizing error event delivery.
-
----
 
 ## Decision Drivers
 
@@ -93,8 +76,6 @@ We decided to establish an Enterprise-Grade Sentry Observability & Error Trackin
 - **Data Privacy & Compliance**: Ensure zero PII or credential leakage to third-party cloud APM providers.
 - **Closed-Loop Traceability**: Enable seamless correlation between client errors, Sentry alerts, and Pino logs.
 - **Operational Resilience**: Graceful degradation when Sentry is unconfigured and zero packet loss on process termination.
-
----
 
 ## Validation & Verification
 

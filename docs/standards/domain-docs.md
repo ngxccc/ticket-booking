@@ -1,13 +1,6 @@
 # Domain Documentation Standards
 
-## 1. Domain SSOT: `CONTEXT.md` & Ubiquitous Language
-
-- **File**: `CONTEXT.md` at repository root.
-- **Rule**: Every code identifier (entity, DTO property, table, route, test name) MUST strictly use terms defined in `CONTEXT.md`. Never introduce synonyms or ad-hoc translations.
-
----
-
-## 2. Architectural Decision Records (ADRs)
+## 1. Architectural Decision Records (ADRs)
 
 - **Location**: `docs/adr/NNNN-<kebab-case-title>.md`.
 - **Review Gate**: Read relevant ADRs before modifying database schemas, authentication, caching, locking, or queue structures.
@@ -15,7 +8,7 @@
 
 ---
 
-## 3. Type System SSOT & Derivation
+## 2. Type System SSOT & Derivation
 
 ### A. Colocation Discipline
 
@@ -31,7 +24,7 @@
 
 ---
 
-## 4. Documentation Drift Prevention
+## 3. Documentation Drift Prevention
 
 - **Prohibition**: Never copy-paste raw TypeScript type declarations into Markdown documentation (`*.md`).
 - **Automated Contracts**: OpenAPI/Swagger served from controller metadata and DTO schemas is the sole API interface reference.

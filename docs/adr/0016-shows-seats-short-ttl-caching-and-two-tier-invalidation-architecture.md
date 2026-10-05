@@ -1,11 +1,8 @@
 # 16. Showtime Seating Chart Short-TTL Caching, Two-Tier Expiration Lifecycle, and Bandwidth Optimization Architecture
 
-Date: 2026-10-04  
+Date: 2026-10-04
 Deciders: Team / Core Architecture
 
-### Metadata
-
-- **ID**: `ADR-0016`
 - **Status**: `Accepted`
 - **Date**: `2026-10-04`
 - **Feature**: `shows` & `booking`
@@ -13,13 +10,9 @@ Deciders: Team / Core Architecture
 - **Target Module**: `src/modules/shows/`, `src/modules/booking/`, `src/main.ts`, `test/load/`
 - **Spec Reference**: Issue #128, Issue #93, Issue #37, `ADR-0001` (Redlock Distributed Lock), `ADR-0004` (Payment Confirmation Architecture), `ADR-0015` (Show Seating Chart Matrix and Pricing Architecture)
 
----
-
 ## Status
 
 Accepted
-
----
 
 ## Context
 
@@ -35,8 +28,6 @@ However, under production conditions and flash-sale surges (e.g. blockbuster tic
 3. **Severe Network Bandwidth and Network Saturation**:
    - Rendering high-density seating layouts (e.g. IMAX halls with 500 seats) returned extensive verbose JSON payloads ($\sim 120\text{ KB}$ per uncompressed response).
    - Under moderate load (8,000–12,000 requests), network consumption escalated to over $750\text{ MB}$, saturating network interfaces and inflating client time-to-first-byte (TTFB).
-
----
 
 ## Decision
 
@@ -133,8 +124,6 @@ To address payload bloat, network transfer is optimized across three independent
   - Decorated with `@Header("Cache-Control", "public, max-age=2, stale-while-revalidate=1")`.
   - Enables downstream proxies, CDNs, and browsers to leverage ETag headers and return `304 Not Modified` with 0-byte payload bodies for repeated client polling.
 
----
-
 ## Invariants
 
 - **`INV-1 (Two-Tier Sweeper Idempotence)`**: Concurrent execution of `BookingCancellationProcessor` and `BookingCronService` MUST NOT double-transition booking statuses or corrupt seat availability.
@@ -143,11 +132,7 @@ To address payload bloat, network transfer is optimized across three independent
 - **`INV-4 (Locale Isolation)`**: Invalidation operations MUST wipe cached entries across all supported locales (`vi`, `en`) for the target `showId`.
 - **`INV-5 (Bandwidth Envelope Threshold)`**: High-density seating chart responses (up to 500 seats) with HTTP compression MUST NOT exceed 10 KB per response.
 
----
-
-## Consequences
-
-### Positive Consequences
+## Positive Consequences
 
 - **92.6% Bandwidth Reduction**: Average response size slashed from $89.3\text{ KB}$ to $6.63\text{ KB}$ per request. Total data transferred over 15,000 requests dropped from $>750\text{ MB}$ to $\sim 100\text{ MB}$.
 - **PostgreSQL Pool Protection**: Under 200 concurrent VUs distributed via Pareto 80/20 across 20 distinct shows, connection pool usage remained stable with 0 pool saturation timeouts.
@@ -156,19 +141,17 @@ To address payload bloat, network transfer is optimized across three independent
   - IMAX Hall (500 seats) p(95): **760.0 ms** (SLA: $<2500\text{ms}$).
 - **100% Reliable State Machine**: Zero race condition collisions between BullMQ delayed worker and periodic cleanup cron.
 
-### Negative Consequences
+## Negative Consequences / Risks
 
 - **Redis Key Write Overhead**: Each seat mutation incurs an extra Redis `DEL` operation across configured locale keys ($O(1)$ round trip).
 - **Client De-referencing Requirement**: Frontend clients must map `seat.seatTypeId` against `envelope.seatTypes[seatTypeId]` instead of reading seat type names directly from the seat object.
 - **Memory Footprint**: Redis holds serialized JSON representations for active showtimes for up to 2 seconds ($\sim 55\text{ KB}$ per hot show), requiring approximately $50\text{ MB}$ RAM under 1,000 concurrent peak showtimes nationwide.
 
-### Explicit Tradeoffs
+## Explicit Tradeoffs
 
 - **Short TTL (2s) vs Invalidation Complexity**: Utilizing an ultra-short 2s TTL eliminates long-term stale read risks even if invalidation signals drop, while deterministic multi-point invalidation guarantees immediate consistency for active users.
 - **Two-Tier Cleanup (Worker + Cron) vs Single Mechanism**: Running both BullMQ delayed jobs and a backup sweeper cron introduces queue management overhead in exchange for defense-in-depth against Redis or worker outages.
 - **Compact Dictionary Schema vs Direct Object Nesting**: Moving `seatTypes` to the root envelope requires client-side identifier lookup in exchange for a 92.6% reduction in network payload size.
-
----
 
 ## Validation & Verification
 
