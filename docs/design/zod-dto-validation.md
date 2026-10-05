@@ -30,10 +30,10 @@ Migrating from the legacy reflection-based `class-validator` + `class-transforme
 flowchart TD
     Client["HTTP Client Request"] --> Route["NestJS Route Handler"]
     Route --> Pipe["ZodValidationPipe (Standard Schema)"]
-    Pipe -->|Valid Payload| Controller["Controller Action"]
-    Pipe -->|Invalid Payload / ZodError| BadRequest["BadRequestException<br/>(RFC 9457 invalidParams)"]
+    Pipe -->|"Valid Payload"| Controller["Controller Action"]
+    Pipe -->|"Invalid Payload / ZodError"| BadRequest["BadRequestException (RFC 9457 invalidParams)"]
     BadRequest --> Filter["GlobalExceptionFilter"]
-    Filter -->|Extract & Translate i18n Tokens| Response["RFC 9457 JSON Response<br/>(400 Bad Request)"]
+    Filter -->|"Extract & Translate i18n Tokens"| Response["RFC 9457 JSON Response (400 Bad Request)"]
 ```
 
 ---
