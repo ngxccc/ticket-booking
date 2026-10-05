@@ -26,11 +26,11 @@ describe("ShowsService", () => {
     setex: mock((_key: string, _ttl: number, _val: string) =>
       Promise.resolve("OK"),
     ),
-    del: mock((..._keys: string[]) => Promise.resolve(1)),
+    unlink: mock((..._keys: string[]) => Promise.resolve(1)),
     clearAll() {
       this.get.mockClear();
       this.setex.mockClear();
-      this.del.mockClear();
+      this.unlink.mockClear();
     },
   };
   const mockSentryService = {
@@ -779,7 +779,7 @@ describe("ShowsService", () => {
         const expectedKeys = SHOWS_CONSTANTS.SUPPORTED_LOCALES.map((lang) =>
           SHOWS_REDIS_KEYS.seatsCache(showId, lang),
         );
-        expect(mockRedis.del).toHaveBeenCalledWith(...expectedKeys);
+        expect(mockRedis.unlink).toHaveBeenCalledWith(...expectedKeys);
         expect(mockSentryService.addBreadcrumb).toHaveBeenCalledWith(
           expect.objectContaining({
             category: "cache",
