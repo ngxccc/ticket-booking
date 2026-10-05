@@ -1,8 +1,10 @@
 ---
-title: Database Seeding Engine SSOT Operational Workflow
-docType: feature-workflow
-status: approved
+title: "Database Seeding Engine SSOT Operational Workflow"
+docType: "feature-workflow"
+status: "approved"
 date: 2026-08-31
+author: "Team / Core Architecture"
+version: "1.0.0"
 ---
 
 # Database Seeding Engine SSOT Operational Workflow

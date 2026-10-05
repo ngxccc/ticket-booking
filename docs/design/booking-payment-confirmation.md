@@ -1,9 +1,10 @@
 ---
-title: Payment Confirmation & Ticket Issuance SSOT Operational Workflow
-docType: feature-workflow
-feature: booking
-status: completed
+title: "Payment Confirmation & Ticket Issuance SSOT Operational Workflow"
+docType: "feature-workflow"
+status: "completed"
 date: 2026-08-03
+author: "Team / Core Architecture"
+version: "1.0.0"
 ---
 
 # Payment Confirmation & Ticket Issuance SSOT Operational Workflow
@@ -40,28 +41,11 @@ All operational paths within the payment confirmation workflow strictly enforce 
 
 ---
 
-## Architecture & Work Breakdown Structure (WBS)
+## Architecture
 
-| WBS ID    | Component / Feature Name     | Level             | Detailed Description / Task                                  | Output / Artifact                     |
-| :-------- | :--------------------------- | :---------------- | :----------------------------------------------------------- | :------------------------------------ |
-| **1.0**   | **Booking Module**           | **L1: Module**    | Core booking & payment orchestration boundary                | `src/modules/booking`                 |
-| **1.1**   | **Security & Guard Layer**   | **L2: Component** | Webhook authentication & payload validation                  | `payos-webhook.controller.ts`         |
-| **1.1.1** | HMAC Signature Verification  | L3: Task          | Verifies HMAC-SHA256 signature using `timingSafeEqual`       | `payos-crypto.util.ts`                |
-| 1.1.1.1   | Key Sorting & Formatting     | L4: Execution     | Alphabetical sorting of JSON keys into query format          | `sortAndFormatPayloadData()`          |
-| 1.1.1.2   | Timing-Safe Comparison       | L4: Execution     | Constant-time buffer length and byte comparison              | `timingSafeEqual()`                   |
-| **1.1.2** | Timestamp Anti-Replay Guard  | L3: Task          | Validates `transactionDateTime` within 5 minutes             | `payos-crypto.util.ts`                |
-| 1.1.2.1   | Skew Calculation             | L4: Execution     | Calculates time difference vs `Date.now()`                   | `isPayOSTimestampValid()`             |
-| **1.2**   | **Transaction Engine**       | **L2: Component** | Database transaction & lock management                       | `booking.service.ts`                  |
-| **1.2.1** | Redis Idempotency Layer      | L3: Task          | 60s cache lookup on `idempotency:confirm:<userId>:<key>`     | `booking.service.ts`                  |
-| **1.2.2** | Pessimistic Row Locking      | L3: Task          | `SELECT ... FOR UPDATE` on `bookings` table                  | `booking.service.ts`                  |
-| 1.2.2.1   | Status & Expiry Guards       | L4: Execution     | Rejects `cancelled` (400) and `expired` (410) bookings       | `booking.service.ts`                  |
-| 1.2.2.2   | Unique Transaction Safeguard | L4: Execution     | Checks duplicate `transactionId` before write                | `payments.schema.ts`                  |
-| 1.2.2.3   | Amount Matching Safeguard    | L4: Execution     | Inserts `requires_refund` status on amount mismatch          | `booking.service.ts`                  |
-| **1.2.3** | Transactional Dual-Write     | L3: Task          | Inserts `booking.confirmed` event into `outbox_events`       | `outbox.schema.ts`                    |
-| 1.2.3.1   | Self-Contained Payload       | L4: Execution     | Stores ticket snapshot (`ticketCode`, `showSeatId`, `price`) | `outbox_events` table                 |
-| **1.3**   | **Post-Commit Cleanup**      | **L2: Component** | BullMQ queue job removal & cache setting                     | `booking.service.ts`                  |
-| **1.3.1** | BullMQ Job Cancellation      | L3: Task          | Removes `cancel-booking-${bookingId}` delayed job            | `booking.constants.ts`                |
-| **1.4**   | **Reconciliation Worker**    | **L2: Component** | Periodic reconciliation for dropped payments                 | `payment-reconciliation.processor.ts` |
+- **Payment Confirmation Orchestrator**: Handles user checkout verification, seat hold status conversion, and ticket generation.
+- **PayOS Webhook Gateway**: Verifies cryptographically signed webhook transactions with anti-replay protection.
+- **Transactional Outbox & Workers**: Emits reliable domain events to background workers for email delivery and payment reconciliation.
 
 ---
 
@@ -200,40 +184,10 @@ sequenceDiagram
 
 ### 4. Database Schema Entities
 
-```typescript
-// bookings table projection
-export const bookings = snakeCase.table("bookings", {
-  id: uuid().primaryKey().defaultRandom(),
-  userId: uuid()
-    .notNull()
-    .references(() => users.id),
-  showId: uuid()
-    .notNull()
-    .references(() => shows.id),
-  status: bookingStatusEnum().notNull(), // pending_payment | confirmed | cancelled | expired
-  totalPrice: integer().notNull(),
-  orderCode: bigint("order_code", { mode: "bigint" }),
-  expiresAt: timestamp({ mode: "date" }).notNull(),
-});
+Per `docs/standards/domain-docs.md`, schema definitions are referenced from code SSOT:
 
-// payments table projection
-export const payments = snakeCase.table(
-  "payments",
-  {
-    id: uuid().primaryKey().defaultRandom(),
-    bookingId: uuid()
-      .notNull()
-      .references(() => bookings.id),
-    paymentMethod: paymentMethodEnum().notNull(), // MOMO | VNPAY | Credit_Card | ShopeePay | PAYOS
-    transactionId: varchar({ length: 255 }),
-    amount: integer().notNull(),
-    status: paymentStatusEnum().notNull(), // pending | completed | failed | refunded | requires_refund
-  },
-  (table) => [
-    uniqueIndex("payments_transaction_id_uidx").on(table.transactionId),
-  ],
-);
-```
+- `bookings` in `src/database/schemas/bookings.schema.ts`
+- `payments` in `src/database/schemas/payments.schema.ts`
 
 ---
 

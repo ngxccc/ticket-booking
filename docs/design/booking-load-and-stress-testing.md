@@ -1,9 +1,10 @@
 ---
-title: Booking Load & Stress Testing SSOT Operational Workflow
-docType: feature-workflow
-feature: booking
-status: approved
+title: "Booking Load & Stress Testing SSOT Operational Workflow"
+docType: "feature-workflow"
+status: "approved"
 date: 2026-08-28
+author: "Team / Core Architecture"
+version: "1.0.0"
 ---
 
 # Booking Load & Stress Testing SSOT Operational Workflow

@@ -1,7 +1,7 @@
 ---
 title: "Showtime Seating Chart Matrix & Live Availability SSOT Workflow"
-docType: feature-workflow
-status: approved
+docType: "feature-workflow"
+status: "approved"
 date: 2026-10-04
 author: "Team / Core Architecture"
 version: "2.0.0"
