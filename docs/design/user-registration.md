@@ -9,10 +9,6 @@ version: "1.0.0"
 
 # Register User Existence & Creation Workflow Spec
 
-**Status**: ✅ Implemented  
-**Module**: `src/modules/auth`  
-**Route/Endpoint**: `POST /api/auth/register`
-
 ---
 
 ## Overview & Context

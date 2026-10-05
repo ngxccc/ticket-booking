@@ -9,11 +9,6 @@ version: "1.0.0"
 
 # Zod Standard Schema DTO Validation & RFC 9457 Transformation Workflow
 
-**Status**: ✅ Approved  
-**Scope**: Cross-cutting / API Gateway, DTO Validation, Sanitization & RFC 9457 Error Formatting  
-**Source Location**: `src/common/pipes/zod-validation.pipe.ts`, `src/common/schemas/zod-primitives.ts`, `src/common/filters/global-exception.filter.ts`, `src/modules/*/dto/`  
-**ADR Reference**: `docs/adr/0013-zod-standard-schema-dto-validation-architecture.md`
-
 ---
 
 ## 1. Overview & Context

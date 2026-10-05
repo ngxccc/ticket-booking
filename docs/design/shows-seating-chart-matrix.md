@@ -32,7 +32,7 @@ When a customer navigates to book cinema tickets for a scheduled movie showtime,
    - Subsequent state updates are streamed via WebSocket rooms (`show:${showId}`) per Issue #37, eliminating the need for continuous HTTP polling.
 2. **Virtual Computed Status (Zero-Stale Holds - INV-3)**:
    - Evaluates seat availability dynamically in SQL:
-     $$\text{status}_{\text{computed}} = \begin{cases} \text{'available'} & \text{if } \text{status} = \text{'reserved'} \land \text{locked\_until} < \text{NOW}() \\ \text{status} & \text{otherwise} \end{cases}$$
+     $$\text{computedStatus} = \begin{cases} \text{'available'} & \text{if status = 'reserved'} \land \text{lockedUntil} < \text{NOW}() \\ \text{status} & \text{otherwise} \end{cases}$$
    - Guarantees immediate reallocation of lapsed seat holds.
 3. **Catalog Multiplier Standardization (Zero-Fraction Currency - Option A, INV-2)**:
    - `shows.basePrice` is strictly configured in multiples of 10,000 VND (e.g. 80,000, 90,000, 100,000 VND).
@@ -168,12 +168,17 @@ Per `docs/standards/domain-docs.md`, data structures are derived directly from t
 
 ## Domain Invariant Taxonomy (INV-N)
 
-| Invariant ID | Domain Invariant Name            | Formal Mathematical Condition                                                                                                                          | Verification Test Strategy                                                                                                 |
-| :----------- | :------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------- |
-| **INV-1**    | Hall Grid Completeness           | $\text{count}(\text{seats}) = \text{halls}.\text{totalSeats} \land \forall s \in \text{seats}: s.\text{row} \ne \emptyset \land s.\text{number} > 0$   | Integration test verifying 100% of physical hall seats are returned with non-null coordinates.                             |
-| **INV-2**    | Price Multiplier Precision       | $\forall s \in \text{seats}: s.\text{finalPrice} = \text{round}(\text{show}.\text{basePrice} \times s.\text{type}.\text{multiplier}) \in \mathbb{Z}^+$ | Integration test asserting itemized prices match exact multiplier calculation with zero fractional VND remainders.         |
-| **INV-3**    | Virtual Hold Lapsed Reallocation | $(\text{status} = \text{'reserved'} \land \text{lockedUntil} < \text{NOW}()) \implies \text{computedStatus} = \text{'available'}$                      | Integration test seeding an expired reserved seat and asserting it returns `status: "available"` in response.              |
-| **INV-4**    | 404 Showtime Existence Guard     | $\neg\exists \text{show} \implies \text{HTTP 404 } (\text{detail: 'shows.SHOWTIME\_NOT\_FOUND'})$                                                      | Integration test passing a non-existent UUIDv7 and asserting `404 Not Found` with RFC 9457 Problem Details schema.         |
-| **INV-5**    | Strict UUIDv7 Syntax Enforcement | $\text{id} \notin \text{UUIDv7} \implies \text{HTTP 400 } (\text{detail: 'common.INVALID\_INPUT'})$                                                    | Integration test passing malformed string (`"invalid-uuid"`) and asserting `400 Bad Request` with `invalidParams` details. |
-| **INV-6**    | Redis Short-TTL Protection       | $\text{TTL}(\text{shows:seats:}\{\text{showId}\}) \le 2\text{s} \land \text{HitRate} \ge 80\%$                                                         | Benchmark test verifying high hit-rate under 200 VUs and sub-800ms p95 response time.                                      |
-| **INV-7**    | Fail-Open Read Availability      | $\text{RedisError} \implies \text{HTTP 200 via DB Fallback} \land \neg\text{HTTP 500}$                                                                 | Unit test verifying graceful fallback to PostgreSQL when Redis client throws network exception.                            |
+| Invariant ID | Domain Invariant Name            | Formal Mathematical Condition                                                                                                                          | Verification Test Strategy                                                                                         |
+| :----------- | :------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------- |
+| **INV-1**    | Hall Grid Completeness           | $\text{count}(\text{seats}) = \text{halls}.\text{totalSeats} \land \forall s \in \text{seats}: s.\text{row} \ne \emptyset \land s.\text{number} > 0$   | Integration test verifying 100% of physical hall seats are returned with non-null coordinates.                     |
+| **INV-2**    | Price Multiplier Precision       | $\forall s \in \text{seats}: s.\text{finalPrice} = \text{round}(\text{show}.\text{basePrice} \times s.\text{type}.\text{multiplier}) \in \mathbb{Z}^+$ | Integration test asserting itemized prices match exact multiplier calculation with zero fractional VND remainders. |
+| **INV-3**    | Virtual Hold Lapsed Reallocation | $(\text{status} = \text{'reserved'} \land \text{lockedUntil} < \text{NOW}()) \implies \text{computedStatus} = \text{'available'}$                      | Integration test seeding an expired reserved seat and asserting it returns `status: "available"` in response.      |
+
+<!-- Invariant: INV-4 (404 Showtime Existence Guard) -->
+
+| **INV-4** | 404 Showtime Existence Guard | Non-existent showtime returns RFC 9457 `404 Not Found` (`shows.SHOWTIME_NOT_FOUND`). | Integration test passing a non-existent UUIDv7 and asserting `404 Not Found` with RFC 9457 Problem Details schema. |
+<!-- Invariant: INV-5 (Strict UUIDv7 Syntax Enforcement) -->
+
+| **INV-5** | Strict UUIDv7 Syntax Enforcement | Malformed UUIDv7 parameter returns RFC 9457 `400 Bad Request` (`common.INVALID_INPUT`). | Integration test passing malformed string (`"invalid-uuid"`) and asserting `400 Bad Request` with `invalidParams` details. |
+| **INV-6** | Redis Short-TTL Protection | $\text{TTL}(\text{shows:seats:}\{\text{showId}\}) \le 2\text{s} \land \text{HitRate} \ge 80\%$ | Benchmark test verifying high hit-rate under 200 VUs and sub-800ms p95 response time. |
+| **INV-7** | Fail-Open Read Availability | $\text{RedisError} \implies \text{HTTP 200 via DB Fallback} \land \neg\text{HTTP 500}$ | Unit test verifying graceful fallback to PostgreSQL when Redis client throws network exception. |
