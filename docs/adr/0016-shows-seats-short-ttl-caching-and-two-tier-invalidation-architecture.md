@@ -1,18 +1,8 @@
 # 16. Showtime Seating Chart Short-TTL Caching, Two-Tier Expiration Lifecycle, and Bandwidth Optimization Architecture
 
+Status: Accepted
 Date: 2026-10-04
 Deciders: Team / Core Architecture
-
-- **Status**: `Accepted`
-- **Date**: `2026-10-04`
-- **Feature**: `shows` & `booking`
-- **Topic**: `Short-TTL Cache-Aside (GET /shows/:id/seats), Two-Tier Seat Hold Expiration Lifecycle (BullMQ Delayed Job + Fallback Cron), Compare-And-Swap Race Condition Safety, Deterministic Multi-Point Invalidation, Three-Tier Bandwidth Optimization (HTTP Compression, Compact Dictionary Schema, Cache-Control & ETag)`
-- **Target Module**: `src/modules/shows/`, `src/modules/booking/`, `src/main.ts`, `test/load/`
-- **Spec Reference**: Issue #128, Issue #93, Issue #37, `ADR-0001` (Redlock Distributed Lock), `ADR-0004` (Payment Confirmation Architecture), `ADR-0015` (Show Seating Chart Matrix and Pricing Architecture)
-
-## Status
-
-Accepted
 
 ## Context
 

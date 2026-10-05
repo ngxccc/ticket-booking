@@ -1,18 +1,8 @@
 # 15. Showtime Seating Chart Matrix, Live Availability Computation, and Pricing Architecture
 
+Status: Accepted
 Date: 2026-09-27
 Deciders: Team / Core Architecture
-
-- **Status**: `Accepted`
-- **Date**: `2026-09-27`
-- **Feature**: `shows`
-- **Topic**: `Showtime Seating Chart Matrix (GET /api/v1/shows/:id/seats), Virtual Computed Status (Zero-Stale Holds), Single-JOIN Database Query, Catalog Multiplier Standardization (Zero-Fraction Currency)`
-- **Target Module**: `src/modules/shows/shows.controller.ts`, `src/modules/shows/shows.service.ts`, `src/modules/shows/dto/show-seats-response.dto.ts`, `src/database/schemas/`
-- **Spec Reference**: Issue #93, Issue #37, Issue #128, `docs/standards/api-design-and-error-handling.md`, `ADR-0009` (Show Seat Preallocation and Schedule Collision)
-
-## Status
-
-Accepted
 
 ## Context
 

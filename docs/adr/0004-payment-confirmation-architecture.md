@@ -1,18 +1,8 @@
 # 4. Payment Confirmation & Ticket Issuance Architecture
 
+Status: Accepted
 Date: 2026-07-31
 Deciders: Team / Core Architecture
-
-- **Status**: `Accepted`
-- **Date**: `2026-07-31`
-- **Feature**: `booking`
-- **Topic**: `Payment Confirmation & Ticket Issuance Architecture`
-- **Target Module**: `src/modules/booking/` & `src/modules/outbox/`
-- **Spec Reference**: `docs/design/booking-payment-confirmation.md`
-
-## Status
-
-Accepted
 
 ## Context
 
@@ -94,7 +84,3 @@ Implementation MUST adhere to system invariants specified in `docs/design/bookin
 - `INV-7`: Redis Fail-Closed Fallback (Graceful Degradation to DB Transaction).
 - `INV-8`: DB Statement Timeout (3s) & Observability SLO Guard (Structured JSON Logging).
 - `INV-9`: UI/UX State Machine & Status Polling (3s) Contract.
-
----
-
-- **Target Location**: `docs/adr/0004-payment-confirmation-architecture.md`

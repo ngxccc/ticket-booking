@@ -1,18 +1,8 @@
 # 2. Single Field User Full Name Format Design
 
+Status: Accepted
 Date: 2026-07-05
 Deciders: Team / Core Architecture
-
-- **Status**: `Accepted`
-- **Date**: `2026-07-05`
-- **Feature**: `auth`
-- **Topic**: `Single Field User Full Name Format Design`
-- **Target Module**: `src/modules/auth/` & Database Schema (`users` table)
-- **Spec Reference**: `docs/design/user-registration.md`
-
-## Status
-
-Accepted
 
 ## Context
 
@@ -85,7 +75,3 @@ Personalization is handled via a **lightweight application helper function (`ext
 ## Explicit Tradeoffs
 
 - **Parsing Assumptions**: Given name extraction relies on the last word in the string (valid for 95%+ of Vietnamese and English names).
-
----
-
-- **Target Location**: `docs/adr/0002-user-name-format-design-decision.md`
